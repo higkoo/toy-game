@@ -259,6 +259,7 @@ body{
   background:linear-gradient(160deg,#ffb3c2,#ff8fa3);
   box-shadow:0 3px 0 var(--coral-deep);
 }
+.seg.mini button{font-size:12px;padding:7px 3px}
 .seg.mini button.on{
   background:linear-gradient(160deg,#93daff,#5fc0f5);
   box-shadow:0 3px 0 var(--sky-deep);
@@ -620,7 +621,7 @@ canvas{
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><circle cx="9" cy="14" r="1.4"/><circle cx="15" cy="14" r="1.4"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.3"/></svg>
         </span>
         <b>AI 对战</b>
-        <small>和电脑练手，难度可选</small>
+        <small>简单到大师，四档难度可选</small>
       </button>
       <button type="button" class="home-card" data-enter="pvp">
         <span class="hc-icon pvp">
@@ -692,7 +693,7 @@ canvas{
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
         <span>设置</span>
       </button>
-      <span class="setting-summary" id="settingSummary">人机 · 简单 · 13 路</span>
+      <span class="setting-summary" id="settingSummary">人机 · 简单</span>
     </div>
 
     <div class="config" id="configPanel">
@@ -1012,7 +1013,9 @@ canvas{
       return;
     }
     var modeLabel = mode === 'ai' ? '人机' : (mode === 'online' ? '联机' : '双人');
-    settingSummary.textContent = modeLabel + ' · ' + diffText(diff) + ' · ' + N + ' 路';
+    settingSummary.textContent = mode === 'ai'
+      ? (modeLabel + ' · ' + diffText(diff))
+      : modeLabel;
   }
 
   function turnText(c) {
