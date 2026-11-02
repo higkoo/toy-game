@@ -730,6 +730,7 @@ canvas{
         <div class="room-meta" id="roomMeta">正在连接…</div>
         <div class="room-tools" id="roomTools">
           <button type="button" class="mini-btn ghost" id="swapColorBtn">换颜色</button>
+          <button type="button" class="mini-btn coral" id="kickGuestBtn" hidden>移出对手</button>
           <span class="room-hint" id="colorHint">现在执黑先手</span>
         </div>
         <div class="undo-ask" id="undoAsk" hidden>
@@ -904,6 +905,7 @@ canvas{
   var historyCloseBtn = document.getElementById('historyClose');
   var roomTools = document.getElementById('roomTools');
   var swapColorBtn = document.getElementById('swapColorBtn');
+  var kickGuestBtn = document.getElementById('kickGuestBtn');
   var colorHint = document.getElementById('colorHint');
   var winFriendBtn = document.getElementById('winFriendBtn');
   var againBtnEl = document.getElementById('againBtn');
@@ -1761,6 +1763,8 @@ canvas{
   var RELAY = 'https://ntfy.sh/';
   var TOPIC_PREFIX = 'bg-gomoku-';
   var LOBBY_TOPIC = TOPIC_PREFIX + 'lobby';
+  /* 访客每 12 秒发一次心跳，连续 3 次（约 40 秒）没来就认为对方已崩溃/断线 */
+  var GUEST_STALE_MS = 40000;
   /* 好友列表 / 设备身份 / 在线频道 与围棋共用，两边的朋友都能看到对方在线 */
   var FRIEND_KEY = 'idol_friends_v1';
   var LEGACY_FRIEND_KEYS = ['gomoku_friends_v1', 'go_friends_v1'];
@@ -1777,7 +1781,9 @@ canvas{
     pollOn: false, polling: false, pollCtrl: null, pollDelay: 1200, pollFails: 0, pollFastUntil: 0,
     lastHeard: 0, linkTimer: 0, midSeq: 0, seenMids: [],
     hbTimer: 0, watchdog: 0, lastStateAt: 0, seen: {}, denied: {}, lastState: 0,
-    undoReq: '', uid: '', hostColor: BLACK, recordPending: false, baseMeta: ''
+    undoReq: '', uid: '', hostColor: BLACK, recordPending: false, baseMeta: '',
+    /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
+    guestSince: 0, roomProbe: null, roomTries: 0
   };
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
@@ -1955,6 +1961,35 @@ canvas{
 
   function makeRoomCode() {
     return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  /* 修复：房间号碰撞检测。
+     房间号只有 6 位数字、空间有限，随机生成必然会撞号。
+     原实现直接用随机号建房，若该号已被别人占用，两个房主会同时往同一频道发消息，
+     双方状态互相覆盖，棋局直接错乱。
+     这里在建房后监听一小段时间：若收到对端的状态广播(st)，说明该号已有房主，
+     则换一个号重建，最多尝试若干次。 */
+  function createRoomWithRetry(attemptsLeft) {
+    var code = makeRoomCode();
+    online.roomProbe = { code: code, until: Date.now() + 1200, done: false };
+    createRoom(code);
+  }
+
+  /* 建房时如果探测到该房间号已被占用，就换个号重来 */
+  function onRoomProbeConflict() {
+    if (!online.roomProbe || online.roomProbe.done) return;
+    online.roomProbe.done = true;
+    var tries = (online.roomTries || 0) + 1;
+    online.roomTries = tries;
+    if (tries > 5) {
+      online.roomProbe = null;
+      setStatus('房间号一直被占用，请稍后再试');
+      leaveRoom(true);
+      return;
+    }
+    leaveRoom(true);
+    setStatus('房间号被占用，正在换一个…');
+    createRoomWithRetry(tries);
   }
 
   /* 弱网兜底：所有联机请求都带超时，避免半开连接把界面拖死 */
@@ -2706,14 +2741,22 @@ canvas{
     }
 
     if (m.t === 'kick') {
-      if (m.u === myUid()) {
+      if (m.u === myUid() || (m.gp && m.gp === myPid())) {
+        /* 被房主移出：彻底释放座位（转观战），并停掉心跳，
+           否则还会继续占着对方的名额发心跳 */
         online.role = 'spec';
+        online.guestUid = '';
+        online.guestName = '';
+        online.guestPid = '';
+        if (online.hbTimer) { window.clearInterval(online.hbTimer); online.hbTimer = 0; }
         setStatus('房主让你先观战啦');
         refreshOnlineUI();
+        updateTurnUI();
       } else if (online.role === 'host' && m.u === online.guestUid) {
         online.guestUid = '';
         online.guestName = '';
         online.guestPid = '';
+        online.guestSince = 0;
         online.seq++;
         renderPending();
         refreshOnlineUI();
@@ -2771,6 +2814,19 @@ canvas{
     }
 
     if (m.t === 'st') {
+      /* 修复：建房时若收到对端的状态广播，说明这个房间号已经被人占用，
+         换一个号重建，避免两个房主互相覆盖状态。 */
+      if (online.roomProbe && !online.roomProbe.done && Date.now() < online.roomProbe.until) {
+        var probeCode = online.roomProbe.code;
+        if (m.b && m.b !== myUid()) {
+          onRoomProbeConflict();
+          return;
+        }
+        /* 对端也是自己（重连场景）则不算冲突 */
+        if (m.b === myUid()) { online.roomProbe.done = true; }
+        else if (m.b) { onRoomProbeConflict(); return; }
+        else if (m.bp && m.bp === myPid()) { online.roomProbe.done = true; }
+      }
       applyRemoteState(m);
     }
   }
@@ -2788,6 +2844,36 @@ canvas{
       u: turn, o: over ? 1 : 0, wi: winner || 0, wl: wl,
       wq: (over && winner) ? (winner === online.hostColor ? online.hostUid : online.guestUid) : ''
     };
+  }
+
+  /* 修复：访客崩溃后房间座位永久被占。
+     原实现只有在访客主动发 bye 时才释放座位；一旦访客直接杀进程/断网，
+     bye 永远收不到，房间就再也进不来第二个人（房主还一直对着空座位广播）。
+     这里用心跳时间戳做兜底：访客每 12 秒发一次 hi，超过 GUEST_STALE_MS 没来，
+     就判定对方已离线，主动清掉座位并重新开放房间。 */
+  function reclaimStaleGuest() {
+    if (online.role !== 'host' || !online.guestUid) return;
+    var info = online.seen[online.guestUid];
+    var last = info && info.ts ? info.ts : 0;
+    /* 从未收到过心跳，但对方已登记为访客：也给一段宽限时间 */
+    if (!last) {
+      if (online.guestSince && Date.now() - online.guestSince < GUEST_STALE_MS) return;
+      last = online.guestSince || 0;
+    }
+    if (!last) return;
+    if (Date.now() - last < GUEST_STALE_MS) return;
+    var goneName = online.guestName || '朋友';
+    online.guestUid = '';
+    online.guestName = '';
+    online.guestPid = '';
+    online.guestSince = 0;
+    online.seq++;
+    renderPending();
+    refreshOnlineUI();
+    updateTurnUI();
+    broadcastState(true);
+    setStatus(goneName + ' 掉线了，座位已释放');
+    showBanner(goneName + ' 掉线了', '座位已释放，可以邀请新朋友进来');
   }
 
   function broadcastState(force) {
@@ -2953,14 +3039,21 @@ canvas{
     if (st.hc) online.hostColor = st.hc === WHITE ? WHITE : BLACK;
 
     var sizeChanged = (N !== st.n);
-    N = st.n || N;
+    /* 修复：原代码 N = st.n || N 未做范围校验，恶意/异常包可让 N 变成 1e9，
+       emptyBoard() 随即分配超大数组导致内存耗尽。限定在 9/13/15 路。 */
+    var newN = st.n || N;
+    if (newN !== 9 && newN !== 13 && newN !== 15) newN = N;
+    N = newN;
     emptyBoard();
     moves = [];
     var arr = st.m || [];
     for (var i = 0; i < arr.length; i++) {
       var a = arr[i];
-      board[a[1]][a[0]] = a[2];
-      moves.push({ x: a[0], y: a[1], c: a[2] });
+      /* 修复：原代码未校验坐标，越界会抛 TypeError 让页面崩溃 */
+      if (!a || a[0] < 0 || a[1] < 0 || a[0] >= N || a[1] >= N) continue;
+      var mvColor = (a[2] === BLACK || a[2] === WHITE) ? a[2] : BLACK;
+      board[a[1]][a[0]] = mvColor;
+      moves.push({ x: a[0], y: a[1], c: mvColor });
     }
     turn = st.u === WHITE ? WHITE : BLACK;
     var wasOver = over;
@@ -3050,6 +3143,7 @@ canvas{
     online.baseMeta = meta;
     if (roomMetaEl) roomMetaEl.textContent = meta + netSuffix();
     if (roomTools) roomTools.classList.toggle('on', online.role === 'host');
+    if (kickGuestBtn) kickGuestBtn.hidden = !(online.role === 'host' && online.guestUid);
     if (colorHint) colorHint.textContent = online.hostColor === BLACK ? '现在执黑先手' : '现在执白后手';
     renderPending();
     renderUndoAsk();
@@ -3110,6 +3204,7 @@ canvas{
     online.guestUid = uid;
     online.guestPid = pid || (online.seen[uid] && online.seen[uid].p) || '';
     online.guestName = name || online.guestName || nameOf(uid);
+    online.guestSince = Date.now();
     publish({ t: 'ok', u: uid, b: online.hostUid, bp: online.hostPid || myPid(), gp: online.guestPid });
     renderPending();
     refreshOnlineUI();
@@ -3127,6 +3222,28 @@ canvas{
     refreshOnlineUI();
   }
 
+  /* 修复：kick 消息原来只处理接收端，房主根本没有发送的入口，
+     也就无法把赖着不走的对手请出房间。这里补上发送端：
+     房主点「移出对手」后广播 kick，被请的人转为观战并离开座位。 */
+  function kickGuest() {
+    if (online.role !== 'host' || !online.guestUid) return;
+    var uid = online.guestUid;
+    var pid = online.guestPid || '';
+    var name = online.guestName || nameOf(uid);
+    publish({ t: 'kick', u: uid, p: pid, gp: pid, b: online.hostUid, bp: online.hostPid || myPid() });
+    online.guestUid = '';
+    online.guestName = '';
+    online.guestPid = '';
+    online.guestSince = 0;
+    online.seq++;
+    renderPending();
+    refreshOnlineUI();
+    updateTurnUI();
+    broadcastState(true);
+    setStatus('已把 ' + name + ' 移出房间');
+    showBanner(name + ' 已被移出', '你可以邀请新朋友进来');
+  }
+
   function renderUndoAsk() {
     if (!undoAskEl) return;
     var show = !replay.on && online.role === 'host' && !!online.undoReq && !over;
@@ -3137,7 +3254,11 @@ canvas{
   function hostUndo(uid) {
     if (online.role !== 'host' || !online.room) return false;
     if (over || !moves.length) return false;
-    var color = (uid === online.hostUid) ? BLACK : WHITE;
+    /* 修复：原代码硬编码 BLACK/WHITE，房主"换颜色"后双方悔棋都会失效。
+       改为按 online.hostColor 推导实际执子方。 */
+    var myColor = online.hostColor;
+    var oppColor = myColor === BLACK ? WHITE : BLACK;
+    var color = (uid === online.hostUid) ? myColor : oppColor;
     if (moves[moves.length - 1].c !== color) return false;
     popMove();
     turn = color;
@@ -3153,8 +3274,8 @@ canvas{
     return true;
   }
 
-  function createRoom() {
-    var code = makeRoomCode();
+  function createRoom(code) {
+    if (!code) code = makeRoomCode();
     online.uid = me.uid;
     online.role = 'host';
     online.hostUid = myUid();
@@ -3179,6 +3300,8 @@ canvas{
     online.hbTimer = window.setInterval(function () {
       /* 没有对手时不用定时发全量状态，减少公共中转的消息量 */
       if (online.role === 'host' && online.guestUid) broadcastState(false);
+      /* 修复：访客崩溃后座位会永久占着，这里按心跳超时自动释放 */
+      reclaimStaleGuest();
     }, 8000);
   }
 
@@ -3214,6 +3337,28 @@ canvas{
   function sendHi() {
     if (!online.topic || online.role === 'host') return;
     publish({ t: 'hi', u: myUid(), p: myPid(), n: me.name });
+  }
+
+  /* 修复：访客关掉页面时房间座位会一直留着。
+     原来只在点「离开」按钮时才发 bye；直接关标签页/杀进程就收不到，
+     房主那边座位就一直被占着。
+     这里在页面隐藏/卸载时用 sendBeacon 补发一条 bye（比 fetch 可靠，
+     页面正在关闭时也能把请求发出去），房主也能立刻把座位释放掉。 */
+  function sendByeBeacon() {
+    if (!online.topic || online.role === 'host') return;
+    var payload = JSON.stringify({ t: 'bye', u: myUid(), p: myPid() });
+    try {
+      if (navigator.sendBeacon) {
+        var ok = navigator.sendBeacon(RELAY + online.topic, new Blob([payload], { type: 'text/plain' }));
+        if (ok) return;
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', RELAY + online.topic, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain');
+      xhr.send(payload);
+    } catch (e) { /* ignore */ }
   }
 
   function leaveRoom(silent) {
@@ -3718,7 +3863,9 @@ canvas{
         if (hostUndo(online.hostUid)) setStatus('悔棋成功，重新下一手吧');
         else setStatus('只能悔自己刚下的那一手哦');
       } else if (online.role === 'guest') {
-        if (moves[moves.length - 1].c !== WHITE) {
+        /* 修复：原硬编码 WHITE，房主换色后 guest 执黑时无法悔棋 */
+        var guestColor = online.hostColor === BLACK ? WHITE : BLACK;
+        if (moves[moves.length - 1].c !== guestColor) {
           setStatus('只能悔自己刚下的那一手哦');
           return;
         }
@@ -3919,7 +4066,8 @@ canvas{
   if (createRoomBtn) {
     createRoomBtn.addEventListener('click', function () {
       if (mode !== 'online') forceMode('online');
-      createRoom();
+      online.roomTries = 0;
+      createRoomWithRetry();
     });
   }
   if (joinRoomBtn) {
@@ -3954,6 +4102,9 @@ canvas{
   }
   if (swapColorBtn) {
     swapColorBtn.addEventListener('click', function () { swapHostColor(); });
+  }
+  if (kickGuestBtn) {
+    kickGuestBtn.addEventListener('click', function () { kickGuest(); });
   }
   if (reconnectBtn) {
     reconnectBtn.addEventListener('click', reconnectRoom);
@@ -4084,6 +4235,9 @@ canvas{
     }
     if (!online.polling) pollOnce();
   });
+  /* 修复：页面被关闭/切后台时补发 bye，让房主及时释放座位 */
+  window.addEventListener('pagehide', function () { sendByeBeacon(); });
+  window.addEventListener('beforeunload', function () { sendByeBeacon(); });
   var roomParam = null;
   try {
     var m = /[?&]room=([0-9]{6})/.exec(window.location.search || '');

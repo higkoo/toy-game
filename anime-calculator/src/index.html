@@ -380,24 +380,139 @@ function formatDisplay(s){
   return s;
 }
 
-function parseExpr(raw){
-  var s=raw
-    .replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
-    .replace(/π/g,'('+Math.PI+')').replace(/e(?![a-z])/g,'('+Math.E+')')
-    .replace(/sin\(/g,'Math.sin((Math.PI/180)*')
-    .replace(/cos\(/g,'Math.cos((Math.PI/180)*')
-    .replace(/tan\(/g,'Math.tan((Math.PI/180)*')
-    .replace(/ln\(/g,'Math.log(')
-    .replace(/log\(/g,'Math.log10(')
-    .replace(/√\(/g,'Math.sqrt(');
-  return s;
+/* 修复：原本用 new Function 直接执行用户输入的表达式，
+   存在代码注入风险（历史记录回填可注入）。现改为白名单递归下降解析器，
+   只支持数字与 + - * / ^ % 括号，不执行任何任意代码。 */
+function evalExpr(tokens) {
+  var pos = 0;
+  function peek() { return tokens[pos]; }
+  function next() { return tokens[pos++]; }
+  function expect(v) {
+    var t = next();
+    if (t !== v) throw new Error('parse');
+    return t;
+  }
+
+  /* expr := term (('+'|'-') term)* */
+  function parseExpr() {
+    var v = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      var op = next();
+      var r = parseTerm();
+      v = (op === '+') ? v + r : v - r;
+    }
+    return v;
+  }
+
+  /* term := power (('*'|'/'|'%') power)* */
+  function parseTerm() {
+    var v = parsePower();
+    while (peek() === '*' || peek() === '/' || peek() === '%') {
+      var op = next();
+      var r = parsePower();
+      if (op === '*') v = v * r;
+      else if (op === '/') { if (r === 0) throw new Error('div0'); v = v / r; }
+      else { if (r === 0) throw new Error('div0'); v = v % r; }
+    }
+    return v;
+  }
+
+  /* power := unary ('^' power)?   右结合 */
+  function parsePower() {
+    var base = parseUnary();
+    if (peek() === '^') {
+      next();
+      var e = parsePower();
+      return Math.pow(base, e);
+    }
+    return base;
+  }
+
+  /* unary := ('+'|'-')* primary */
+  function parseUnary() {
+    if (peek() === '+') { next(); return parseUnary(); }
+    if (peek() === '-') { next(); return -parseUnary(); }
+    return parsePrimary();
+  }
+
+  /* primary := number | '(' expr ')' | func '(' expr ')' */
+  function parsePrimary() {
+    var t = next();
+    if (t === undefined) throw new Error('eof');
+    if (t === '(') {
+      var v = parseExpr();
+      expect(')');
+      return v;
+    }
+    if (t && t.num !== undefined) return t.num;
+    if (t && t.func) {
+      expect('(');
+      var arg = parseExpr();
+      expect(')');
+      switch (t.func) {
+        case 'sin': return Math.sin(arg * Math.PI / 180);
+        case 'cos': return Math.cos(arg * Math.PI / 180);
+        case 'tan': return Math.tan(arg * Math.PI / 180);
+        case 'ln': return Math.log(arg);
+        case 'log': return Math.log10(arg);
+        case 'sqrt': return Math.sqrt(arg);
+      }
+      throw new Error('func');
+    }
+    throw new Error('token');
+  }
+
+  var v = parseExpr();
+  if (pos !== tokens.length) throw new Error('trailing');
+  return v;
+}
+
+/* 把表达式切成 token 序列：数字 / 运算符 / 括号 / 函数名 */
+function tokenize(s) {
+  var out = [], i = 0;
+  var FN = ['sin', 'cos', 'tan', 'ln', 'log', 'sqrt'];
+  while (i < s.length) {
+    var ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    if (ch >= '0' && ch <= '9' || ch === '.') {
+      var j = i;
+      while (j < s.length && (s[j] >= '0' && s[j] <= '9' || s[j] === '.')) j++;
+      var numStr = s.slice(i, j);
+      if (numStr === '.') throw new Error('num');
+      var num = parseFloat(numStr);
+      if (!isFinite(num)) throw new Error('num');
+      out.push({ num: num });
+      i = j;
+      continue;
+    }
+    /* ** 幂运算符（x² / x³ 按钮会生成）——必须先于单 '*' 判断 */
+    if (ch === '*' && s[i + 1] === '*') { out.push('^'); i += 2; continue; }
+    if (ch === '+' || ch === '-' || ch === '*' || ch === '/' || ch === '%' || ch === '^' || ch === '(' || ch === ')') {
+      out.push(ch); i++; continue;
+    }
+    /* 显示符号归一化 */
+    if (ch === '×') { out.push('*'); i++; continue; }
+    if (ch === '÷') { out.push('/'); i++; continue; }
+    if (ch === '−') { out.push('-'); i++; continue; }
+    /* 常量 π 与 e */
+    if (ch === 'π') { out.push({ num: Math.PI }); i++; continue; }
+    if (ch === 'e' && !/[a-z]/i.test(s[i + 1] || '')) { out.push({ num: Math.E }); i++; continue; }
+    /* 函数名 */
+    var matched = null;
+    for (var f = 0; f < FN.length; f++) {
+      if (s.substr(i, FN[f].length) === FN[f]) { matched = FN[f]; break; }
+    }
+    if (matched) { out.push({ func: matched }); i += matched.length; continue; }
+    /* √ 视为 sqrt */
+    if (ch === '√') { out.push({ func: 'sqrt' }); i++; continue; }
+    throw new Error('char:' + ch);
+  }
+  return out;
 }
 
 function safeEval(expr){
-  var parsed=parseExpr(expr);
   try{
-    var f=new Function('return ('+parsed+')');
-    var r=f();
+    var r = evalExpr(tokenize(expr));
     if(typeof r!=='number'||!isFinite(r))return 'Error';
     if(Math.abs(r)<1e-12)r=0;
     return Number(r.toPrecision(12)).toString();
@@ -478,17 +593,29 @@ function backspace(){
 
 function doParen(){
   justEq=false;
-  expression+='(';current='';updateDisplay();
+  // 修复：若当前正在输入数字，先把它并入表达式，避免数字丢失
+  if(current!==''&&current!=='0'){expression+=current;}
+  current='';
+  expression+='(';updateDisplay();
 }
 function doParen2(){
   justEq=false;
-  expression+='(';updateDisplay();
+  // 修复 1：原本误写入 '('，右括号按钮产生的是 '('
+  // 修复 2：先把正在输入的数字并入表达式，否则会得到 '()12' 这种错误顺序
+  if(current!==''&&current!=='0'){expression+=current;}
+  current='';
+  expression+=')';updateDisplay();
 }
 
 function equals(){
   if(current==='Error')return;
   var full=(expression||'')+current;
   if(!full)return;
+  /* 修复：科学函数表达式形如 "sin(" + 数字，右括号缺失导致求值失败。
+     这里按未闭合的左括号数量自动补齐右括号。 */
+  var open = (full.match(/\(/g) || []).length;
+  var close = (full.match(/\)/g) || []).length;
+  for (var ci = 0; ci < open - close; ci++) full += ')';
   var res=safeEval(full);
   if(res!=='Error'){
     addHistory(full,res);
