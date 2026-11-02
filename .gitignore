@@ -1,0 +1,6 @@
+.toycli/
+.uploads/
+.screenshots/
+.trae-html-share-packages/
+.placeholder
+node_modules/

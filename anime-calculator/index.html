@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>小偶像の计算器 ♡</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#ffe4ec 0%,#ffd6e7 25%,#fce4ff 50%,#e4e1ff 75%,#d4f1ff 100%);background-attachment:fixed;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(255,182,193,.4) 0,transparent 30%),radial-gradient(circle at 80% 70%,rgba(186,230,253,.4) 0,transparent 30%),radial-gradient(circle at 50% 50%,rgba(255,218,233,.3) 0,transparent 40%);pointer-events:none;z-index:0}
+.container{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:16px 12px 32px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.title{font-size:20px;font-weight:700;color:#e85a8a;text-align:center;margin:18px 0 4px;text-shadow:0 2px 8px rgba(232,90,138,.2);letter-spacing:1px}
+.title .sparkle{font-size:16px;display:inline-block;animation:twinkle 1.5s ease-in-out infinite}
+.title .sparkle:nth-child(2){animation-delay:.5s}
+@keyframes twinkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.2)}}
+
+.calc-card{width:100%;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-radius:28px;padding:20px 18px 18px;box-shadow:0 12px 40px rgba(232,90,138,.18),0 2px 8px rgba(180,150,220,.12);border:2px solid rgba(255,200,220,.5)}
+
+.avatar-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ffb6d9,#c9b6ff,#b6d9ff);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 12px rgba(201,182,255,.4);animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.greeting{font-size:14px;color:#b36b8a}
+.greeting b{color:#e85a8a}
+
+.display-wrap{background:linear-gradient(135deg,#fff5f9,#f0f0ff);border-radius:20px;padding:18px 20px;margin-bottom:16px;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:inset 0 2px 6px rgba(232,90,138,.08);border:1px solid rgba(232,90,138,.12)}
+.expression{font-size:16px;color:#b36b8a;min-height:22px;word-break:break-all;line-height:1.4;margin-bottom:6px;font-weight:500}
+.result{font-size:42px;font-weight:700;color:#4a3b5c;text-align:right;word-break:break-all;line-height:1.15;text-shadow:0 2px 4px rgba(74,59,92,.08)}
+
+.history-toggle{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#b36b8a;cursor:pointer;padding:6px;margin-bottom:4px;user-select:none}
+.history-toggle .arrow{transition:transform .3s}
+.history-toggle.open .arrow{transform:rotate(180deg)}
+.history-panel{max-height:0;overflow:hidden;transition:max-height .35s ease;margin-bottom:0}
+.history-panel.open{max-height:180px;margin-bottom:12px;overflow-y:auto}
+.history-list{background:rgba(255,245,249,.6);border-radius:14px;padding:8px;margin-top:2px}
+.history-item{padding:6px 10px;border-radius:10px;font-size:13px;cursor:pointer;transition:background .2s}
+.history-item:hover{background:rgba(255,182,193,.3)}
+.history-item .h-expr{color:#b36b8a;font-size:12px}
+.history-item .h-res{color:#4a3b5c;font-weight:600;font-size:14px;margin-top:1px;text-align:right}
+.history-empty{text-align:center;color:#c9a0b8;font-size:12px;padding:10px}
+.clear-history{text-align:center;font-size:11px;color:#c9a0b8;cursor:pointer;padding:4px;margin-top:4px}
+.clear-history:hover{color:#e85a8a}
+
+.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.btn{border:none;border-radius:16px;padding:16px 0;font-size:18px;font-weight:600;cursor:pointer;transition:all .15s cubic-bezier(.34,1.56,.64,1);user-select:none;font-family:inherit;position:relative;overflow:hidden}
+.btn:active{transform:scale(.92)}
+.btn-num{background:linear-gradient(135deg,#fff5f9,#ffe8f2);color:#4a3b5c;box-shadow:0 4px 10px rgba(232,90,138,.1)}
+.btn-num:hover{background:linear-gradient(135deg,#ffe8f2,#ffd6e7);transform:translateY(-2px);box-shadow:0 6px 16px rgba(232,90,138,.2)}
+.btn-op{background:linear-gradient(135deg,#ffb6d9,#ff85b3);color:#fff;box-shadow:0 4px 10px rgba(232,90,138,.25)}
+.btn-op:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(232,90,138,.35)}
+.btn-fn{background:linear-gradient(135deg,#e0d4ff,#c4b6ff);color:#fff;box-shadow:0 4px 10px rgba(148,120,230,.25);font-size:15px}
+.btn-fn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(148,120,230,.35)}
+.btn-eq{background:linear-gradient(135deg,#ff85b3,#ff5a94);color:#fff;box-shadow:0 4px 16px rgba(232,90,138,.3);font-size:22px;grid-column:span 1}
+.btn-eq:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 6px 20px rgba(232,90,138,.45)}
+.btn-eq:active{animation:heartbeat .4s ease}
+@keyframes heartbeat{0%{transform:scale(.92)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.btn-clear{background:linear-gradient(135deg,#ffd4d4,#ffb3b3);color:#d6336c;font-size:16px}
+.btn-del{background:linear-gradient(135deg,#fce4ff,#e4d4ff);color:#8a6bb3;font-size:16px}
+
+.mood-bubble{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,179,200,.95);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(232,90,138,.3);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.mood-bubble.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
+
+.particles{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
+.particle{position:absolute;font-size:16px;animation:pop 1s ease-out forwards}
+@keyframes pop{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(.5)}}
+
+@media(max-width:360px){
+  .container{padding:12px 8px 24px}
+  .title{font-size:17px}
+  .calc-card{padding:16px 14px 14px;border-radius:22px}
+  .display-wrap{padding:14px 16px;min-height:100px}
+  .result{font-size:34px}
+  .expression{font-size:14px}
+  .btn{padding:14px 0;font-size:16px;border-radius:14px}
+  .buttons{gap:8px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title"><span class="sparkle">★</span> 小偶像の计算器 <span class="sparkle">♡</span></div>
+  <div class="calc-card">
+    <div class="avatar-row">
+      <div class="avatar">★</div>
+      <div class="greeting">你好呀～<b>主人</b>！让我帮你算一算吧 ♡</div>
+    </div>
+    <div class="display-wrap">
+      <div class="expression" id="expr">&nbsp;</div>
+      <div class="result" id="result">0</div>
+    </div>
+    <div class="history-toggle" id="histToggle">[历史] <span class="arrow">↓</span></div>
+    <div class="history-panel" id="histPanel">
+      <div class="history-list" id="histList"></div>
+      <div class="clear-history" id="clearHist">清除全部</div>
+    </div>
+    <div class="buttons">
+      <button class="btn btn-clear" data-action="clear">AC</button>
+      <button class="btn btn-del" data-action="del">←</button>
+      <button class="btn btn-fn" data-action="paren">(</button>
+      <button class="btn btn-fn" data-action="paren2">)</button>
+      <button class="btn btn-fn" data-fn="sin">sin</button>
+      <button class="btn btn-fn" data-fn="cos">cos</button>
+      <button class="btn btn-fn" data-fn="tan">tan</button>
+      <button class="btn btn-op" data-op="/">÷</button>
+      <button class="btn btn-num" data-num="7">7</button>
+      <button class="btn btn-num" data-num="8">8</button>
+      <button class="btn btn-num" data-num="9">9</button>
+      <button class="btn btn-op" data-op="*">×</button>
+      <button class="btn btn-num" data-num="4">4</button>
+      <button class="btn btn-num" data-num="5">5</button>
+      <button class="btn btn-num" data-num="6">6</button>
+      <button class="btn btn-op" data-op="-">−</button>
+      <button class="btn btn-num" data-num="1">1</button>
+      <button class="btn btn-num" data-num="2">2</button>
+      <button class="btn btn-num" data-num="3">3</button>
+      <button class="btn btn-op" data-op="+">+</button>
+      <button class="btn btn-num" data-fn="negate">±</button>
+      <button class="btn btn-num" data-num="0">0</button>
+      <button class="btn btn-num" data-num=".">.</button>
+      <button class="btn btn-eq" data-action="eq">=</button>
+      <button class="btn btn-fn" data-fn="ln">ln</button>
+      <button class="btn btn-fn" data-fn="log">log</button>
+      <button class="btn btn-fn" data-fn="sqrt">√</button>
+      <button class="btn btn-fn" data-fn="pi">π</button>
+      <button class="btn btn-fn" data-fn="pow">x²</button>
+      <button class="btn btn-fn" data-fn="pow3">x³</button>
+      <button class="btn btn-fn" data-fn="pct">%</button>
+      <button class="btn btn-fn" data-fn="1x">1/x</button>
+    </div>
+  </div>
+</div>
+<div class="mood-bubble" id="mood"></div>
+<div class="particles" id="particles"></div>
+<script>
+(function(){
+var exprEl=document.getElementById('expr');
+var resultEl=document.getElementById('result');
+var histToggle=document.getElementById('histToggle');
+var histPanel=document.getElementById('histPanel');
+var histList=document.getElementById('histList');
+var clearHistBtn=document.getElementById('clearHist');
+var moodEl=document.getElementById('mood');
+var particlesEl=document.getElementById('particles');
+var current='0';
+var expression='';
+var justEq=false;
+
+var moods=[
+  '主人加油呀 ♡','算对啦～好棒！','嘿咻嘿咻★','让我看看……','哇！好复杂呀','嗯嗯～我想想','这题我会！','咦？让我再算一遍','数学好有趣♡','主人好厉害！'
+];
+
+var sparkles=['★','♡','*','+','o','.','x','.'];
+
+function showMood(txt){
+  moodEl.textContent=txt;
+  moodEl.classList.add('show');
+  clearTimeout(moodEl._t);
+  moodEl._t=setTimeout(function(){moodEl.classList.remove('show')},1800);
+}
+
+function spark(x,y){
+  var s=document.createElement('div');
+  s.className='particle';
+  s.textContent=sparkles[Math.floor(Math.random()*sparkles.length)];
+  s.style.left=(x||Math.random()*window.innerWidth)+'px';
+  s.style.top=(y||Math.random()*window.innerHeight/2)+'px';
+  s.style.color='hsl('+(330+Math.random()*50)+',80%,70%)';
+  particlesEl.appendChild(s);
+  setTimeout(function(){s.remove()},1000);
+}
+
+function updateDisplay(){
+  resultEl.textContent=formatDisplay(current);
+  exprEl.innerHTML=expression||'\u00A0';
+}
+
+function formatDisplay(s){
+  if(s==='Error')return '出错啦 >_<';
+  if(s.length>14){
+    var n=parseFloat(s);
+    if(!isNaN(n)){
+      if(Math.abs(n)>=1e14||(Math.abs(n)<1e-4&&n!==0)){
+        return n.toExponential(8);
+      }
+      if(n.toString().length>14)return n.toPrecision(12);
+    }
+  }
+  return s;
+}
+
+function parseExpr(raw){
+  var s=raw
+    .replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
+    .replace(/π/g,'('+Math.PI+')').replace(/e(?![a-z])/g,'('+Math.E+')')
+    .replace(/sin\(/g,'Math.sin((Math.PI/180)*')
+    .replace(/cos\(/g,'Math.cos((Math.PI/180)*')
+    .replace(/tan\(/g,'Math.tan((Math.PI/180)*')
+    .replace(/ln\(/g,'Math.log(')
+    .replace(/log\(/g,'Math.log10(')
+    .replace(/√\(/g,'Math.sqrt(');
+  return s;
+}
+
+function safeEval(expr){
+  var parsed=parseExpr(expr);
+  try{
+    var f=new Function('return ('+parsed+')');
+    var r=f();
+    if(typeof r!=='number'||!isFinite(r))return 'Error';
+    if(Math.abs(r)<1e-12)r=0;
+    return Number(r.toPrecision(12)).toString();
+  }catch(e){
+    return 'Error';
+  }
+}
+
+function appendNum(n){
+  if(justEq){current='';expression='';justEq=false}
+  if(current==='0'&&n!=='.')current='';
+  if(n==='.'&&current.indexOf('.')!==-1)return;
+  current+=n;
+  updateDisplay();
+}
+
+function appendOp(op){
+  justEq=false;
+  if(current==='Error'){current='0';return}
+  var disp=op==='*'?'×':op==='/'?'÷':op==='-'?'−':op;
+  if(current!==''){
+    expression+=current+disp;
+    current='';
+  }else{
+    expression=expression.replace(/[+\-×÷]$/,disp);
+  }
+  updateDisplay();
+}
+
+function appendFn(fn){
+  justEq=false;
+  if(current==='Error'){current='0';return}
+  switch(fn){
+    case 'sin':case 'cos':case 'tan':case 'ln':case 'log':case 'sqrt':
+      expression+=fn+'(';current='';break;
+    case 'pi':
+      if(current==='0')current='π';else current+='π';break;
+    case 'pct':
+      if(current!=='')current=(parseFloat(current)/100).toString();break;
+    case 'negate':
+      if(current!=='0'&&current!==''){
+        current=current.startsWith('-')?current.slice(1):'-'+current;
+      }break;
+    case '1x':
+      if(current!==''&&current!=='0'){
+        expression='1/('+current+')';
+        current=safeEval(expression);expression='';
+      }break;
+    case 'pow':
+      if(current!==''){
+        expression='('+current+')**2';
+        current=safeEval(expression);expression='';
+      }break;
+    case 'pow3':
+      if(current!==''){
+        expression='('+current+')**3';
+        current=safeEval(expression);expression='';
+      }break;
+  }
+  updateDisplay();
+}
+
+function clearAll(){
+  current='0';expression='';justEq=false;updateDisplay();
+}
+
+function backspace(){
+  if(justEq){return}
+  if(current.length>0&&current!=='Error'){
+    current=current.slice(0,-1)||'0';
+  }else if(expression.length>0){
+    expression=expression.slice(0,-1);
+    var m=expression.match(/([0-9.π]+)$/);
+    current=m?m[1]:'0';
+  }
+  updateDisplay();
+}
+
+function doParen(){
+  justEq=false;
+  expression+='(';current='';updateDisplay();
+}
+function doParen2(){
+  justEq=false;
+  expression+='(';updateDisplay();
+}
+
+function equals(){
+  if(current==='Error')return;
+  var full=(expression||'')+current;
+  if(!full)return;
+  var res=safeEval(full);
+  if(res!=='Error'){
+    addHistory(full,res);
+    spark(window.innerWidth/2,window.innerHeight/2-100);
+    spark(window.innerWidth/2+30,window.innerHeight/2-80);
+    showMood(moods[Math.floor(Math.random()*moods.length)]);
+  }else{
+    showMood('呜……算错了啦 >_<');
+  }
+  expression='';
+  current=res;
+  justEq=true;
+  updateDisplay();
+}
+
+function addHistory(expr,res){
+  var item={expr:expr,res:res,ts:Date.now()};
+  try{
+    var list=JSON.parse(localStorage.getItem('toy_calc_hist')||'[]');
+    list.unshift(item);
+    if(list.length>30)list=list.slice(0,30);
+    localStorage.setItem('toy_calc_hist',JSON.stringify(list));
+  }catch(e){}
+  renderHistory();
+}
+
+function renderHistory(){
+  var list=[];
+  try{list=JSON.parse(localStorage.getItem('toy_calc_hist')||'[]')}catch(e){}
+  if(!list.length){
+    histList.innerHTML='<div class="history-empty">还没有计算记录～</div>';
+    clearHistBtn.style.display='none';
+    return;
+  }
+  clearHistBtn.style.display='block';
+  histList.innerHTML=list.map(function(it,i){
+    return '<div class="history-item" data-i="'+i+'"><div class="h-expr">'+escapeHtml(it.expr)+'</div><div class="h-res">= '+escapeHtml(it.res)+'</div></div>';
+  }).join('');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]});
+}
+
+histToggle.addEventListener('click',function(){
+  histPanel.classList.toggle('open');
+  histToggle.classList.toggle('open');
+});
+
+histList.addEventListener('click',function(e){
+  var t=e.target.closest('.history-item');
+  if(!t)return;
+  var i=parseInt(t.dataset.i);
+  var list=[];
+  try{list=JSON.parse(localStorage.getItem('toy_calc_hist')||'[]')}catch(e){}
+  if(list[i]){current=list[i].res;expression='';justEq=true;updateDisplay()}
+});
+
+clearHistBtn.addEventListener('click',function(){
+  if(confirm('确定要清除全部历史吗？')){
+    try{localStorage.removeItem('toy_calc_hist')}catch(e){}
+    renderHistory();
+  }
+});
+
+document.querySelector('.buttons').addEventListener('click',function(e){
+  var btn=e.target.closest('.btn');
+  if(!btn)return;
+  spark(e.clientX,e.clientY);
+  if(btn.dataset.num!==undefined)appendNum(btn.dataset.num);
+  else if(btn.dataset.op!==undefined)appendOp(btn.dataset.op);
+  else if(btn.dataset.fn!==undefined)appendFn(btn.dataset.fn);
+  else if(btn.dataset.action==='clear')clearAll();
+  else if(btn.dataset.action==='del')backspace();
+  else if(btn.dataset.action==='eq')equals();
+  else if(btn.dataset.action==='paren')doParen();
+  else if(btn.dataset.action==='paren2')doParen2();
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'||e.key==='='){e.preventDefault();equals()}
+  else if(e.key==='Backspace'){backspace()}
+  else if(e.key==='Escape'||e.key==='Delete'){clearAll()}
+  else if(/^[0-9.]$/.test(e.key)){appendNum(e.key)}
+  else if(/^[+\-*/]$/.test(e.key)){appendOp(e.key)}
+  else if(e.key==='('){doParen()}
+  else if(e.key===')'){doParen2()}
+});
+
+renderHistory();
+updateDisplay();
+})();
+</script>
+</body>
+</html>
