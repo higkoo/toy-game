@@ -711,6 +711,7 @@ canvas{
           <button type="button" data-diff="easy" class="on">简单</button>
           <button type="button" data-diff="normal">普通</button>
           <button type="button" data-diff="hard">困难</button>
+          <button type="button" data-diff="master">大师</button>
         </div>
       </div>
 
@@ -999,6 +1000,10 @@ canvas{
     statusEl.textContent = text;
   }
 
+  function diffText(d) {
+    return d === 'easy' ? '简单' : d === 'normal' ? '普通' : d === 'hard' ? '困难' : '大师';
+  }
+
   function refreshSummary() {
     if (!settingSummary) return;
     if (mode === 'teach') {
@@ -1007,8 +1012,7 @@ canvas{
       return;
     }
     var modeLabel = mode === 'ai' ? '人机' : (mode === 'online' ? '联机' : '双人');
-    settingSummary.textContent = modeLabel + ' · ' +
-      (diff === 'easy' ? '简单' : diff === 'normal' ? '普通' : '困难') + ' · ' + N + ' 路';
+    settingSummary.textContent = modeLabel + ' · ' + diffText(diff) + ' · ' + N + ' 路';
   }
 
   function turnText(c) {
@@ -1720,6 +1724,17 @@ canvas{
     return total;
   }
 
+  function bestReplyMove(color) {
+    var best = null;
+    var list = candidates();
+    for (var i = 0; i < list.length; i++) {
+      var v = evalPoint(list[i].x, list[i].y, color);
+      if (!best || v > best.score) best = { x: list[i].x, y: list[i].y, score: v };
+      if (best.score >= 500000) break;
+    }
+    return best;
+  }
+
   function bestReplyScore(color) {
     var best = 0;
     var list = candidates();
@@ -1777,6 +1792,8 @@ canvas{
       return { x: scored[0].x, y: scored[0].y };
     }
 
+    if (diff === 'master') return aiPickMaster(scored);
+
     var topN = Math.min(6, scored.length);
     var bestMove = scored[0];
     var bestVal = -Infinity;
@@ -1786,6 +1803,33 @@ canvas{
       var oppBest = bestReplyScore(BLACK);
       board[m.y][m.x] = 0;
       var val = m.off * 1.0 + m.def * 0.92 - oppBest * 0.88;
+      if (val > bestVal) {
+        bestVal = val;
+        bestMove = m;
+      }
+    }
+    return { x: bestMove.x, y: bestMove.y };
+  }
+
+  /* 大师：自己落子后，模拟对手最强回应，再看自己还能补什么，取净收益最高点 */
+  function aiPickMaster(scored) {
+    var topN = Math.min(10, scored.length);
+    var bestMove = scored[0];
+    var bestVal = -Infinity;
+    for (var t = 0; t < topN; t++) {
+      var m = scored[t];
+      board[m.y][m.x] = WHITE;
+      var reply = bestReplyMove(BLACK);
+      var replyVal = 0;
+      var follow = 0;
+      if (reply) {
+        replyVal = reply.score;
+        board[reply.y][reply.x] = BLACK;
+        follow = bestReplyScore(WHITE);
+        board[reply.y][reply.x] = 0;
+      }
+      board[m.y][m.x] = 0;
+      var val = m.off * 1.0 + m.def * 0.95 - replyVal * 0.9 + follow * 0.45;
       if (val > bestVal) {
         bestVal = val;
         bestMove = m;
@@ -4034,7 +4078,7 @@ canvas{
   bindSeg(diffSeg, 'data-diff', function (v) {
     diff = v;
     refreshSummary();
-    setStatus('难度换成' + (v === 'easy' ? '简单' : v === 'normal' ? '普通' : '困难') + '啦！');
+    setStatus('难度换成' + diffText(v) + '啦！');
   });
 
   bindSeg(sizeSeg, 'data-size', function (v) {

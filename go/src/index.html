@@ -461,6 +461,7 @@ canvas{
           <button type="button" data-diff="easy" class="on">简单</button>
           <button type="button" data-diff="normal">普通</button>
           <button type="button" data-diff="hard">困难</button>
+          <button type="button" data-diff="master">大师</button>
         </div>
       </div>
       <div class="row">
@@ -724,7 +725,7 @@ canvas{
       if (!raw) return;
       var o = JSON.parse(raw);
       if (o && (o.mode === 'ai' || o.mode === 'pvp')) mode = o.mode;
-      if (o && (o.diff === 'easy' || o.diff === 'normal' || o.diff === 'hard')) diff = o.diff;
+      if (o && (o.diff === 'easy' || o.diff === 'normal' || o.diff === 'hard' || o.diff === 'master')) diff = o.diff;
       if (o && (o.n === 9 || o.n === 13 || o.n === 19)) N = o.n;
     } catch (e) { /* ignore */ }
   }
@@ -792,10 +793,14 @@ canvas{
     if (els.settingToggle) els.settingToggle.classList.toggle('open', open);
   }
 
+  function diffText(d) {
+    return d === 'easy' ? '简单' : d === 'normal' ? '普通' : d === 'hard' ? '困难' : '大师';
+  }
+
   function updateSummary() {
     if (!els.settingSummary) return;
     var m = mode === 'ai' ? '人机' : (mode === 'online' ? '联机' : '双人');
-    var d = diff === 'easy' ? '简单' : diff === 'normal' ? '普通' : '困难';
+    var d = diffText(diff);
     els.settingSummary.textContent = mode === 'ai'
       ? (m + ' · ' + d + ' · ' + N + ' 路')
       : (m + ' · ' + N + ' 路');
@@ -1211,16 +1216,29 @@ canvas{
   }
 
   /* ---------- 人机 ---------- */
+  function stoneNear(bd, x, y, n) {
+    for (var dy = -2; dy <= 2; dy++) {
+      for (var dx = -2; dx <= 2; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        var nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < n && ny < n && bd[ny * n + nx]) return true;
+      }
+    }
+    return false;
+  }
+
   /* 修复：原签名只有 (color)，困难档却传入 (m.res.board, color) 两个实参，
      导致盘面参数被丢弃、color 形参拿到数组，"模拟对手回应"完全失效。
-     现改为可选传入盘面/劫点，默认沿用全局状态。 */
-  function legalCandidates(color, bd, ko) {
+     现改为可选传入盘面/劫点，默认沿用全局状态。
+     nearOnly 用于大师档的深层模拟，只搜已有棋子周围，避免 19 路卡顿。 */
+  function legalCandidates(color, bd, ko, nearOnly) {
     var useBoard = bd || board;
     var useKo = (ko === undefined) ? koPoint : ko;
     var list = [];
     for (var y = 0; y < N; y++) {
       for (var x = 0; x < N; x++) {
         if (useBoard[y * N + x]) continue;
+        if (nearOnly && !stoneNear(useBoard, x, y, N)) continue;
         var r = legalMove(x, y, color, useBoard, N, useKo);
         if (r.ok) list.push({ x: x, y: y, res: r });
       }
@@ -1306,10 +1324,11 @@ canvas{
       var top = sorted.slice(0, Math.min(4, sorted.length));
       return top[Math.floor(Math.random() * top.length)];
     }
+    var oppColor = color === BLACK ? WHITE : BLACK;
+    if (diff === 'master') return pickMasterMove(sorted, color, oppColor);
     /* 困难：前 8 手里，模拟对手最佳回应，取净收益最高 */
     var bestMove = sorted[0], bestValue = -1e9;
     var probe = sorted.slice(0, Math.min(8, sorted.length));
-    var oppColor = color === BLACK ? WHITE : BLACK;
     for (i = 0; i < probe.length; i++) {
       var m = probe[i];
       var reply = 0;
@@ -1320,6 +1339,26 @@ canvas{
         if (v > reply) reply = v;
       }
       var value = m.score - reply * 0.55;
+      if (value > bestValue) { bestValue = value; bestMove = m; }
+    }
+    return bestMove;
+  }
+
+  /* 大师：模拟对手最强回应后，再算自己下一手，取两步净收益最高 */
+  function pickMasterMove(sorted, color, oppColor) {
+    var bestMove = sorted[0], bestValue = -1e9;
+    var probe = sorted.slice(0, Math.min(8, sorted.length));
+    for (var i = 0; i < probe.length; i++) {
+      var m = probe[i];
+      var opp = sortCandidates(legalCandidates(oppColor, m.res.board, m.res.ko, true), oppColor);
+      var reply = opp.length ? opp[0] : null;
+      var replyScore = reply ? reply.score : 0;
+      var followScore = 0;
+      if (reply) {
+        var mine = sortCandidates(legalCandidates(color, reply.res.board, reply.res.ko, true), color);
+        if (mine.length) followScore = mine[0].score;
+      }
+      var value = m.score - replyScore * 0.62 + followScore * 0.42;
       if (value > bestValue) { bestValue = value; bestMove = m; }
     }
     return bestMove;
@@ -4014,7 +4053,7 @@ canvas{
   bindSeg(els.diffSeg, 'data-diff', function (v) {
     diff = v;
     updateSummary();
-    setStatus('难度换成' + (v === 'easy' ? '简单' : v === 'normal' ? '普通' : '困难') + '啦');
+    setStatus('难度换成' + diffText(v) + '啦');
   });
 
   bindSeg(els.sizeSeg, 'data-size', function (v) {
