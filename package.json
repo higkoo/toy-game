@@ -1,0 +1,21 @@
+{
+  "name": "toy-game",
+  "version": "1.0.0",
+  "description": "B 站 Toy 容器中运行的纯静态小游戏与学习页面合集",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/higkoo/toy-game.git"
+  },
+  "contributors": [
+    {
+      "name": "higkoo",
+      "url": "https://github.com/higkoo"
+    },
+    {
+      "name": "CatPaw AI",
+      "url": "https://github.com/features/copilot"
+    }
+  ],
+  "license": "MIT"
+}

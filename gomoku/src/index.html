@@ -24,10 +24,16 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none !important}
-html,body{height:100%}
+/* 修复：原 html,body{height:100%} 中 100% 在移动端 Safari/Chrome 基于“大视口”
+   （地址栏收起时的高度）。地址栏展开时可视区比布局低约 80-100px，
+   而 body 被固定高度锁死、内容不溢出 → 页面无法滚动，底部操作区/比分被地址栏遮住
+   （即用户反馈的“小手机看不到底部”）。改为 body 贴合动态视口 100dvh：
+   地址栏展开时布局收缩到真实可视高度，底部始终可见；内容确实超高时溢出可滚动兜底。 */
+html{height:100%}
 body{
   margin:0;
-  min-height:100%;
+  height:100vh;
+  height:100dvh;
   display:flex;
   flex-direction:column;
   color:var(--ink);
@@ -204,7 +210,7 @@ body{
 }
 .lobby-card{
   position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;
-  display:flex;flex-direction:column;gap:10px;max-height:76vh;
+  display:flex;flex-direction:column;gap:10px;max-height:76vh;max-height:76dvh;
   padding:14px 14px calc(16px + env(safe-area-inset-bottom));
   background:#fff;border-radius:24px 24px 0 0;
   box-shadow:0 -10px 30px rgba(90,120,160,.22);
@@ -1101,6 +1107,8 @@ canvas{
     aiToken++;
     lastRecordKey = '';
     online.recordPending = false;
+    /* 修复：重开一局时清掉残留的悔棋申请，否则房主会看到上一局的过期弹条 */
+    online.undoReq = '';
     closeHistory();
     banner.classList.remove('show');
     setMood('calm');
@@ -1317,8 +1325,31 @@ canvas{
       clientX = ev.touches[0].clientX;
       clientY = ev.touches[0].clientY;
     }
-    var x = clientX - rect.left;
-    var y = clientY - rect.top;
+    if (clientX == null || clientY == null) {
+      var ct = (ev.changedTouches && ev.changedTouches[0]) || null;
+      if (!ct) return null;
+      clientX = ct.clientX;
+      clientY = ct.clientY;
+    }
+    /* 修复：canvas 是 border-box（全局 box-sizing:border-box + border:3px），
+       位图绘制坐标系只对应 content box，而 rect 是含边框的 border box；
+       且宿主 WebView 可能对页面做整体缩放（rect 与布局尺寸不一致）。
+       这里按 content box 相对 metrics.size 的比例换算回绘制坐标，
+       否则点击判定会整体向右下偏移约一个边框宽度，缩放时偏差更大。 */
+    var bl = 0, bt = 0, br = 0, bb = 0;
+    if (window.getComputedStyle) {
+      var cs = window.getComputedStyle(canvas);
+      bl = parseFloat(cs.borderLeftWidth) || 0;
+      bt = parseFloat(cs.borderTopWidth) || 0;
+      br = parseFloat(cs.borderRightWidth) || 0;
+      bb = parseFloat(cs.borderBottomWidth) || 0;
+    }
+    var cw = rect.width - bl - br;
+    var ch = rect.height - bt - bb;
+    var scaleX = (metrics.size && cw > 0) ? cw / metrics.size : 1;
+    var scaleY = (metrics.size && ch > 0) ? ch / metrics.size : 1;
+    var x = (clientX - rect.left - bl) / scaleX;
+    var y = (clientY - rect.top - bt) / scaleY;
     var cell = metrics.cell, pad = metrics.pad;
     if (!cell) return null;
     var gx = Math.round((x - pad) / cell);
@@ -1769,7 +1800,9 @@ canvas{
   var FRIEND_KEY = 'idol_friends_v1';
   var LEGACY_FRIEND_KEYS = ['gomoku_friends_v1', 'go_friends_v1'];
   var PRESENCE_PREFIX = 'bg-idol-presence-';
-  var FRIEND_ONLINE_MS = 180000;
+  /* 修复：原 180000ms（3 分钟）→ 90000ms。心跳已加快到 12s，
+     好友最长 12+12=24s 就能看到在线，不会再出现“明明在下棋却显示离线”的误判 */
+  var FRIEND_ONLINE_MS = 90000;
   var PID_KEY = 'idol_pid_v1';
   var me = { uid: '', name: '', face: '', aliases: [], pid: '' };
   var friends = [];
@@ -1783,7 +1816,9 @@ canvas{
     hbTimer: 0, watchdog: 0, lastStateAt: 0, seen: {}, denied: {}, lastState: 0,
     undoReq: '', uid: '', hostColor: BLACK, recordPending: false, baseMeta: '',
     /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
-    guestSince: 0, roomProbe: null, roomTries: 0
+    guestSince: 0, roomProbe: null, roomTries: 0,
+    /* 加入房间后的回执看门狗：12 秒没等到房主任何回执就给用户明确提示 */
+    joinTimer: 0, joinHeard: false
   };
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
@@ -2094,11 +2129,12 @@ canvas{
 
   function publishTopic(topic, msg) {
     if (!topic) return Promise.resolve(false);
-    return window.fetch(RELAY + topic, {
+    /* 修复：原裸 fetch 无超时，弱网下好友心跳会一直挂着不重发，表现为“好友在线状态不更新” */
+    return timedFetch(RELAY + topic, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(msg)
-    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+    }, 5000).then(function (r) { return r.ok; }).catch(function () { return false; });
   }
 
   function findFriend(uid) {
@@ -2202,9 +2238,12 @@ canvas{
     if (presence.started || !me.uid) return;
     presence.started = true;
     pushPresence();
-    presence.hb = window.setInterval(pushPresence, 30000);
-    presence.poll = window.setInterval(pollPresence, 30000);
-    presence.ui = window.setInterval(renderFriends, 10000);
+    /* 修复：原心跳 30s、轮询 30s → 心跳 12s、轮询 12s。
+       现在好友最快 12s、最长 ~24s 就能感知到在线，
+       不会出现“朋友在游戏里但主页显示离线”的问题 */
+    presence.hb = window.setInterval(pushPresence, 12000);
+    presence.poll = window.setInterval(pollPresence, 12000);
+    presence.ui = window.setInterval(renderFriends, 5000);
     pollPresence();
   }
 
@@ -2674,6 +2713,10 @@ canvas{
     try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || !m.t) return;
     online.lastHeard = Date.now();
+    /* 房主回执到达（状态/同意/拒绝/已满），撤销“没连上房间”的超时提示 */
+    if (online.joinTimer && (m.t === 'st' || m.t === 'ok' || m.t === 'no' || m.t === 'busy')) {
+      online.joinHeard = true;
+    }
     /* 弱网重试/轮询和 SSE 可能收到同一条消息，用 mid 去重，避免重复落子 */
     if (m.mid) {
       if (online.seenMids.indexOf(m.mid) >= 0) return;
@@ -2688,9 +2731,20 @@ canvas{
       online.seen[m.u] = { n: nm || prev || '', ts: Date.now(), p: m.p || '' };
       if (m.u === online.guestUid && nm) online.guestName = nm;
       if (online.role === 'host') {
+        /* 修复：房间已有对手时原先静默忽略申请，申请人永远停在“等对方同意”且毫无提示 */
+        if (online.guestUid && m.u && m.u !== online.guestUid) {
+          publish({ t: 'busy', u: m.u, b: online.hostUid });
+        }
         renderPending();
         refreshOnlineUI();
         broadcastState(nm && m.u === online.guestUid);
+      }
+      return;
+    }
+
+    if (m.t === 'busy') {
+      if (m.u === myUid()) {
+        setStatus('这个房间已经有人啦，去「房间」列表看看别的吧');
       }
       return;
     }
@@ -2702,11 +2756,11 @@ canvas{
       if (!bad && (m.x < 0 || m.y < 0 || m.x >= N || m.y >= N)) bad = true;
       if (!bad && board[m.y][m.x] !== 0) bad = true;
       if (bad) {
-        /* 朋友已先行显示：这里驳回后立刻回推真实盘面，让他回滚重画 */
-        if (!over) {
-          online.seq++;
-          broadcastState(true);
-        }
+        /* 朋友已先行显示：这里驳回后立刻回推真实盘面，让他回滚重画。
+           对局已结束(over)时同样要回推，否则对方多出的乐观棋子
+           要一直等到下一次心跳（最长 8 秒）才被纠正 */
+        online.seq++;
+        broadcastState(!over);
         return;
       }
       place(m.x, m.y);
@@ -3276,6 +3330,9 @@ canvas{
 
   function createRoom(code) {
     if (!code) code = makeRoomCode();
+    /* 修复：已在房间时直接建新房会静默覆盖订阅，不给旧房间发 bye、
+       旧大厅心跳也会继续广播，留在旧房间的朋友要等 40 秒超时才发现房主没了 */
+    if (online.room && online.room !== code) leaveRoom(true);
     online.uid = me.uid;
     online.role = 'host';
     online.hostUid = myUid();
@@ -3305,6 +3362,19 @@ canvas{
     }, 8000);
   }
 
+  /* 修复：房间号填错/房主已离开时，申请人会永远停在“等对方同意”且毫无反馈。
+     加入后 12 秒内若没有收到房主的任何回执（st/ok/no/busy），给出明确提示。 */
+  function armJoinWatch() {
+    if (online.joinTimer) window.clearTimeout(online.joinTimer);
+    online.joinHeard = false;
+    online.joinTimer = window.setTimeout(function () {
+      online.joinTimer = 0;
+      if (online.joinHeard) return;
+      if (!online.room || online.role === 'host' || online.role === 'guest') return;
+      setStatus('没连上这个房间，房主可能已离开，确认下房间号再试试');
+    }, 12000);
+  }
+
   function joinRoom(code) {
     if (!code) return false;
     code = String(code).replace(/[^0-9]/g, '').slice(0, 6);
@@ -3312,6 +3382,9 @@ canvas{
       setStatus('房间号是 6 位数字哦');
       return false;
     }
+    /* 修复：从旧房间切换时原先直接覆盖订阅，不发 bye（旧对手卡 40 秒）、
+       旧大厅心跳残留。同房间重复加入（重连场景）则不拆链路。 */
+    if (online.room && online.room !== code) leaveRoom(true);
     online.uid = me.uid;
     online.role = 'spec';
     online.hostUid = '';
@@ -3330,6 +3403,7 @@ canvas{
     if (presence.started) pushPresence();
     setStatus('正在加入房间 ' + code + ' …');
     sendHi();
+    armJoinWatch();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(sendHi, 12000);
   }
@@ -3368,6 +3442,8 @@ canvas{
       publish({ t: 'bye', u: myUid() });
     }
     if (online.hbTimer) { window.clearInterval(online.hbTimer); online.hbTimer = 0; }
+    if (online.joinTimer) { window.clearTimeout(online.joinTimer); online.joinTimer = 0; }
+    online.joinHeard = false;
     if (online.stateTimer) { window.clearTimeout(online.stateTimer); online.stateTimer = 0; }
     closeStream();
     online.room = '';
@@ -3379,6 +3455,9 @@ canvas{
     online.guestPid = '';
     online.seen = {};
     online.seenMids = [];
+    /* 修复：原 leaveRoom 未清理 denied，被拒绝过的用户在后续房间内仍会被静默忽略，
+       看似“加不进去” */
+    online.denied = {};
     online.lastSeq = -1;
     online.seq = 0;
     online.uid = '';
@@ -3418,7 +3497,9 @@ canvas{
     stopLobbyPublish(false);
     if (!online.room || online.role !== 'host') return;
     lobbyHeartbeat();
-    lobby.pubTimer = window.setInterval(lobbyHeartbeat, 6000);
+    /* 修复：原大厅心跳 6s → 3s，轮询 since 窗口 45s → 90s。
+       弱网下消息延迟可能好几秒，原设置容易导致好友“看不到房间” */
+    lobby.pubTimer = window.setInterval(lobbyHeartbeat, 3000);
   }
 
   function stopLobbyPublish(withOut) {
@@ -3459,7 +3540,7 @@ canvas{
   function pollLobby() {
     if (lobby.loading) return;
     lobby.loading = true;
-    window.fetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=45s', { cache: 'no-store' })
+    window.fetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=90s', { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('http ' + r.status);
         return r.text();
@@ -3887,6 +3968,8 @@ canvas{
     winner = 0;
     winCells = [];
     hoverCell = null;
+    /* 修复：悔棋后清掉上一局的记录键，否则重下到相同手数/胜负时会被判定重复而不入史 */
+    lastRecordKey = '';
     setMood('calm');
 
     if (mode === 'ai' || mode === 'teach') {
