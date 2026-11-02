@@ -485,6 +485,7 @@ canvas{
           <div class="room-meta" id="roomMeta">正在连接…</div>
           <div class="room-tools" id="roomTools">
             <button type="button" class="mini-btn ghost" id="swapColorBtn">换颜色</button>
+            <button type="button" class="mini-btn coral" id="kickGuestBtn" hidden>移出对手</button>
             <span class="room-hint" id="colorHint">现在执黑先手</span>
           </div>
           <div class="undo-ask" id="undoAsk" hidden>
@@ -629,6 +630,7 @@ canvas{
     leaveRoomBtn: document.getElementById('leaveRoomBtn'),
     roomTools: document.getElementById('roomTools'),
     swapColorBtn: document.getElementById('swapColorBtn'),
+    kickGuestBtn: document.getElementById('kickGuestBtn'),
     colorHint: document.getElementById('colorHint'),
     undoAsk: document.getElementById('undoAsk'),
     undoAskText: document.getElementById('undoAskText'),
@@ -1009,6 +1011,30 @@ canvas{
     return count;
   }
 
+  /* 返回 (x,y) 所在气群的气点坐标列表（用于判定打劫） */
+  function groupLibPoints(bd, x, y, n) {
+    var color = bd[y * n + x];
+    if (!color) return [];
+    var seen = {};
+    var libs = [];
+    var stack = [[x, y]];
+    seen[y * n + x] = 1;
+    while (stack.length) {
+      var cur = stack.pop();
+      var ns = neighbors(cur[0], cur[1], n);
+      for (var i = 0; i < ns.length; i++) {
+        var nx = ns[i][0], ny = ns[i][1], idx = ny * n + nx;
+        if (!bd[idx]) {
+          if (!seen[idx]) { seen[idx] = 1; libs.push([nx, ny]); }
+        } else if (bd[idx] === color && !seen[idx]) {
+          seen[idx] = 1;
+          stack.push([nx, ny]);
+        }
+      }
+    }
+    return libs;
+  }
+
   function groupStones(bd, x, y, n) {
     var color = bd[y * n + x];
     var seen = {};
@@ -1056,7 +1082,21 @@ canvas{
     nb[y * n + x] = color;
     var captured = captureDead(nb, x, y, n, color);
     if (!captured.length && groupLibs(nb, x, y, n) === 0) return { ok: false, why: 'suicide' };
-    var ko2 = captured.length === 1 ? { x: captured[0][0], y: captured[0][1] } : null;
+    /* 打劫判定（修复）：
+       原逻辑只要「恰好提了 1 子」就记为劫，会把角上提子等普通提子误判成劫，
+       从而禁掉对方本来合法的一手。
+       标准简单 ko 需同时满足：
+         1) 恰好提掉 1 子；
+         2) 提子方刚落下的这口气群只剩 1 个气；
+         3) 这唯一的气正好是被提掉那子的位置（即对方立即回提会形成同形）。
+       只有满足全部三条才设 ko 点。 */
+    var ko2 = null;
+    if (captured.length === 1) {
+      var libs = groupLibPoints(nb, x, y, n);
+      if (libs.length === 1 && libs[0][0] === captured[0][0] && libs[0][1] === captured[0][1]) {
+        ko2 = { x: captured[0][0], y: captured[0][1] };
+      }
+    }
     return { ok: true, board: nb, captured: captured, ko: ko2 };
   }
 
@@ -1167,12 +1207,17 @@ canvas{
   }
 
   /* ---------- 人机 ---------- */
-  function legalCandidates(color) {
+  /* 修复：原签名只有 (color)，困难档却传入 (m.res.board, color) 两个实参，
+     导致盘面参数被丢弃、color 形参拿到数组，"模拟对手回应"完全失效。
+     现改为可选传入盘面/劫点，默认沿用全局状态。 */
+  function legalCandidates(color, bd, ko) {
+    var useBoard = bd || board;
+    var useKo = (ko === undefined) ? koPoint : ko;
     var list = [];
     for (var y = 0; y < N; y++) {
       for (var x = 0; x < N; x++) {
-        if (at(x, y)) continue;
-        var r = legalMove(x, y, color, board, N, koPoint);
+        if (useBoard[y * N + x]) continue;
+        var r = legalMove(x, y, color, useBoard, N, useKo);
         if (r.ok) list.push({ x: x, y: y, res: r });
       }
     }
@@ -1225,7 +1270,8 @@ canvas{
     else s += 5;
     var ns = neighbors(cand.x, cand.y, N);
     for (var i = 0; i < ns.length; i++) {
-      var v = at(ns[i][0], ns[i][1]);
+      /* 修复：原用全局 at()，在模拟盘面上评估时会读到错误的盘面 */
+      var v = cand.res.board[ns[i][1] * N + ns[i][0]];
       if (v === color) s += 3;
       else if (v) s += 2;
     }
@@ -1259,12 +1305,14 @@ canvas{
     /* 困难：前 8 手里，模拟对手最佳回应，取净收益最高 */
     var bestMove = sorted[0], bestValue = -1e9;
     var probe = sorted.slice(0, Math.min(8, sorted.length));
+    var oppColor = color === BLACK ? WHITE : BLACK;
     for (i = 0; i < probe.length; i++) {
       var m = probe[i];
       var reply = 0;
-      var opp = legalCandidates(m.res.board, color === BLACK ? WHITE : BLACK);
+      /* 修复：传入 m.res.board 与对方劫点，让对手回应真正基于"我方已落子"的盘面 */
+      var opp = legalCandidates(oppColor, m.res.board, m.res.ko);
       for (var j = 0; j < opp.length; j++) {
-        var v = aiHeuristic(opp[j], color === BLACK ? WHITE : BLACK);
+        var v = aiHeuristic(opp[j], oppColor);
         if (v > reply) reply = v;
       }
       var value = m.score - reply * 0.55;
@@ -1300,6 +1348,19 @@ canvas{
     hoverCell = null;
     updateTurnUI();
     draw();
+
+    /* 修复（联机连虚手永不终局）：
+       访客端必须先把虚手发给房主，由房主统一判定终局。
+       原代码把 passCount>=2 的终局判断放在发送之前，访客连下第二手虚手时
+       会在此处直接 finishGame() 并 return，导致 'pass' 消息根本没发出去，
+       房主永远等不到第二手虚手，对局卡在"一直不结束"。
+       现在访客端先发消息并返回，终局一律以房主广播为准。 */
+    if (mode === 'online' && online.role === 'guest') {
+      publish({ t: 'pass', u: myUid(), p: myPid(), q: online.seq });
+      setStatus('虚手已发送，等房主同步…');
+      return;
+    }
+
     if (passCount >= 2) {
       finishGame();
       return;
@@ -1325,18 +1386,177 @@ canvas{
     setStatus('虚手一次 · 双方连续虚手就数子结束');
   }
 
+  /* 找出所有空区（不含任何子），返回每个空区的信息：
+     { cells:[下标...], borders:[相邻子下标...], edge:是否接触棋盘边缘 }
+     skip 是一个"当作空点处理"的下标集合（用于死子判定：把待检查的气群
+     暂时当成已经提掉，这样它腾出的空间才会并入口袋，口袋边界才算得准）。
+     skip 里的点不会出现在 borders 中。 */
+  function collectRegions(bd, n, skip) {
+    var total = n * n;
+    var visited = [];
+    var regions = [];
+    var i;
+    for (i = 0; i < total; i++) visited[i] = false;
+    for (i = 0; i < total; i++) {
+      if (visited[i]) continue;
+      if (bd[i] && !(skip && skip[i])) continue;
+      var stack = [i];
+      var cells = [];
+      var borders = {};
+      var edge = false;
+      visited[i] = true;
+      while (stack.length) {
+        var idx = stack.pop();
+        cells.push(idx);
+        var x = idx % n, y = Math.floor(idx / n);
+        if (x === 0 || y === 0 || x === n - 1 || y === n - 1) edge = true;
+        var ns = neighbors(x, y, n);
+        for (var j = 0; j < ns.length; j++) {
+          var nidx = ns[j][1] * n + ns[j][0];
+          if (skip && skip[nidx]) {
+            /* 被"提掉"的子：当作空点继续扩展，且不算作口袋边界 */
+            if (!visited[nidx]) { visited[nidx] = true; stack.push(nidx); }
+            continue;
+          }
+          if (bd[nidx]) borders[nidx] = 1;
+          else if (!visited[nidx]) { visited[nidx] = true; stack.push(nidx); }
+        }
+      }
+      var bl = [];
+      for (var k in borders) if (Object.prototype.hasOwnProperty.call(borders, k)) bl.push(parseInt(k, 10));
+      regions.push({ id: regions.length, cells: cells, borders: bl, edge: edge });
+    }
+    return regions;
+  }
+
+  /* 找出某个气群的所有子与所有相邻空点 */
+  function collectGroup(bd, n, start) {
+    var color = bd[start];
+    var stones = [];
+    var libSet = {};
+    var stack = [start];
+    var seen = {};
+    seen[start] = 1;
+    while (stack.length) {
+      var cur = stack.pop();
+      stones.push(cur);
+      var cx = cur % n, cy = Math.floor(cur / n);
+      var ns = neighbors(cx, cy, n);
+      for (var j = 0; j < ns.length; j++) {
+        var nidx = ns[j][1] * n + ns[j][0];
+        if (!bd[nidx]) libSet[nidx] = 1;
+        else if (bd[nidx] === color && !seen[nidx]) { seen[nidx] = 1; stack.push(nidx); }
+      }
+    }
+    var libs = [];
+    for (var k in libSet) if (Object.prototype.hasOwnProperty.call(libSet, k)) libs.push(parseInt(k, 10));
+    return { color: color, stones: stones, libs: libs };
+  }
+
+  /* 判断哪些子是死子（修复）：
+     中国规则数子前必须先清死子，否则终局比分会错（死子被当成活子算）。
+     这里用「口袋判据」，四个条件同时成立才算死子：
+       1) 该气群自己没有眼位：在原盘面上找不到"只被自己颜色围住"的空区；
+       2) 该气群的所有气都落在同一个封闭口袋里（口袋不接触棋盘边缘）；
+       3) 这个口袋的四边只被对方颜色围住（把自己排除在外再算）；
+       4) 对方围着口袋的子数明显多于自己 —— 对方有余力把自己提掉。
+     第 3 条必须"排除自己"：直接看原盘面时，这片子自己也会把口袋标成
+     "接触到己方"，于是永远判不出死子（这是修复前的真实 bug）。
+     第 4 条用来区分「白孤子落在黑的大口袋里」（死）和
+     「黑棋围出一大片地」（活）这两种对称情形。 */
+  function findDeadStones(bd, n) {
+    var total = n * n;
+    var dead = [];
+    var seen = {};
+    var i;
+    for (i = 0; i < total; i++) {
+      if (!bd[i]) continue;
+      if (seen[i]) continue;
+      var g = collectGroup(bd, n, i);
+      for (var s0 = 0; s0 < g.stones.length; s0++) seen[g.stones[s0]] = 1;
+
+      if (!g.libs.length) {
+        /* 已经没气了，本来就是死子 */
+        for (var dz = 0; dz < g.stones.length; dz++) dead.push(g.stones[dz]);
+        continue;
+      }
+      /* 条件 1：有没有只被自己颜色围住的空区（有就是有眼位，不算死） */
+      var hasOwnEye = false;
+      var regions0 = collectRegions(bd, n, null);
+      for (var r0 = 0; r0 < regions0.length && !hasOwnEye; r0++) {
+        var reg0 = regions0[r0];
+        var onlyOwn = reg0.borders.length > 0;
+        for (var b0 = 0; b0 < reg0.borders.length; b0++) {
+          if (bd[reg0.borders[b0]] !== g.color) { onlyOwn = false; break; }
+        }
+        if (onlyOwn) hasOwnEye = true;
+      }
+      if (hasOwnEye) continue;
+
+      /* 排除自己后重新划分空区，判断自己所有气落在哪些口袋里 */
+      var skip = {};
+      for (var s1 = 0; s1 < g.stones.length; s1++) skip[g.stones[s1]] = 1;
+      var regions = collectRegions(bd, n, skip);
+      var libRegion = {};
+      var bad = false;
+      for (var li = 0; li < g.libs.length; li++) {
+        var found = null;
+        for (var r = 0; r < regions.length; r++) {
+          var cells = regions[r].cells;
+          for (var c = 0; c < cells.length; c++) {
+            if (cells[c] === g.libs[li]) { found = regions[r]; break; }
+          }
+          if (found) break;
+        }
+        if (!found) { bad = true; break; }
+        libRegion[found.id] = found;
+      }
+      if (bad || !Object.keys(libRegion).length) continue;
+      /* 所有气必须落在同一个口袋里 */
+      var pocketKeys = Object.keys(libRegion);
+      if (pocketKeys.length !== 1) continue;
+      var pocket = libRegion[pocketKeys[0]];
+      /* 条件 2：口袋必须封闭（不接触棋盘边缘） */
+      if (pocket.edge) continue;
+      /* 条件 3：口袋四边只能有对方颜色 */
+      var oppBorders = {};
+      var hasOwnBorder = false;
+      for (var b = 0; b < pocket.borders.length; b++) {
+        var bi = pocket.borders[b];
+        if (bd[bi] === g.color) hasOwnBorder = true;
+        else oppBorders[bi] = 1;
+      }
+      if (hasOwnBorder) continue;
+      var oppCount = Object.keys(oppBorders).length;
+      if (!oppCount) continue;
+      /* 条件 4：对方子数要多于自己，否则说明是"大片己方阵地"，不是死子 */
+      if (oppCount <= g.stones.length) continue;
+
+      for (var s = 0; s < g.stones.length; s++) dead.push(g.stones[s]);
+    }
+    return dead;
+  }
+
   function scoreBoard() {
+    /* 修复：先清理死子再数子。
+       原实现直接统计棋盘上所有子，死子（被对方围住、实际已死）也算成对方的活子，
+       导致终局比分错误。现在把死子从盘面上移除（记入对方 territory）。 */
+    var scoreBd = board.slice();
+    var dead = findDeadStones(scoreBd, N);
+    var deadCount = dead.length;
+    for (var d = 0; d < dead.length; d++) scoreBd[dead[d]] = 0;
+
     var bStones = 0, wStones = 0, bTerr = 0, wTerr = 0, neutral = 0;
     var total = N * N;
     var visited = [];
     var i;
     for (i = 0; i < total; i++) {
       visited[i] = false;
-      if (board[i] === BLACK) bStones++;
-      else if (board[i] === WHITE) wStones++;
+      if (scoreBd[i] === BLACK) bStones++;
+      else if (scoreBd[i] === WHITE) wStones++;
     }
     for (i = 0; i < total; i++) {
-      if (board[i] || visited[i]) continue;
+      if (scoreBd[i] || visited[i]) continue;
       var stack = [i];
       var region = [];
       var borders = { b: 0, w: 0 };
@@ -1348,8 +1568,8 @@ canvas{
         var ns = neighbors(x, y, N);
         for (var j = 0; j < ns.length; j++) {
           var nidx = ns[j][1] * N + ns[j][0];
-          if (board[nidx] === BLACK) borders.b = 1;
-          else if (board[nidx] === WHITE) borders.w = 1;
+          if (scoreBd[nidx] === BLACK) borders.b = 1;
+          else if (scoreBd[nidx] === WHITE) borders.w = 1;
           else if (!visited[nidx]) { visited[nidx] = true; stack.push(nidx); }
         }
       }
@@ -1360,7 +1580,8 @@ canvas{
     var komi = KOMI[N] || 6.5;
     return {
       b: bStones + bTerr, w: wStones + wTerr + komi, komi: komi,
-      bStones: bStones, wStones: wStones, bTerr: bTerr, wTerr: wTerr, neutral: neutral
+      bStones: bStones, wStones: wStones, bTerr: bTerr, wTerr: wTerr,
+      neutral: neutral, dead: deadCount
     };
   }
 
@@ -1371,8 +1592,9 @@ canvas{
   function resultSub(sc) {
     if (!sc) return '';
     if (sc.caps) return '黑提 ' + sc.b + ' 子 · 白提 ' + sc.w + ' 子';
+    var deadTxt = sc.dead > 0 ? '（已清 ' + sc.dead + ' 个死子）' : '';
     return '黑 ' + fmtScoreButable(sc.b) + ' 目 · 白 ' + fmtScoreButable(sc.w) + ' 目' +
-      (typeof sc.komi === 'number' ? '（含贴目 ' + sc.komi + '）' : '');
+      (typeof sc.komi === 'number' ? '（含贴目 ' + sc.komi + '）' : '') + deadTxt;
   }
 
   function finishGame(byCapture) {
@@ -1592,6 +1814,8 @@ canvas{
   var RELAY = 'https://ntfy.sh/';
   var TOPIC_PREFIX = 'bg-go-';
   var LOBBY_TOPIC = TOPIC_PREFIX + 'lobby';
+  /* 访客心跳超时阈值：超过这个时间没收到心跳，就认为对方已崩溃/断线，释放座位 */
+  var GUEST_STALE_MS = 40000;
   /* 好友列表 / 设备身份 / 在线频道 与五子棋共用，两边的朋友都能看到对方在线 */
   var FRIEND_KEY = 'idol_friends_v1';
   var LEGACY_FRIEND_KEYS = ['go_friends_v1', 'gomoku_friends_v1'];
@@ -1606,7 +1830,9 @@ canvas{
     guestUid: '', guestName: '', guestPid: '', seq: 0, lastSeq: -1,
     es: null, fail: 0, pollTimer: 0, lastTs: 0, pollFails: 0,
     hbTimer: 0, watchdog: 0, lastStateAt: 0, stateTimer: 0, seen: {}, denied: {}, lastState: 0,
-    uid: '', hostColor: BLACK, undoReq: '', recordPending: false
+    uid: '', hostColor: BLACK, undoReq: '', recordPending: false,
+    /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
+    guestSince: 0, roomProbe: null, roomTries: 0, roomInvite: null
   };
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
@@ -1667,6 +1893,91 @@ canvas{
     for (var i = 0; i < 6; i++) code += String(Math.floor(Math.random() * 10));
     if (code[0] === '0') code = '1' + code.slice(1);
     return code;
+  }
+
+  /* 修复：房间号碰撞检测。
+     6 位数字房间号空间有限，随机生成必然会撞号。
+     原实现直接用随机号建房，若该号已被别人占用，两个房主同时往同一频道发消息，
+     双方状态互相覆盖，棋局直接错乱。
+     这里建房后监听一小段时间：若收到对端的状态广播(st)，说明该号已有房主，
+     换一个号重建，最多尝试若干次。 */
+  function createRoomWithRetry() {
+    var code = makeRoomCode();
+    online.roomProbe = { code: code, until: Date.now() + 1200, done: false };
+    createRoom(code);
+    /* 探测窗口结束后若没有发现冲突，就认为房号可用 */
+    window.setTimeout(function () {
+      var pr = online.roomProbe;
+      if (!pr || pr.done) return;
+      pr.done = true;
+      if (online.room === pr.code) sendRoomInvite();
+    }, 1400);
+  }
+
+  function onRoomProbeConflict() {
+    if (!online.roomProbe || online.roomProbe.done) return;
+    online.roomProbe.done = true;
+    var tries = (online.roomTries || 0) + 1;
+    online.roomTries = tries;
+    if (tries > 5) {
+      online.roomProbe = null;
+      leaveRoom(true);
+      setStatus('房间号一直被占用，请稍后再试');
+      return;
+    }
+    leaveRoom(true);
+    setStatus('房间号被占用，正在换一个…');
+    createRoomWithRetry();
+  }
+
+  /* 修复：访客崩溃后房间座位永久被占。
+     原实现只有访客主动发 bye 时才释放座位；一旦访客直接杀进程/断网，
+     bye 永远收不到，房间再也进不来第二个人。
+     这里用心跳时间戳兜底：访客每 12 秒发一次 hi，超过 GUEST_STALE_MS 没来
+     就判定对方已离线，主动清掉座位并重新开放房间。 */
+  function reclaimStaleGuest() {
+    if (online.role !== 'host' || !online.guestPid) return;
+    var info = online.seen[online.guestPid];
+    var last = info && info.ts ? info.ts : 0;
+    if (!last) {
+      if (online.guestSince && Date.now() - online.guestSince < GUEST_STALE_MS) return;
+      last = online.guestSince || 0;
+    }
+    if (!last) return;
+    if (Date.now() - last < GUEST_STALE_MS) return;
+    var goneName = online.guestName || '朋友';
+    online.guestUid = '';
+    online.guestName = '';
+    online.guestPid = '';
+    online.guestSince = 0;
+    online.seq++;
+    renderPending();
+    refreshOnlineUI();
+    updateTurnUI();
+    broadcastState(true);
+    setStatus(goneName + ' 掉线了，座位已释放');
+    showBanner(goneName + ' 掉线了', '座位已释放，可以邀请新朋友进来');
+  }
+
+  /* 修复：kick 只处理接收端，房主没有发送入口，无法把赖着不走的对手请出去。
+     这里补上发送端：房主点「移出对手」后广播 kick，被请的人转为观战并离开座位。 */
+  function kickGuest() {
+    if (online.role !== 'host' || !online.guestPid) return;
+    var pid = online.guestPid;
+    var uid = online.guestUid || '';
+    var name = online.guestName || nameOf(pid);
+    publish({ t: 'kick', u: uid, p: pid, gp: pid, b: online.hostUid, bp: online.hostPid || myPid() });
+    online.guestUid = '';
+    online.guestName = '';
+    online.guestPid = '';
+    online.guestSince = 0;
+    online.seq++;
+    renderPending();
+    refreshOnlineUI();
+    updateTurnUI();
+    broadcastState(true);
+    setStatus('已把 ' + name + ' 移出房间');
+    showBanner(name + ' 已被移出', '你可以邀请新朋友进来');
   }
 
   function publish(msg) {
@@ -2124,12 +2435,25 @@ canvas{
     closeFriends();
     if (online.room) leaveRoom(true);
     if (mode !== 'online') forceMode('online');
-    createRoom();
+    online.roomTries = 0;
+    /* 修复：房间号可能撞号。原实现建房后立刻把房号发给好友，
+       一旦这个号已被别人占用，好友进来进的却是别人的房间。
+       现在先建房探测，确认没被占用后再把邀请发出去。 */
+    online.roomInvite = { key: key, friend: f };
+    createRoomWithRetry();
+    setStatus('正在建房…');
+  }
+
+  /* 房间号探测通过（没撞号）后，才把邀请发给好友 */
+  function sendRoomInvite() {
+    var inv = online.roomInvite;
+    if (!inv) return;
+    online.roomInvite = null;
     var code = online.room;
-    publishTopic(friendTopic(key), {
+    publishTopic(friendTopic(inv.key), {
       t: 'inv', u: myUid(), p: myPid(), n: me.name, f: me.face || '', r: code, g: 'go'
     });
-    setStatus('已邀请 ' + (f.n || '好友') + '，房间 ' + code + '，等他进来');
+    setStatus('已邀请 ' + ((inv.friend && inv.friend.n) || '好友') + '，房间 ' + code + '，等他进来');
   }
 
   /* 收到好友邀战：没在局中就直接进房，正在下棋就回一句“稍后再约” */
@@ -2250,9 +2574,9 @@ canvas{
     } catch (e) { /* ignore */ }
   }
 
-  function createRoom() {
+  function createRoom(code) {
     ensureProfile();
-    var code = makeRoomCode();
+    if (!code) code = makeRoomCode();
     online.uid = me.uid;
     online.role = 'host';
     online.hostUid = myUid();
@@ -2276,6 +2600,8 @@ canvas{
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(function () {
       if (online.role === 'host') broadcastState(true);
+      /* 修复：访客崩溃后座位会永久占着，这里按心跳超时自动释放 */
+      reclaimStaleGuest();
     }, 5000);
   }
 
@@ -2314,6 +2640,27 @@ canvas{
   function sendHi() {
     if (!online.topic || online.role === 'host') return;
     publish({ t: 'hi', u: myUid(), p: myPid(), n: me.name });
+  }
+
+  /* 修复：访客关掉页面时房间座位会一直留着。
+     原来只在点「离开」时发 bye；直接关标签页/杀进程就收不到，
+     房主那边座位就一直被占着。
+     这里用 sendBeacon 在页面隐藏/卸载时补发一条 bye（页面正在关闭时也能发出去）。 */
+  function sendByeBeacon() {
+    if (!online.topic || online.role === 'host') return;
+    var payload = JSON.stringify({ t: 'bye', u: myUid(), p: myPid() });
+    try {
+      if (navigator.sendBeacon) {
+        var ok = navigator.sendBeacon(RELAY + online.topic, new Blob([payload], { type: 'text/plain' }));
+        if (ok) return;
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', RELAY + online.topic, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain');
+      xhr.send(payload);
+    } catch (e) { /* ignore */ }
   }
 
   function leaveRoom(silent) {
@@ -2576,9 +2923,16 @@ canvas{
     if (m.t === 'kick') {
       if (online.role === 'host') return;
       if ((m.gp && m.gp === myPid()) || (!m.gp && m.u === myUid())) {
+        /* 被房主移出：彻底释放座位（转观战），并停掉心跳，
+           否则还会继续占着对方的名额发心跳 */
         online.role = 'spec';
+        online.guestPid = '';
+        online.guestUid = '';
+        online.guestName = '';
+        if (online.hbTimer) { window.clearInterval(online.hbTimer); online.hbTimer = 0; }
         setStatus('房主让你先观战啦');
         refreshOnlineUI();
+        updateTurnUI();
       }
       return;
     }
@@ -2622,6 +2976,13 @@ canvas{
       return;
     }
     if (m.t === 'st') {
+      /* 修复：建房时若收到对端的状态广播，说明这个房间号已经被人占用，
+         换一个号重建，避免两个房主互相覆盖状态。 */
+      if (online.roomProbe && !online.roomProbe.done && Date.now() < online.roomProbe.until) {
+        if (m.bp && m.bp === myPid()) { online.roomProbe.done = true; }
+        else if (m.b && m.b !== myUid()) { onRoomProbeConflict(); return; }
+        else if (m.b) { onRoomProbeConflict(); return; }
+      }
       applyRemoteState(m);
       return;
     }
@@ -2709,7 +3070,10 @@ canvas{
 
     var sizeChanged = (N !== (st.n || N));
     if (sizeChanged) {
-      N = st.n || N;
+      /* 修复：原代码 N = st.n || N 未做范围校验，异常包可让 N 变成极大值 */
+      var newN = st.n || N;
+      if (newN !== 9 && newN !== 13 && newN !== 19) newN = N;
+      N = newN;
       saveSettings();
       updateSegmentStates();
     }
@@ -2718,7 +3082,15 @@ canvas{
     for (var mi = 0; mi < rawMv.length; mi++) {
       var a = rawMv[mi];
       if (!a) continue;
-      remoteMoves.push({ x: a[0], y: a[1], c: a[2], pass: a[0] < 0 });
+      /* 修复：越界坐标一律丢弃，避免污染棋盘。
+         注意虚手用 [-1,-1,c] 作哨兵，必须先判定 pass 再做坐标范围校验，
+         否则 a[1] === -1 会被 a[1] < 0 拦掉 -> 远端虚手丢失，
+         连虚手永远达不到 2 次，对局卡在"永远不终局"。 */
+      var isPass = (a[0] === -1 && a[1] === -1);
+      if (!isPass) {
+        if (a[0] < 0 || a[0] >= N || a[1] < 0 || a[1] >= N) continue;
+      }
+      remoteMoves.push({ x: isPass ? -1 : a[0], y: isPass ? -1 : a[1], c: a[2], pass: isPass });
     }
     var wasOver = over;
     var pendingWin = online.recordPending;
@@ -2794,6 +3166,7 @@ canvas{
     if (online.role !== 'host' && people > 0) meta += ' · 一起观战 ' + people + ' 人';
     if (els.roomMeta) els.roomMeta.textContent = meta;
     if (els.roomTools) els.roomTools.classList.toggle('on', online.role === 'host');
+    if (els.kickGuestBtn) els.kickGuestBtn.hidden = !(online.role === 'host' && online.guestPid);
     if (els.colorHint) els.colorHint.textContent = online.hostColor === BLACK ? '现在执黑先手' : '现在执白后手';
     renderPending();
     renderUndoAsk();
@@ -2852,6 +3225,7 @@ canvas{
     online.guestPid = id;
     online.guestUid = s.u || (s.p ? '' : id);
     online.guestName = name || nameOf(id);
+    online.guestSince = Date.now();
     publish({ t: 'ok', u: online.guestUid || id, b: online.hostUid, bp: online.hostPid || myPid(), gp: id });
     online.seq++;
     renderPending();
@@ -3373,7 +3747,8 @@ canvas{
   if (els.createRoomBtn) {
     els.createRoomBtn.addEventListener('click', function () {
       if (mode !== 'online') forceMode('online');
-      createRoom();
+      online.roomTries = 0;
+      createRoomWithRetry();
     });
   }
 
@@ -3420,6 +3795,9 @@ canvas{
 
   if (els.swapColorBtn) {
     els.swapColorBtn.addEventListener('click', function () { swapHostColor(); });
+  }
+  if (els.kickGuestBtn) {
+    els.kickGuestBtn.addEventListener('click', function () { kickGuest(); });
   }
 
   if (els.leaveRoomBtn) {
@@ -3607,6 +3985,9 @@ canvas{
   startPresence();
   bindToyLinks();
   updateSegmentStates();
+  /* 修复：页面被关闭/切后台时补发 bye，让房主及时释放座位 */
+  window.addEventListener('pagehide', function () { sendByeBeacon(); });
+  window.addEventListener('beforeunload', function () { sendByeBeacon(); });
   var roomParam = null;
   try {
     var rm = /[?&]room=([0-9]{6})/.exec(window.location.search || '');
