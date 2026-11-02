@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <title>小偶像计算器 ♡</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#ffe4ec 0%,#ffd6e7 25%,#fce4ff 50%,#e4e1ff 75%,#d4f1ff 100%);background-attachment:fixed;min-height:100vh;overflow-x:hidden}
+html,body{min-height:100%;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#ffe4ec 0%,#ffd6e7 25%,#fce4ff 50%,#e4e1ff 75%,#d4f1ff 100%);background-attachment:fixed;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(255,182,193,.4) 0,transparent 30%),radial-gradient(circle at 80% 70%,rgba(186,230,253,.4) 0,transparent 30%),radial-gradient(circle at 50% 50%,rgba(255,218,233,.3) 0,transparent 40%);pointer-events:none;z-index:0}
-.container{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:16px 12px 32px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.container{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:16px 12px calc(32px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));min-height:100vh;display:flex;flex-direction:column;align-items:center}
 .title{font-size:20px;font-weight:700;color:#e85a8a;text-align:center;margin:18px 0 4px;text-shadow:0 2px 8px rgba(232,90,138,.2);letter-spacing:1px}
 .title .sparkle{font-size:16px;display:inline-block;animation:twinkle 1.5s ease-in-out infinite}
 .title .sparkle:nth-child(2){animation-delay:.5s}
@@ -57,7 +57,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .btn-clear{background:linear-gradient(135deg,#ffd4d4,#ffb3b3);color:#d6336c;font-size:16px}
 .btn-del{background:linear-gradient(135deg,#fce4ff,#e4d4ff);color:#8a6bb3;font-size:16px}
 
-.mood-bubble{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,179,200,.95);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(232,90,138,.3);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.mood-bubble{position:fixed;bottom:calc(24px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,179,200,.95);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(232,90,138,.3);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .mood-bubble.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
 
 .mode-tabs{display:flex;gap:4px;width:100%;max-width:420px;background:rgba(255,255,255,.55);border:1px solid rgba(232,90,138,.15);border-radius:999px;padding:4px;margin:10px 0 8px}
@@ -91,7 +91,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 @keyframes pop{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(.5)}}
 
 @media(max-width:360px){
-  .container{padding:12px 8px 24px}
+  .container{padding:12px 8px calc(24px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)))}
   .title{font-size:17px}
   .calc-card{padding:16px 14px 14px;border-radius:22px}
   .display-wrap{padding:14px 16px;min-height:100px}
@@ -103,6 +103,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
   .kin-keys button{padding:10px 0;font-size:12px}
 }
 </style>
+<script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
 </head>
 <body>
 <div class="container">
@@ -745,5 +746,120 @@ updateDisplay();
 setMode('std');
 })();
 </script>
+<script>
+/* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
+ * TOY 容器底部有一条原生互动栏，以「覆盖」方式浮在 WebView 之上：页面可用高度
+ * 不变，但底部约 60~70px 会被盖住。env(safe-area-inset-bottom) 只反映系统安全区
+ * （刘海 / Home Indicator），不含 TOY 自己的原生栏，在容器里通常是 0，靠它留白
+ * 完全无效。这里在原生容器中推出需要预留的底部高度并写入 --toy-bottom-inset；
+ * Web 环境下该变量等于系统安全区，行为与改动前完全一致。
+ */
+(function () {
+  var root = document.documentElement;
+  var NATIVE_BAR = 64;   // TOY 原生互动栏实测高度（CSS px），容器未上报时的兜底
+  var env = 0;           // 系统安全区底部高度（px）
+  var timer = null;
+
+  function envBottom() {
+    try {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);';
+      document.body.appendChild(d);
+      var v = parseFloat(getComputedStyle(d).paddingBottom) || 0;
+      if (d.parentNode) d.parentNode.removeChild(d);
+      return v > 0 ? v : 0;
+    } catch (e) { return 0; }
+  }
+
+  function apply(px) {
+    var v = Math.max(0, Math.round(px) || 0);
+    root.style.setProperty('--toy-bottom-inset', v + 'px');
+  }
+
+  /* 找出 SDK 命名空间：不同容器里挂在 window.toy 或 window.Toy.toy。
+     官方 SDK 用 defineProperty 定义 window.Toy（getter），这里统一按「有该方法」判定。 */
+  function sdkNs() {
+    var cands = [];
+    try { if (window.Toy) cands.push(window.Toy); } catch (e) {}
+    try { if (window.toy) cands.push(window.toy); } catch (e) {}
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i];
+      if (!c) continue;
+      if (typeof c.getContainerState === 'function') return c;
+      if (c.toy && typeof c.toy.getContainerState === 'function') return c.toy;
+    }
+    return null;
+  }
+
+  /* 由容器状态推出底部需要预留的总高度（含系统安全区） */
+  function fromState(st) {
+    if (st && st.immersive === true) { apply(env); return; }   // 沉浸模式无原生栏
+    var reported = 0;
+    if (st && st.safeArea && typeof st.safeArea.bottom === 'number') reported = st.safeArea.bottom;
+    apply(Math.max(env, NATIVE_BAR, reported));
+  }
+
+  function probe() {
+    var sdk = sdkNs();
+    if (!sdk) return false;
+    var settled = false;
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') {
+        p.then(
+          function (st) { settled = true; fromState(st); },
+          function () { settled = true; apply(env); }   // Web 端不支持 → 仅系统安全区
+        );
+        setTimeout(function () { if (!settled) fromState(null); }, 900);
+      } else {
+        settled = true;
+        apply(env);
+      }
+    } catch (e) {
+      settled = true;
+      apply(env);
+    }
+    return true;
+  }
+
+  function boot() {
+    env = envBottom();
+    var tries = 0;
+    timer = setInterval(function () {
+      if (probe()) { clearInterval(timer); timer = null; return; }
+      if (++tries > 24) { clearInterval(timer); timer = null; apply(env); }
+    }, 150);
+  }
+
+  function refresh() {
+    env = envBottom();
+    var sdk = sdkNs();
+    if (!sdk) { apply(env); return; }
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') p.then(fromState, function () { apply(env); });
+      else apply(env);
+    } catch (e) { apply(env); }
+  }
+
+  if (document.body) boot();
+  else document.addEventListener('DOMContentLoaded', boot);
+
+  window.addEventListener('resize', refresh);
+  window.addEventListener('orientationchange', function () { setTimeout(refresh, 260); });
+
+  /* 原生栏展开 / 收起时容器会广播状态变化，跟着重新预留 */
+  function watch() {
+    var sdk = sdkNs();
+    if (!sdk || typeof sdk.onContainerChange !== 'function') return;
+    try {
+      sdk.onContainerChange(function (st) { fromState(st && st.state ? st.state : st); });
+    } catch (e) { /* 部分容器不支持订阅，忽略 */ }
+  }
+  if (document.body) setTimeout(watch, 400);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(watch, 400); });
+})();
+</script>
+
 </body>
 </html>

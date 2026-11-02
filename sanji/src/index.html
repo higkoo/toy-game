@@ -224,7 +224,7 @@ body::before{
 /* ---------- 底部 ---------- */
 .foot{
   border-top:1px solid rgba(120,100,64,.14);
-  padding:22px 0 calc(26px + env(safe-area-inset-bottom));
+  padding:22px 0 calc(26px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   text-align:center;
 }
 .foot .links{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
@@ -232,7 +232,7 @@ body::before{
 .foot a:hover{color:var(--gold-2)}
 .foot .copy{margin-top:14px;font-size:10px;letter-spacing:.12em;color:#9a8f7d}
 .version{
-  position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));
+  position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   z-index:80;pointer-events:none;user-select:none;
   font-size:10px;font-weight:600;letter-spacing:.1em;color:#6f5a2e;
   background:rgba(255,251,241,.82);border:1px solid rgba(163,128,63,.34);
@@ -251,7 +251,7 @@ body::before{
   border:1px solid rgba(163,128,63,.3);border-bottom:0;
   border-radius:18px 18px 0 0;
   box-shadow:0 -14px 42px rgba(80,60,30,.22);
-  padding:18px 18px calc(14px + env(safe-area-inset-bottom));
+  padding:18px 18px calc(14px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   animation:sheet-up .28s cubic-bezier(.22,.9,.32,1);
 }
 @keyframes sheet-up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
@@ -924,5 +924,120 @@ body.lock{overflow:hidden}
   for (var m = 0; m < items.length; m++) io.observe(items[m]);
 })();
 </script>
+<script>
+/* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
+ * TOY 容器底部有一条原生互动栏，以「覆盖」方式浮在 WebView 之上：页面可用高度
+ * 不变，但底部约 60~70px 会被盖住。env(safe-area-inset-bottom) 只反映系统安全区
+ * （刘海 / Home Indicator），不含 TOY 自己的原生栏，在容器里通常是 0，靠它留白
+ * 完全无效。这里在原生容器中推出需要预留的底部高度并写入 --toy-bottom-inset；
+ * Web 环境下该变量等于系统安全区，行为与改动前完全一致。
+ */
+(function () {
+  var root = document.documentElement;
+  var NATIVE_BAR = 64;   // TOY 原生互动栏实测高度（CSS px），容器未上报时的兜底
+  var env = 0;           // 系统安全区底部高度（px）
+  var timer = null;
+
+  function envBottom() {
+    try {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);';
+      document.body.appendChild(d);
+      var v = parseFloat(getComputedStyle(d).paddingBottom) || 0;
+      if (d.parentNode) d.parentNode.removeChild(d);
+      return v > 0 ? v : 0;
+    } catch (e) { return 0; }
+  }
+
+  function apply(px) {
+    var v = Math.max(0, Math.round(px) || 0);
+    root.style.setProperty('--toy-bottom-inset', v + 'px');
+  }
+
+  /* 找出 SDK 命名空间：不同容器里挂在 window.toy 或 window.Toy.toy。
+     官方 SDK 用 defineProperty 定义 window.Toy（getter），这里统一按「有该方法」判定。 */
+  function sdkNs() {
+    var cands = [];
+    try { if (window.Toy) cands.push(window.Toy); } catch (e) {}
+    try { if (window.toy) cands.push(window.toy); } catch (e) {}
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i];
+      if (!c) continue;
+      if (typeof c.getContainerState === 'function') return c;
+      if (c.toy && typeof c.toy.getContainerState === 'function') return c.toy;
+    }
+    return null;
+  }
+
+  /* 由容器状态推出底部需要预留的总高度（含系统安全区） */
+  function fromState(st) {
+    if (st && st.immersive === true) { apply(env); return; }   // 沉浸模式无原生栏
+    var reported = 0;
+    if (st && st.safeArea && typeof st.safeArea.bottom === 'number') reported = st.safeArea.bottom;
+    apply(Math.max(env, NATIVE_BAR, reported));
+  }
+
+  function probe() {
+    var sdk = sdkNs();
+    if (!sdk) return false;
+    var settled = false;
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') {
+        p.then(
+          function (st) { settled = true; fromState(st); },
+          function () { settled = true; apply(env); }   // Web 端不支持 → 仅系统安全区
+        );
+        setTimeout(function () { if (!settled) fromState(null); }, 900);
+      } else {
+        settled = true;
+        apply(env);
+      }
+    } catch (e) {
+      settled = true;
+      apply(env);
+    }
+    return true;
+  }
+
+  function boot() {
+    env = envBottom();
+    var tries = 0;
+    timer = setInterval(function () {
+      if (probe()) { clearInterval(timer); timer = null; return; }
+      if (++tries > 24) { clearInterval(timer); timer = null; apply(env); }
+    }, 150);
+  }
+
+  function refresh() {
+    env = envBottom();
+    var sdk = sdkNs();
+    if (!sdk) { apply(env); return; }
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') p.then(fromState, function () { apply(env); });
+      else apply(env);
+    } catch (e) { apply(env); }
+  }
+
+  if (document.body) boot();
+  else document.addEventListener('DOMContentLoaded', boot);
+
+  window.addEventListener('resize', refresh);
+  window.addEventListener('orientationchange', function () { setTimeout(refresh, 260); });
+
+  /* 原生栏展开 / 收起时容器会广播状态变化，跟着重新预留 */
+  function watch() {
+    var sdk = sdkNs();
+    if (!sdk || typeof sdk.onContainerChange !== 'function') return;
+    try {
+      sdk.onContainerChange(function (st) { fromState(st && st.state ? st.state : st); });
+    } catch (e) { /* 部分容器不支持订阅，忽略 */ }
+  }
+  if (document.body) setTimeout(watch, 400);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(watch, 400); });
+})();
+</script>
+
 </body>
 </html>
