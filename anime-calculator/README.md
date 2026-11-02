@@ -55,9 +55,7 @@ anime-calculator/
 
 Toy 线上地址：<https://www.bilibili.com/toy/idol-calculator/index.html>
 
-已提交审核，审核通过后正式地址生效。
-
-审核期间可用预览地址体验：<https://www.bilibili.com/toy/preview/author_ehklVhcg/index.html>
+已正式发布，打开链接即可使用，无需本地部署。
 
 ## 说明
 

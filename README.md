@@ -6,13 +6,13 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 
 | 目录 | 游戏 | 简介 |
 | --- | --- | --- |
-| [anime-calculator](anime-calculator/README.md) | [小偶像计算器](https://www.bilibili.com/toy/idol-calculator/index.html)（审核中） | 标准 / 科学计算与亲戚称呼三种模式 |
+| [anime-calculator](anime-calculator/README.md) | [小偶像计算器](https://www.bilibili.com/toy/idol-calculator/index.html) | 标准 / 科学计算与亲戚称呼三种模式 |
 | [gomoku](gomoku/README.md) | [小偶像五子棋](https://www.bilibili.com/toy/idol-gomoku/index.html) | 人机 / 双人 / 联机五子棋，含教学模式、回放、好友与房间大厅 |
 | [go](go/README.md) | [小偶像围棋](https://www.bilibili.com/toy/idol-go/index.html) | 9 / 13 / 19 路人机、双人与联机围棋 |
 | [tetris](tetris/README.md) | [小偶像方块](https://www.bilibili.com/toy/idol-tetris/index.html) | 触屏方向键和键盘都能玩的俄罗斯方块 |
 | [sanji](sanji/README.md) | [倪海厦学习天地](https://www.bilibili.com/toy/sanji/index.html) | 天纪、人纪、地纪课程视频与讲义导航 |
 
-游戏名称已隐式链接到对应的 Toy 正式发布页；`小偶像计算器` 已提交审核，审核通过后链接生效，期间可先用[预览地址](https://www.bilibili.com/toy/preview/author_ehklVhcg/index.html)体验。
+游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
 ## 目录结构
 
