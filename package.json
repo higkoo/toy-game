@@ -15,6 +15,10 @@
     {
       "name": "CatPaw AI",
       "url": "https://github.com/features/copilot"
+    },
+    {
+      "name": "workbuddy",
+      "url": "https://github.com/workbuddy"
     }
   ],
   "license": "MIT"
