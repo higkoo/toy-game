@@ -24,9 +24,11 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none !important}
-html,body{height:100%}
+/* 修复：原 html,body{height:100%} 的 100% 在移动端基于“大视口”，地址栏展开时
+   底部内容被遮且没有滚动余量（小手机看不到底部）。body 最小高度改用动态视口 100dvh。 */
+html{height:100%}
 body{
-  margin:0;min-height:100%;display:flex;flex-direction:column;color:var(--ink);
+  margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;color:var(--ink);
   font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Noto Sans CJK SC",system-ui,-apple-system,"Segoe UI",sans-serif;
   background:
     radial-gradient(circle at 12% 2%, #ffffff 0%, rgba(255,255,255,0) 38%),
@@ -1827,7 +1829,7 @@ canvas{
   var FRIEND_KEY = 'idol_friends_v1';
   var LEGACY_FRIEND_KEYS = ['go_friends_v1', 'gomoku_friends_v1'];
   var PRESENCE_PREFIX = 'bg-idol-presence-';
-  var FRIEND_ONLINE_MS = 180000;
+  var FRIEND_ONLINE_MS = 90000;
   var PID_KEY = 'idol_pid_v1';
   var friends = [];
   var inviteSeen = {};
@@ -1841,7 +1843,11 @@ canvas{
     hbTimer: 0, watchdog: 0, lastStateAt: 0, stateTimer: 0, seen: {}, denied: {}, lastState: 0,
     uid: '', hostColor: BLACK, undoReq: '', recordPending: false, baseMeta: '',
     /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
-    guestSince: 0, roomProbe: null, roomTries: 0, roomInvite: null
+    guestSince: 0, roomProbe: null, roomTries: 0, roomInvite: null,
+    /* 入房回执看门狗：加入后 12 秒内没收到房主任何回执（st/ok/no/busy）就明确提示 */
+    joinTimer: 0, joinHeard: false,
+    /* 一次性提示宽限：入座确认（ok）后几秒内不被 st 的回合文案覆盖，否则一闪而过 */
+    statusLockUntil: 0
   };
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
@@ -2200,9 +2206,11 @@ canvas{
     if (presence.started || !me.uid) return;
     presence.started = true;
     pushPresence();
-    presence.hb = window.setInterval(pushPresence, 30000);
-    presence.poll = window.setInterval(pollPresence, 45000);
-    presence.ui = window.setInterval(renderFriends, 10000);
+    /* 修复：原心跳 30s/轮询 45s/UI 10s，好友在线感知最坏要 75 秒以上、
+       离线判定窗口却长达 3 分钟——「朋友明明在下棋却显示离线」。与五子棋对齐。 */
+    presence.hb = window.setInterval(pushPresence, 12000);
+    presence.poll = window.setInterval(pollPresence, 12000);
+    presence.ui = window.setInterval(renderFriends, 5000);
     startOwnPresenceStream();
     pollPresence();
   }
@@ -2802,6 +2810,19 @@ canvas{
     }, 8000);
   }
 
+  /* 修复：房间号填错/房主已离开时，申请人会永远停在“正在加入房间”且毫无反馈。
+     加入后 12 秒内若没有收到房主的任何回执（st/ok/no/busy），给出明确提示。 */
+  function armJoinWatch() {
+    if (online.joinTimer) window.clearTimeout(online.joinTimer);
+    online.joinHeard = false;
+    online.joinTimer = window.setTimeout(function () {
+      online.joinTimer = 0;
+      if (online.joinHeard) return;
+      if (!online.room || online.role === 'host' || online.role === 'guest') return;
+      setStatus('没连上这个房间，房主可能已离开，确认下房间号再试试');
+    }, 12000);
+  }
+
   function joinRoom(code) {
     if (!code) return false;
     code = String(code).replace(/[^0-9]/g, '').slice(0, 6);
@@ -2828,6 +2849,7 @@ canvas{
     refreshOnlineUI();
     setStatus('正在加入房间 ' + code + ' …');
     sendHi();
+    armJoinWatch();
     if (presence.started) pushPresence();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(sendHi, 12000);
@@ -2869,6 +2891,8 @@ canvas{
       window.clearInterval(online.hbTimer);
       online.hbTimer = 0;
     }
+    if (online.joinTimer) { window.clearTimeout(online.joinTimer); online.joinTimer = 0; }
+    online.joinHeard = false;
     online.room = '';
     online.topic = '';
     online.role = 'none';
@@ -3058,6 +3082,10 @@ canvas{
     }
     if (!m || typeof m !== 'object' || !m.t) return;
     online.lastHeard = Date.now();
+    /* 房主回执到达（状态/同意/拒绝/已满），撤销“没连上房间”的超时提示 */
+    if (online.joinTimer && (m.t === 'st' || m.t === 'ok' || m.t === 'no' || m.t === 'busy')) {
+      online.joinHeard = true;
+    }
     /* 弱网重试/轮询和 SSE 可能收到同一条消息，用 mid 去重，避免重复落子 */
     if (m.mid) {
       if (online.seenMids.indexOf(m.mid) >= 0) return;
@@ -3069,6 +3097,10 @@ canvas{
       if (!hid || hid === myPid()) return;
       online.seen[hid] = { n: m.n || '朋友', ts: Date.now(), p: m.p || '', u: m.u || '' };
       if (online.role === 'host') {
+        /* 修复：房间已有对手时原先静默忽略申请，申请人永远停在“正在加入房间”且毫无提示 */
+        if ((online.guestPid || online.guestUid) && hid !== online.guestPid && m.u !== online.guestUid) {
+          publish({ t: 'busy', u: m.u || '', p: m.p || '', b: online.hostUid });
+        }
         renderPending();
         refreshOnlineUI();
         broadcastState(false);
@@ -3119,6 +3151,8 @@ canvas{
         online.guestUid = myUid();
         online.guestPid = myPid();
         setStatus('房主同意啦，你执' + (myColor() === BLACK ? '黑' : '白') + '！');
+        /* 房主同意后会立刻广播 st，回合文案会把入座确认秒覆盖——锁定几秒让用户看清 */
+        online.statusLockUntil = Date.now() + 4000;
         refreshOnlineUI();
       }
       return;
@@ -3129,6 +3163,13 @@ canvas{
         online.role = 'spec';
         setStatus('房主拒绝了你，先观战啦');
         refreshOnlineUI();
+      }
+      return;
+    }
+    if (m.t === 'busy') {
+      /* 房主回执：房间已有人。申请人据此离开“正在加入房间”的死等状态 */
+      if ((m.p && m.p === myPid()) || (!m.p && m.u === myUid())) {
+        setStatus('这个房间已经有人啦，去「房间」列表看看别的吧');
       }
       return;
     }
@@ -3382,9 +3423,12 @@ canvas{
     updateTurnUI();
     refreshOnlineUI();
     if (!over) {
-      if (online.role === 'host') setStatus(turn === myColor() ? '轮到你啦' : '等朋友落子…');
-      else if (online.role === 'guest') setStatus(turn === myColor() ? '轮到你啦' : '等房主落子…');
-      else setStatus('观战中 · 等他们下棋');
+      /* 一次性提示（如入座确认）锁定期内不覆盖，几秒后由下一次 st 自然纠正 */
+      if (Date.now() >= (online.statusLockUntil || 0)) {
+        if (online.role === 'host') setStatus(turn === myColor() ? '轮到你啦' : '等朋友落子…');
+        else if (online.role === 'guest') setStatus(turn === myColor() ? '轮到你啦' : '等房主落子…');
+        else setStatus('观战中 · 等他们下棋');
+      }
     }
   }
 

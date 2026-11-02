@@ -23,7 +23,9 @@
 [hidden]{display:none !important}
 html{height:100%;scroll-behavior:smooth}
 body{
-  margin:0;min-height:100%;color:var(--ink);
+  /* 修复：min-height:100%（html 100%）在移动端基于“大视口”，地址栏展开时
+     底部被遮且无滚动余量。改用动态视口 100dvh。 */
+  margin:0;min-height:100vh;min-height:100dvh;color:var(--ink);
   background:linear-gradient(180deg,#fdfaf2,#f4edde 58%,#efe6d5);
   background-attachment:fixed;
   font-family:"Songti SC","Noto Serif SC","Source Han Serif SC","STSong","SimSun",serif;
