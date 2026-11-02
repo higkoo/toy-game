@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>小偶像の计算器 ♡</title>
+<title>小偶像计算器 ♡</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:linear-gradient(135deg,#ffe4ec 0%,#ffd6e7 25%,#fce4ff 50%,#e4e1ff 75%,#d4f1ff 100%);background-attachment:fixed;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(255,182,193,.4) 0,transparent 30%),radial-gradient(circle at 80% 70%,rgba(186,230,253,.4) 0,transparent 30%),radial-gradient(circle at 50% 50%,rgba(255,218,233,.3) 0,transparent 40%);pointer-events:none;z-index:0}
 .container{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:16px 12px 32px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
@@ -59,6 +60,32 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .mood-bubble{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,179,200,.95);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(232,90,138,.3);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .mood-bubble.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
 
+.mode-tabs{display:flex;gap:4px;width:100%;max-width:420px;background:rgba(255,255,255,.55);border:1px solid rgba(232,90,138,.15);border-radius:999px;padding:4px;margin:10px 0 8px}
+.mode-tabs button{flex:1;border:0;background:transparent;border-radius:999px;padding:9px 6px;font-family:inherit;font-size:13px;font-weight:700;color:#b36b8a;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s,transform .12s;white-space:nowrap}
+.mode-tabs button:active{transform:scale(.96)}
+.mode-tabs button.on{background:linear-gradient(135deg,#ffb6d9,#c9b6ff);color:#fff;box-shadow:0 3px 10px rgba(201,120,180,.25)}
+
+.kin-view{display:flex;flex-direction:column;gap:10px}
+.kin-chain{min-height:34px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;background:#fff8fc;border-radius:14px;padding:8px 10px;font-size:12px;color:#b36b8a;border:1px solid rgba(232,90,138,.12)}
+.kin-chain .kin-step{background:rgba(255,182,217,.32);border-radius:999px;padding:2px 9px;color:#8a5a7a;font-weight:600}
+.kin-chain .kin-step.self{background:rgba(255,133,179,.22);color:#e85a8a}
+.kin-chain .kin-arrow{color:#d3a3bd;font-size:10px}
+.kin-result-box{background:linear-gradient(135deg,#fff5f9,#f0f0ff);border-radius:18px;padding:14px;text-align:center;border:1px solid rgba(232,90,138,.12);box-shadow:inset 0 2px 6px rgba(232,90,138,.06)}
+.kin-label{font-size:10px;color:#b36b8a;letter-spacing:3px}
+.kin-result{font-size:36px;font-weight:700;color:#4a3b5c;line-height:1.2;margin:2px 0 4px;word-break:break-all}
+.kin-sub{font-size:11.5px;color:#b36b8a;line-height:1.5}
+.kin-tools{display:flex;gap:8px;justify-content:flex-end;margin-top:-4px}
+.mini-pill{border:0;background:#f3e9ff;color:#8a6bb3;font-family:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
+.mini-pill:active{transform:scale(.95)}
+.mini-pill:disabled{opacity:.4;cursor:default;transform:none}
+.kin-keys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.kin-keys button{border:0;border-radius:14px;padding:12px 0;font-family:inherit;font-size:13px;font-weight:600;color:#4a3b5c;background:linear-gradient(135deg,#fff5f9,#ffe8f2);box-shadow:0 3px 8px rgba(232,90,138,.1);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.kin-keys button:hover{box-shadow:0 5px 14px rgba(232,90,138,.18)}
+.kin-keys button:active{transform:scale(.94)}
+.kin-examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px;color:#b36b8a}
+.kin-examples button{border:1px solid rgba(232,90,138,.18);background:rgba(255,255,255,.8);border-radius:999px;padding:5px 9px;font-family:inherit;font-size:11px;color:#e85a8a;cursor:pointer}
+.kin-examples button:active{transform:scale(.95)}
+
 .particles{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
 .particle{position:absolute;font-size:16px;animation:pop 1s ease-out forwards}
 @keyframes pop{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(.5)}}
@@ -72,59 +99,123 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
   .expression{font-size:14px}
   .btn{padding:14px 0;font-size:16px;border-radius:14px}
   .buttons{gap:8px}
+  .kin-result{font-size:30px}
+  .kin-keys button{padding:10px 0;font-size:12px}
 }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="title"><span class="sparkle">★</span> 小偶像の计算器 <span class="sparkle">♡</span></div>
+  <div class="title"><span class="sparkle">★</span> 小偶像计算器 <span class="sparkle">♡</span></div>
+  <div class="mode-tabs" id="modeTabs">
+    <button type="button" data-mode="std" class="on">标准</button>
+    <button type="button" data-mode="sci">科学</button>
+    <button type="button" data-mode="kin">亲戚称呼</button>
+  </div>
   <div class="calc-card">
     <div class="avatar-row">
       <div class="avatar">★</div>
-      <div class="greeting">你好呀～<b>主人</b>！让我帮你算一算吧 ♡</div>
+      <div class="greeting" id="greeting">你好呀～让我帮你算一算吧 ♡</div>
     </div>
-    <div class="display-wrap">
-      <div class="expression" id="expr">&nbsp;</div>
-      <div class="result" id="result">0</div>
+    <div id="calcView">
+      <div class="display-wrap">
+        <div class="expression" id="expr">&nbsp;</div>
+        <div class="result" id="result">0</div>
+      </div>
+      <div class="history-toggle" id="histToggle">[历史] <span class="arrow">↓</span></div>
+      <div class="history-panel" id="histPanel">
+        <div class="history-list" id="histList"></div>
+        <div class="clear-history" id="clearHist">清除全部</div>
+      </div>
+      <div class="buttons pad-std" id="stdPad">
+        <button class="btn btn-clear" data-action="clear">AC</button>
+        <button class="btn btn-del" data-action="del">←</button>
+        <button class="btn btn-fn" data-fn="pct">%</button>
+        <button class="btn btn-op" data-op="/">÷</button>
+        <button class="btn btn-num" data-num="7">7</button>
+        <button class="btn btn-num" data-num="8">8</button>
+        <button class="btn btn-num" data-num="9">9</button>
+        <button class="btn btn-op" data-op="*">×</button>
+        <button class="btn btn-num" data-num="4">4</button>
+        <button class="btn btn-num" data-num="5">5</button>
+        <button class="btn btn-num" data-num="6">6</button>
+        <button class="btn btn-op" data-op="-">−</button>
+        <button class="btn btn-num" data-num="1">1</button>
+        <button class="btn btn-num" data-num="2">2</button>
+        <button class="btn btn-num" data-num="3">3</button>
+        <button class="btn btn-op" data-op="+">+</button>
+        <button class="btn btn-num" data-fn="negate">±</button>
+        <button class="btn btn-num" data-num="0">0</button>
+        <button class="btn btn-num" data-num=".">.</button>
+        <button class="btn btn-eq" data-action="eq">=</button>
+      </div>
+      <div class="buttons pad-sci" id="sciPad" hidden>
+        <button class="btn btn-clear" data-action="clear">AC</button>
+        <button class="btn btn-del" data-action="del">←</button>
+        <button class="btn btn-fn" data-action="paren">(</button>
+        <button class="btn btn-fn" data-action="paren2">)</button>
+        <button class="btn btn-fn" data-fn="sin">sin</button>
+        <button class="btn btn-fn" data-fn="cos">cos</button>
+        <button class="btn btn-fn" data-fn="tan">tan</button>
+        <button class="btn btn-op" data-op="/">÷</button>
+        <button class="btn btn-num" data-num="7">7</button>
+        <button class="btn btn-num" data-num="8">8</button>
+        <button class="btn btn-num" data-num="9">9</button>
+        <button class="btn btn-op" data-op="*">×</button>
+        <button class="btn btn-num" data-num="4">4</button>
+        <button class="btn btn-num" data-num="5">5</button>
+        <button class="btn btn-num" data-num="6">6</button>
+        <button class="btn btn-op" data-op="-">−</button>
+        <button class="btn btn-num" data-num="1">1</button>
+        <button class="btn btn-num" data-num="2">2</button>
+        <button class="btn btn-num" data-num="3">3</button>
+        <button class="btn btn-op" data-op="+">+</button>
+        <button class="btn btn-num" data-fn="negate">±</button>
+        <button class="btn btn-num" data-num="0">0</button>
+        <button class="btn btn-num" data-num=".">.</button>
+        <button class="btn btn-eq" data-action="eq">=</button>
+        <button class="btn btn-fn" data-fn="ln">ln</button>
+        <button class="btn btn-fn" data-fn="log">log</button>
+        <button class="btn btn-fn" data-fn="sqrt">√</button>
+        <button class="btn btn-fn" data-fn="pi">π</button>
+        <button class="btn btn-fn" data-fn="pow">x²</button>
+        <button class="btn btn-fn" data-fn="pow3">x³</button>
+        <button class="btn btn-fn" data-fn="pct">%</button>
+        <button class="btn btn-fn" data-fn="1x">1/x</button>
+      </div>
     </div>
-    <div class="history-toggle" id="histToggle">[历史] <span class="arrow">↓</span></div>
-    <div class="history-panel" id="histPanel">
-      <div class="history-list" id="histList"></div>
-      <div class="clear-history" id="clearHist">清除全部</div>
-    </div>
-    <div class="buttons">
-      <button class="btn btn-clear" data-action="clear">AC</button>
-      <button class="btn btn-del" data-action="del">←</button>
-      <button class="btn btn-fn" data-action="paren">(</button>
-      <button class="btn btn-fn" data-action="paren2">)</button>
-      <button class="btn btn-fn" data-fn="sin">sin</button>
-      <button class="btn btn-fn" data-fn="cos">cos</button>
-      <button class="btn btn-fn" data-fn="tan">tan</button>
-      <button class="btn btn-op" data-op="/">÷</button>
-      <button class="btn btn-num" data-num="7">7</button>
-      <button class="btn btn-num" data-num="8">8</button>
-      <button class="btn btn-num" data-num="9">9</button>
-      <button class="btn btn-op" data-op="*">×</button>
-      <button class="btn btn-num" data-num="4">4</button>
-      <button class="btn btn-num" data-num="5">5</button>
-      <button class="btn btn-num" data-num="6">6</button>
-      <button class="btn btn-op" data-op="-">−</button>
-      <button class="btn btn-num" data-num="1">1</button>
-      <button class="btn btn-num" data-num="2">2</button>
-      <button class="btn btn-num" data-num="3">3</button>
-      <button class="btn btn-op" data-op="+">+</button>
-      <button class="btn btn-num" data-fn="negate">±</button>
-      <button class="btn btn-num" data-num="0">0</button>
-      <button class="btn btn-num" data-num=".">.</button>
-      <button class="btn btn-eq" data-action="eq">=</button>
-      <button class="btn btn-fn" data-fn="ln">ln</button>
-      <button class="btn btn-fn" data-fn="log">log</button>
-      <button class="btn btn-fn" data-fn="sqrt">√</button>
-      <button class="btn btn-fn" data-fn="pi">π</button>
-      <button class="btn btn-fn" data-fn="pow">x²</button>
-      <button class="btn btn-fn" data-fn="pow3">x³</button>
-      <button class="btn btn-fn" data-fn="pct">%</button>
-      <button class="btn btn-fn" data-fn="1x">1/x</button>
+    <div class="kin-view" id="kinView" hidden>
+      <div class="kin-chain" id="kinChain"></div>
+      <div class="kin-result-box">
+        <div class="kin-label">应该叫</div>
+        <div class="kin-result" id="kinResult">我</div>
+        <div class="kin-sub" id="kinSub">点下面的关系，一步步加上去</div>
+      </div>
+      <div class="kin-tools">
+        <button type="button" class="mini-pill" id="kinUndo">删一步</button>
+        <button type="button" class="mini-pill" id="kinClear">重来</button>
+      </div>
+      <div class="kin-keys" id="kinKeys">
+        <button type="button" data-kin="F">爸爸</button>
+        <button type="button" data-kin="M">妈妈</button>
+        <button type="button" data-kin="OB">哥哥</button>
+        <button type="button" data-kin="YB">弟弟</button>
+        <button type="button" data-kin="OS">姐姐</button>
+        <button type="button" data-kin="YS">妹妹</button>
+        <button type="button" data-kin="S">儿子</button>
+        <button type="button" data-kin="D">女儿</button>
+        <button type="button" data-kin="H">丈夫</button>
+        <button type="button" data-kin="W">妻子</button>
+      </div>
+      <div class="kin-examples" id="kinExamples">
+        <span>试试：</span>
+        <button type="button" data-path="F,OB">爸爸的哥哥</button>
+        <button type="button" data-path="M,M">妈妈的妈妈</button>
+        <button type="button" data-path="F,OS,S">爸爸的姐姐的儿子</button>
+        <button type="button" data-path="M,OB,D">舅舅的女儿</button>
+        <button type="button" data-path="F,F,F">爸爸的爸爸的爸爸</button>
+        <button type="button" data-path="OB,W">哥哥的妻子</button>
+      </div>
     </div>
   </div>
 </div>
@@ -143,6 +234,47 @@ var particlesEl=document.getElementById('particles');
 var current='0';
 var expression='';
 var justEq=false;
+
+var mode='std';
+var modeTabsEl=document.getElementById('modeTabs');
+var calcViewEl=document.getElementById('calcView');
+var stdPadEl=document.getElementById('stdPad');
+var sciPadEl=document.getElementById('sciPad');
+var kinViewEl=document.getElementById('kinView');
+var kinChainEl=document.getElementById('kinChain');
+var kinResultEl=document.getElementById('kinResult');
+var kinSubEl=document.getElementById('kinSub');
+var kinUndoBtn=document.getElementById('kinUndo');
+var kinClearBtn=document.getElementById('kinClear');
+var greetingEl=document.getElementById('greeting');
+var kinPath=[];
+
+var KIN_LABELS={F:'爸爸',M:'妈妈',OB:'哥哥',YB:'弟弟',OS:'姐姐',YS:'妹妹',S:'儿子',D:'女儿',H:'丈夫',W:'妻子'};
+var KIN={
+  F:'爸爸',M:'妈妈',OB:'哥哥',YB:'弟弟',OS:'姐姐',YS:'妹妹',S:'儿子',D:'女儿',H:'丈夫',W:'妻子',
+  'F/F':'爷爷','F/M':'奶奶','M/F':'外公','M/M':'外婆',
+  'F/OB':'伯父','F/YB':'叔叔','F/OS':'姑妈','F/YS':'姑姑',
+  'M/OB':'舅舅','M/YB':'舅舅','M/OS':'姨妈','M/YS':'小姨',
+  'OB/W':'嫂子','YB/W':'弟媳','OS/H':'姐夫','YS/H':'妹夫',
+  'S/W':'儿媳','D/H':'女婿',
+  'H/F':'公公','H/M':'婆婆','W/F':'岳父','W/M':'岳母',
+  'H/OB':'大伯子','H/YB':'小叔子','H/OS':'大姑子','H/YS':'小姑子',
+  'W/OB':'大舅子','W/YB':'小舅子','W/OS':'大姨子','W/YS':'小姨子',
+  'S/S':'孙子','S/D':'孙女','D/S':'外孙','D/D':'外孙女',
+  'OB/S':'侄子','YB/S':'侄子','OB/D':'侄女','YB/D':'侄女',
+  'OS/S':'外甥','YS/S':'外甥','OS/D':'外甥女','YS/D':'外甥女',
+  'F/OB/W':'伯母','F/YB/W':'婶婶','F/OS/H':'姑父','F/YS/H':'姑父',
+  'M/OB/W':'舅妈','M/YB/W':'舅妈','M/OS/H':'姨父','M/YS/H':'姨父',
+  'F/OB/S':'堂兄弟','F/YB/S':'堂兄弟','F/OB/D':'堂姐妹','F/YB/D':'堂姐妹',
+  'F/OS/S':'表兄弟','F/OS/D':'表姐妹','F/YS/S':'表兄弟','F/YS/D':'表姐妹',
+  'M/OB/S':'表兄弟','M/YB/S':'表兄弟','M/OB/D':'表姐妹','M/YB/D':'表姐妹',
+  'M/OS/S':'表兄弟','M/YS/S':'表兄弟','M/OS/D':'表姐妹','M/YS/D':'表姐妹',
+  'F/F/F':'曾祖父','F/F/M':'曾祖母','M/M/F':'外曾祖父','M/M/M':'外曾祖母',
+  'S/S/S':'曾孙','S/S/D':'曾孙女','D/D/S':'外曾孙','D/D/D':'外曾孙女',
+  'F/F/OB':'伯公','F/F/YB':'叔公','F/F/OS':'姑婆','F/F/YS':'姑婆',
+  'M/M/OB':'舅公','M/M/YB':'舅公','M/M/OS':'姨婆','M/M/YS':'姨婆'
+};
+var kinMoods=['又学会一个称呼！','原来要这么叫呀～','家里人好多呀','记住啦，下次见面就会叫了','这个称呼有点讲究呢'];
 
 var moods=[
   '主人加油呀 ♡','算对啦～好棒！','嘿咻嘿咻★','让我看看……','哇！好复杂呀','嗯嗯～我想想','这题我会！','咦？让我再算一遍','数学好有趣♡','主人好厉害！'
@@ -166,6 +298,67 @@ function spark(x,y){
   s.style.color='hsl('+(330+Math.random()*50)+',80%,70%)';
   particlesEl.appendChild(s);
   setTimeout(function(){s.remove()},1000);
+}
+
+function kinParts(){
+  var parts=['我'];
+  for(var i=0;i<kinPath.length;i++)parts.push(KIN_LABELS[kinPath[i]]||'');
+  return parts;
+}
+
+function renderKin(){
+  var parts=kinParts();
+  kinChainEl.innerHTML=parts.map(function(t,i){
+    return (i?'<span class="kin-arrow">›</span>':'')+'<span class="kin-step'+(i===0?' self':'')+'">'+t+'</span>';
+  }).join('');
+  var title=kinPath.length?KIN[kinPath.join('/')]:'我';
+  if(!kinPath.length){
+    kinResultEl.textContent='我';
+    kinSubEl.textContent='点下面的关系，一步步加上去';
+  }else if(title){
+    kinResultEl.textContent=title;
+    kinSubEl.textContent='关系：'+parts.join(' → ');
+  }else{
+    kinResultEl.textContent='家人';
+    kinSubEl.textContent='这个关系有点绕，先叫一声家人吧～';
+  }
+  kinUndoBtn.disabled=!kinPath.length;
+  kinClearBtn.disabled=!kinPath.length;
+}
+
+function addKin(t){
+  if(kinPath.length>=6){showMood('最多加 6 步哦～');return}
+  kinPath.push(t);
+  renderKin();
+  var title=KIN[kinPath.join('/')];
+  spark(window.innerWidth/2,window.innerHeight/2-80);
+  showMood(title?('是「'+title+'」呀～'):kinMoods[Math.floor(Math.random()*kinMoods.length)]);
+}
+
+function setKinPath(path){
+  kinPath=path.slice(0,6);
+  renderKin();
+  var title=KIN[kinPath.join('/')];
+  showMood(title?('是「'+title+'」呀～'):'这个关系有点绕……');
+}
+
+function setMode(m){
+  mode=m;
+  var tabs=modeTabsEl.querySelectorAll('button');
+  for(var i=0;i<tabs.length;i++)tabs[i].classList.toggle('on',tabs[i].dataset.mode===m);
+  var isKin=m==='kin';
+  calcViewEl.hidden=isKin;
+  kinViewEl.hidden=!isKin;
+  stdPadEl.hidden=m!=='std';
+  sciPadEl.hidden=m!=='sci';
+  if(isKin){
+    greetingEl.textContent='来算算该叫什么称呼～';
+    renderKin();
+  }else if(m==='sci'){
+    greetingEl.textContent='科学模式，什么都能算 ♡';
+  }else{
+    greetingEl.textContent='你好呀～让我帮你算一算吧 ♡';
+  }
 }
 
 function updateDisplay(){
@@ -361,21 +554,56 @@ clearHistBtn.addEventListener('click',function(){
   }
 });
 
-document.querySelector('.buttons').addEventListener('click',function(e){
-  var btn=e.target.closest('.btn');
+Array.prototype.forEach.call(document.querySelectorAll('.buttons'),function(pad){
+  pad.addEventListener('click',function(e){
+    var btn=e.target.closest('.btn');
+    if(!btn)return;
+    spark(e.clientX,e.clientY);
+    if(btn.dataset.num!==undefined)appendNum(btn.dataset.num);
+    else if(btn.dataset.op!==undefined)appendOp(btn.dataset.op);
+    else if(btn.dataset.fn!==undefined)appendFn(btn.dataset.fn);
+    else if(btn.dataset.action==='clear')clearAll();
+    else if(btn.dataset.action==='del')backspace();
+    else if(btn.dataset.action==='eq')equals();
+    else if(btn.dataset.action==='paren')doParen();
+    else if(btn.dataset.action==='paren2')doParen2();
+  });
+});
+
+modeTabsEl.addEventListener('click',function(e){
+  var btn=e.target.closest('button[data-mode]');
+  if(!btn)return;
+  setMode(btn.dataset.mode);
+});
+
+document.getElementById('kinKeys').addEventListener('click',function(e){
+  var btn=e.target.closest('button[data-kin]');
   if(!btn)return;
   spark(e.clientX,e.clientY);
-  if(btn.dataset.num!==undefined)appendNum(btn.dataset.num);
-  else if(btn.dataset.op!==undefined)appendOp(btn.dataset.op);
-  else if(btn.dataset.fn!==undefined)appendFn(btn.dataset.fn);
-  else if(btn.dataset.action==='clear')clearAll();
-  else if(btn.dataset.action==='del')backspace();
-  else if(btn.dataset.action==='eq')equals();
-  else if(btn.dataset.action==='paren')doParen();
-  else if(btn.dataset.action==='paren2')doParen2();
+  addKin(btn.dataset.kin);
+});
+
+document.getElementById('kinExamples').addEventListener('click',function(e){
+  var btn=e.target.closest('button[data-path]');
+  if(!btn)return;
+  setKinPath(btn.dataset.path.split(','));
+});
+
+kinUndoBtn.addEventListener('click',function(){
+  if(!kinPath.length)return;
+  kinPath.pop();
+  renderKin();
+});
+
+kinClearBtn.addEventListener('click',function(){
+  if(!kinPath.length)return;
+  kinPath=[];
+  renderKin();
+  showMood('重新开始～');
 });
 
 document.addEventListener('keydown',function(e){
+  if(mode==='kin')return;
   if(e.key==='Enter'||e.key==='='){e.preventDefault();equals()}
   else if(e.key==='Backspace'){backspace()}
   else if(e.key==='Escape'||e.key==='Delete'){clearAll()}
@@ -387,6 +615,7 @@ document.addEventListener('keydown',function(e){
 
 renderHistory();
 updateDisplay();
+setMode('std');
 })();
 </script>
 </body>
