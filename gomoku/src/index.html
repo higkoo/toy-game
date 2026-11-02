@@ -308,13 +308,17 @@ body{
 }
 body.fs-lock{overflow:hidden}
 .fs-btn{
-  position:absolute;top:8px;left:8px;z-index:6;
+  /* 修复：原 absolute(top:8,left:8) 落在棋盘左上角内，面板高度紧张时棋盘顶到
+     board-wrap 角落，(0,0) 交叉点被按钮盖住——点角落变成切全屏、落子静默失败。
+     移到 scorebar 工具行；全屏时再 fixed 回右上角浮层。 */
+  position:static;align-self:center;flex:0 0 auto;
   width:30px;height:30px;padding:0;border-radius:10px;
   border:2px solid #e7f3ff;background:rgba(255,255,255,.9);
   color:#5f7ea5;font-family:inherit;font-size:14px;font-weight:800;line-height:1;
   cursor:pointer;box-shadow:0 2px 6px rgba(120,160,200,.22);
   transition:transform .12s;
 }
+body.fs-lock .fs-btn{position:fixed;top:8px;right:8px;left:auto;z-index:60}
 .fs-btn:active{transform:scale(.94)}
 canvas{
   display:block;flex:0 0 auto;
@@ -763,7 +767,6 @@ canvas{
     </div>
 
     <div class="board-wrap" id="boardWrap">
-      <button type="button" class="fs-btn" id="fsBtn" title="全屏棋盘" aria-label="全屏棋盘">⛶</button>
       <canvas id="board"></canvas>
       <div class="spectator-badge" id="spectatorBadge">观战中</div>
       <div class="win-banner" id="winBanner">
@@ -811,6 +814,7 @@ canvas{
         <span><b class="num w" id="scoreW">0</b> 白棋</span>
       </span>
       <button type="button" class="mini-btn ghost replay-entry" id="replayBtn">回放</button>
+      <button type="button" class="fs-btn" id="fsBtn" title="全屏棋盘" aria-label="全屏棋盘">⛶</button>
     </div>
   </section>
 
@@ -2296,7 +2300,9 @@ canvas{
   function pollPresenceTopic(topic, own) {
     var prev = presence.since[topic];
     var since = prev || (own ? '6h' : '10m');
-    window.fetch(RELAY + topic + '/json?poll=1&since=' + since)
+    /* 修复：原裸 fetch 无超时，弱网下单个好友的拉取会一直挂着，12s 轮询继续叠加
+       并发请求却都收不到响应，表现为「好友在线状态一直不更新」 */
+    timedFetch(RELAY + topic + '/json?poll=1&since=' + since, {}, 5000)
       .then(readNdjson)
       .then(function (list) {
         var maxTime = 0;
@@ -3541,7 +3547,9 @@ canvas{
   function pollLobby() {
     if (lobby.loading) return;
     lobby.loading = true;
-    window.fetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=90s', { cache: 'no-store' })
+    /* 修复：原裸 fetch 无超时，弱网下 lobby.loading 永远为 true，
+       大厅列表从此不再发起请求（一直转圈且不重试） */
+    timedFetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=90s', { cache: 'no-store' }, 5000)
       .then(function (r) {
         if (!r.ok) throw new Error('http ' + r.status);
         return r.text();
