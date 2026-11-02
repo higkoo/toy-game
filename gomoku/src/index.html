@@ -66,7 +66,7 @@ body{
   min-height:0;
   width:100%;max-width:520px;
   margin:0 auto;
-  padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+  padding:12px 12px calc(12px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   display:flex;flex-direction:column;gap:9px;
 }
 
@@ -211,7 +211,7 @@ body{
 .lobby-card{
   position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;
   display:flex;flex-direction:column;gap:10px;max-height:76vh;max-height:76dvh;
-  padding:14px 14px calc(16px + env(safe-area-inset-bottom));
+  padding:14px 14px calc(16px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   background:#fff;border-radius:24px 24px 0 0;
   box-shadow:0 -10px 30px rgba(90,120,160,.22);
 }
@@ -304,7 +304,7 @@ body{
 .board-wrap.fs{
   position:fixed;inset:0;z-index:40;border-radius:0;
   background:linear-gradient(170deg,#eaf8ff 0%,#fff1f7 52%,#fff8ea 100%);
-  padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px))) calc(14px + env(safe-area-inset-left));
 }
 body.fs-lock{overflow:hidden}
 .fs-btn{
@@ -428,6 +428,7 @@ canvas{
   flex:1 1 auto;min-height:0;display:none;flex-direction:column;
   justify-content:flex-start;gap:10px;padding:2px;overflow-y:auto;
 }
+.home > *{flex-shrink:0}
 .app.home-mode .home{display:flex}
 .app.home-mode .panel{display:none}
 .home-head{text-align:center;padding:2px 0 0}
@@ -509,12 +510,12 @@ canvas{
 .ver{
   position:fixed;z-index:1;pointer-events:none;user-select:none;opacity:.7;
   right:calc(12px + env(safe-area-inset-right));
-  bottom:calc(6px + env(safe-area-inset-bottom));
+  bottom:calc(6px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
   font-size:10px;font-weight:700;letter-spacing:.6px;color:#c5d3e6;
 }
 
 @media (max-width:370px){
-  .app{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+  .app{padding:10px 10px calc(10px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)))}
   .mascot{width:46px;height:46px;flex-basis:46px}
   .mascot svg{width:32px;height:32px}
   .brand h1{font-size:17.5px}
@@ -526,7 +527,7 @@ canvas{
 }
 
 @media (max-height:690px){
-  .app{padding-top:8px;padding-bottom:8px;gap:6px}
+  .app{padding-top:8px;padding-bottom:calc(8px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));gap:6px}
   .mascot{width:40px;height:40px;flex-basis:40px}
   .mascot svg{width:28px;height:28px}
   .brand h1{font-size:17px}
@@ -4339,5 +4340,120 @@ canvas{
   }
 })();
 </script>
+<script>
+/* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
+ * TOY 容器底部有一条原生互动栏，以「覆盖」方式浮在 WebView 之上：页面可用高度
+ * 不变，但底部约 60~70px 会被盖住。env(safe-area-inset-bottom) 只反映系统安全区
+ * （刘海 / Home Indicator），不含 TOY 自己的原生栏，在容器里通常是 0，靠它留白
+ * 完全无效。这里在原生容器中推出需要预留的底部高度并写入 --toy-bottom-inset；
+ * Web 环境下该变量等于系统安全区，行为与改动前完全一致。
+ */
+(function () {
+  var root = document.documentElement;
+  var NATIVE_BAR = 64;   // TOY 原生互动栏实测高度（CSS px），容器未上报时的兜底
+  var env = 0;           // 系统安全区底部高度（px）
+  var timer = null;
+
+  function envBottom() {
+    try {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);';
+      document.body.appendChild(d);
+      var v = parseFloat(getComputedStyle(d).paddingBottom) || 0;
+      if (d.parentNode) d.parentNode.removeChild(d);
+      return v > 0 ? v : 0;
+    } catch (e) { return 0; }
+  }
+
+  function apply(px) {
+    var v = Math.max(0, Math.round(px) || 0);
+    root.style.setProperty('--toy-bottom-inset', v + 'px');
+  }
+
+  /* 找出 SDK 命名空间：不同容器里挂在 window.toy 或 window.Toy.toy。
+     官方 SDK 用 defineProperty 定义 window.Toy（getter），这里统一按「有该方法」判定。 */
+  function sdkNs() {
+    var cands = [];
+    try { if (window.Toy) cands.push(window.Toy); } catch (e) {}
+    try { if (window.toy) cands.push(window.toy); } catch (e) {}
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i];
+      if (!c) continue;
+      if (typeof c.getContainerState === 'function') return c;
+      if (c.toy && typeof c.toy.getContainerState === 'function') return c.toy;
+    }
+    return null;
+  }
+
+  /* 由容器状态推出底部需要预留的总高度（含系统安全区） */
+  function fromState(st) {
+    if (st && st.immersive === true) { apply(env); return; }   // 沉浸模式无原生栏
+    var reported = 0;
+    if (st && st.safeArea && typeof st.safeArea.bottom === 'number') reported = st.safeArea.bottom;
+    apply(Math.max(env, NATIVE_BAR, reported));
+  }
+
+  function probe() {
+    var sdk = sdkNs();
+    if (!sdk) return false;
+    var settled = false;
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') {
+        p.then(
+          function (st) { settled = true; fromState(st); },
+          function () { settled = true; apply(env); }   // Web 端不支持 → 仅系统安全区
+        );
+        setTimeout(function () { if (!settled) fromState(null); }, 900);
+      } else {
+        settled = true;
+        apply(env);
+      }
+    } catch (e) {
+      settled = true;
+      apply(env);
+    }
+    return true;
+  }
+
+  function boot() {
+    env = envBottom();
+    var tries = 0;
+    timer = setInterval(function () {
+      if (probe()) { clearInterval(timer); timer = null; return; }
+      if (++tries > 24) { clearInterval(timer); timer = null; apply(env); }
+    }, 150);
+  }
+
+  function refresh() {
+    env = envBottom();
+    var sdk = sdkNs();
+    if (!sdk) { apply(env); return; }
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') p.then(fromState, function () { apply(env); });
+      else apply(env);
+    } catch (e) { apply(env); }
+  }
+
+  if (document.body) boot();
+  else document.addEventListener('DOMContentLoaded', boot);
+
+  window.addEventListener('resize', refresh);
+  window.addEventListener('orientationchange', function () { setTimeout(refresh, 260); });
+
+  /* 原生栏展开 / 收起时容器会广播状态变化，跟着重新预留 */
+  function watch() {
+    var sdk = sdkNs();
+    if (!sdk || typeof sdk.onContainerChange !== 'function') return;
+    try {
+      sdk.onContainerChange(function (st) { fromState(st && st.state ? st.state : st); });
+    } catch (e) { /* 部分容器不支持订阅，忽略 */ }
+  }
+  if (document.body) setTimeout(watch, 400);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(watch, 400); });
+})();
+</script>
+
 </body>
 </html>
