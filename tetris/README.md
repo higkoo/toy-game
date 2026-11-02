@@ -42,6 +42,12 @@ tetris/
 └── README.md
 ```
 
+## 正式发布
+
+Toy 线上地址：<https://www.bilibili.com/toy/idol-tetris/index.html>
+
+打开链接即可直接游玩，无需本地部署。
+
 ## 说明
 
 单机游戏，无需联机，也不依赖后端。Toy SDK 仅用于页面运行环境，核心玩法离线也能玩。

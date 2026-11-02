@@ -44,4 +44,8 @@ go/
 
 当前源码版本：`v17`
 
-Toy 预览：<https://www.bilibili.com/toy/preview/author_aOHATDx8/index.html>
+## 正式发布
+
+Toy 线上地址：<https://www.bilibili.com/toy/idol-go/index.html>
+
+打开链接即可直接游玩，无需本地部署。
