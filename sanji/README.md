@@ -48,4 +48,8 @@ sanji/
 
 当前源码版本：`v1.10`
 
-Toy 预览：<https://www.bilibili.com/toy/preview/author_m3no9baK/index.html>
+## 正式发布
+
+Toy 线上地址：<https://www.bilibili.com/toy/sanji/index.html>
+
+打开链接即可直接访问，无需本地部署。

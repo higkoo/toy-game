@@ -6,11 +6,13 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 
 | 目录 | 游戏 | 简介 |
 | --- | --- | --- |
-| [anime-calculator](anime-calculator/README.md) | 小偶像の计算器 | 带历史记录、表情反馈和粒子效果的科学计算器 |
-| [gomoku](gomoku/README.md) | 小偶像五子棋 | 人机 / 双人 / 联机五子棋，含教学模式、回放、好友与房间大厅 |
-| [go](go/README.md) | 小偶像围棋 | 9 / 13 / 19 路人机、双人与联机围棋 |
-| [tetris](tetris/README.md) | 小偶像方块 | 触屏方向键和键盘都能玩的俄罗斯方块 |
-| [sanji](sanji/README.md) | 倪海厦学习天地 | 天纪、人纪、地纪课程视频与讲义导航 |
+| [anime-calculator](anime-calculator/README.md) | 小偶像の计算器（尚未发布） | 带历史记录、表情反馈和粒子效果的科学计算器 |
+| [gomoku](gomoku/README.md) | [小偶像五子棋](https://www.bilibili.com/toy/idol-gomoku/index.html) | 人机 / 双人 / 联机五子棋，含教学模式、回放、好友与房间大厅 |
+| [go](go/README.md) | [小偶像围棋](https://www.bilibili.com/toy/idol-go/index.html) | 9 / 13 / 19 路人机、双人与联机围棋 |
+| [tetris](tetris/README.md) | [小偶像方块](https://www.bilibili.com/toy/idol-tetris/index.html) | 触屏方向键和键盘都能玩的俄罗斯方块 |
+| [sanji](sanji/README.md) | [倪海厦学习天地](https://www.bilibili.com/toy/sanji/index.html) | 天纪、人纪、地纪课程视频与讲义导航 |
+
+游戏名称已隐式链接到对应的 Toy 正式发布页；`小偶像の计算器` 尚未发布，暂无线上地址。
 
 ## 目录结构
 
