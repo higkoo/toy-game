@@ -480,6 +480,7 @@ canvas{
           <div class="room-line">
             <span class="room-code">房间 <b id="roomCode">----</b></span>
             <button type="button" class="mini-btn" id="copyLinkBtn">复制邀请</button>
+            <button type="button" class="mini-btn ghost" id="reconnectBtn">重连</button>
             <button type="button" class="mini-btn ghost" id="leaveRoomBtn">离开</button>
           </div>
           <div class="room-meta" id="roomMeta">正在连接…</div>
@@ -582,7 +583,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v17</div>
+<div class="ver" id="verTag">v18</div>
 
 <script>
 (function () {
@@ -592,7 +593,7 @@ canvas{
   var STORE_KEY = 'go_idol_v1';
   var RECORD_KEY = 'go_records_v1';
   var RECORD_MAX = 30;
-  var VERSION = 'v17';
+  var VERSION = 'v18';
   var UA = (window.navigator && window.navigator.userAgent) || '';
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(UA);
   var IN_APP = /BiliApp/i.test(UA);
@@ -627,6 +628,7 @@ canvas{
     roomCode: document.getElementById('roomCode'),
     roomMeta: document.getElementById('roomMeta'),
     copyLinkBtn: document.getElementById('copyLinkBtn'),
+    reconnectBtn: document.getElementById('reconnectBtn'),
     leaveRoomBtn: document.getElementById('leaveRoomBtn'),
     roomTools: document.getElementById('roomTools'),
     swapColorBtn: document.getElementById('swapColorBtn'),
@@ -1816,6 +1818,11 @@ canvas{
   var LOBBY_TOPIC = TOPIC_PREFIX + 'lobby';
   /* 访客心跳超时阈值：超过这个时间没收到心跳，就认为对方已崩溃/断线，释放座位 */
   var GUEST_STALE_MS = 40000;
+  /* 弱网参数：所有联机请求必须有超时，否则半开连接会一直占着浏览器连接数 */
+  var REQUEST_TIMEOUT_MS = 4000;
+  var PUBLISH_TIMEOUT_MS = 3000;
+  var POLL_TIMEOUT_MS = 5000;
+  var LINK_STALE_MS = 20000;
   /* 好友列表 / 设备身份 / 在线频道 与五子棋共用，两边的朋友都能看到对方在线 */
   var FRIEND_KEY = 'idol_friends_v1';
   var LEGACY_FRIEND_KEYS = ['go_friends_v1', 'gomoku_friends_v1'];
@@ -1824,13 +1831,15 @@ canvas{
   var PID_KEY = 'idol_pid_v1';
   var friends = [];
   var inviteSeen = {};
-  var presence = { seen: {}, since: {}, hb: 0, poll: 0, ui: 0, es: null, started: false };
+  var presence = { seen: {}, since: {}, busy: {}, hb: 0, poll: 0, ui: 0, es: null, retry: 0, started: false };
   var online = {
     room: '', topic: '', role: 'none', hostUid: '', hostName: '房主', hostPid: '',
     guestUid: '', guestName: '', guestPid: '', seq: 0, lastSeq: -1,
     es: null, fail: 0, pollTimer: 0, lastTs: 0, pollFails: 0,
+    pollOn: false, polling: false, pollCtrl: null, pollDelay: 1200, pollFastUntil: 0,
+    lastHeard: 0, linkTimer: 0, midSeq: 0, seenMids: [], gen: 0,
     hbTimer: 0, watchdog: 0, lastStateAt: 0, stateTimer: 0, seen: {}, denied: {}, lastState: 0,
-    uid: '', hostColor: BLACK, undoReq: '', recordPending: false,
+    uid: '', hostColor: BLACK, undoReq: '', recordPending: false, baseMeta: '',
     /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
     guestSince: 0, roomProbe: null, roomTries: 0, roomInvite: null
   };
@@ -1980,15 +1989,55 @@ canvas{
     showBanner(name + ' 已被移出', '你可以邀请新朋友进来');
   }
 
+  /* 弱网兜底：所有联机请求都带超时，避免半开连接把界面拖死 */
+  function timedFetch(url, opts, ms) {
+    opts = opts || {};
+    if (!window.AbortController) return window.fetch(url, opts);
+    var ac = new window.AbortController();
+    var timer = window.setTimeout(function () { try { ac.abort(); } catch (e) { /* ignore */ } }, ms || REQUEST_TIMEOUT_MS);
+    opts.signal = ac.signal;
+    return window.fetch(url, opts).then(function (r) {
+      window.clearTimeout(timer);
+      return r;
+    }, function (e) {
+      window.clearTimeout(timer);
+      throw e;
+    });
+  }
+
+  /* 每条消息带唯一 mid：轮询和 SSE 会重复投递同一条消息，接收端据此去重，
+     否则重复的 mv/pass 会被当成新一手，触发房主反复回推全量状态。 */
+  function newMid() {
+    online.midSeq++;
+    return myPid() + '-' + Date.now().toString(36) + '-' + online.midSeq;
+  }
+
   function publish(msg) {
     if (!online.topic) return Promise.resolve(false);
-    try {
-      return window.fetch(RELAY + online.topic, {
+    if (!msg.mid) msg.mid = newMid();
+    var body = JSON.stringify(msg);
+    var attempt = 0;
+    var limited = false;
+    function send() {
+      attempt++;
+      return timedFetch(RELAY + online.topic, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: JSON.stringify(msg)
-      }).then(function (r) { return !!(r && r.ok); }).catch(function () { return false; });
-    } catch (e) { return Promise.resolve(false); }
+        body: body
+      }, PUBLISH_TIMEOUT_MS).then(function (r) {
+        if (r && r.status === 429) { limited = true; return false; }
+        return !!(r && r.ok);
+      }, function () {
+        return false;
+      }).then(function (ok) {
+        if (ok) online.lastHeard = Date.now();
+        if (ok || limited || attempt >= 3) return ok;
+        return new Promise(function (resolve) {
+          window.setTimeout(function () { resolve(send()); }, attempt === 1 ? 500 : 1200);
+        });
+      });
+    }
+    return send();
   }
 
   /* ---------------- 好友 & 在线状态 ---------------- */
@@ -2043,11 +2092,11 @@ canvas{
 
   function publishTopic(topic, msg) {
     if (!topic) return Promise.resolve(false);
-    return window.fetch(RELAY + topic, {
+    return timedFetch(RELAY + topic, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(msg)
-    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+    }, REQUEST_TIMEOUT_MS).then(function (r) { return r.ok; }).catch(function () { return false; });
   }
 
   function findFriend(uid) {
@@ -2152,7 +2201,7 @@ canvas{
     presence.started = true;
     pushPresence();
     presence.hb = window.setInterval(pushPresence, 30000);
-    presence.poll = window.setInterval(pollPresence, 30000);
+    presence.poll = window.setInterval(pollPresence, 45000);
     presence.ui = window.setInterval(renderFriends, 10000);
     startOwnPresenceStream();
     pollPresence();
@@ -2174,6 +2223,12 @@ canvas{
       es.onerror = function () {
         try { es.close(); } catch (e) { /* ignore */ }
         if (presence.es === es) presence.es = null;
+        /* 弱网下 SSE 会静默断开：稍后重建，否则好友邀战/在线状态要等轮询才更新 */
+        if (!presence.started || presence.retry) return;
+        presence.retry = window.setTimeout(function () {
+          presence.retry = 0;
+          if (presence.started) startOwnPresenceStream();
+        }, 8000);
       };
     } catch (e) { presence.es = null; }
   }
@@ -2182,6 +2237,7 @@ canvas{
     if (presence.hb) window.clearInterval(presence.hb);
     if (presence.poll) window.clearInterval(presence.poll);
     if (presence.ui) window.clearInterval(presence.ui);
+    if (presence.retry) { window.clearTimeout(presence.retry); presence.retry = 0; }
     if (presence.es) {
       try { presence.es.close(); } catch (e) { /* ignore */ }
       presence.es = null;
@@ -2192,6 +2248,7 @@ canvas{
     presence.started = false;
     presence.since = {};
     presence.seen = {};
+    presence.busy = {};
   }
 
   function pollPresence() {
@@ -2208,9 +2265,16 @@ canvas{
         pollPresenceTopic(friendTopic(lu), true);
       }
     }
-    for (var i = 0; i < friends.length; i++) {
-      pollPresenceTopic(friendTopic(friendKeyOf(friends[i])), false);
+    /* 好友多时不要一次性打满公共中转的请求配额：每轮最多查 12 个，轮转推进。
+       在线判定阈值是 180 秒，45 秒一轮、多轮覆盖完全够用。 */
+    var total = friends.length;
+    var limit = Math.min(total, 12);
+    var start = total ? (presence.rr || 0) % total : 0;
+    for (var i = 0; i < limit; i++) {
+      var idx = (start + i) % total;
+      pollPresenceTopic(friendTopic(friendKeyOf(friends[idx])), false);
     }
+    if (total) presence.rr = (start + limit) % total;
   }
 
   /* ntfy 的 /json 是 NDJSON：一行一条消息（多条时整段 JSON.parse 会直接抛错），必须逐行解析 */
@@ -2228,9 +2292,11 @@ canvas{
   }
 
   function pollPresenceTopic(topic, own) {
+    if (!topic || presence.busy[topic]) return;
+    presence.busy[topic] = 1;
     var prev = presence.since[topic];
     var since = prev || (own ? '6h' : '10m');
-    window.fetch(RELAY + topic + '/json?poll=1&since=' + since)
+    timedFetch(RELAY + topic + '/json?poll=1&since=' + since, {}, REQUEST_TIMEOUT_MS)
       .then(readNdjson)
       .then(function (list) {
         var maxTime = 0;
@@ -2246,7 +2312,8 @@ canvas{
         if (maxTime) presence.since[topic] = Math.max(1, maxTime - 1);
         else if (typeof prev === 'number') presence.since[topic] = prev;
         else presence.since[topic] = Math.floor(Date.now() / 1000) - 30;
-      }).catch(function () { /* 失败不推进游标，下轮重试 */ });
+      }).catch(function () { /* 失败不推进游标，下轮重试 */ })
+      .then(function () { delete presence.busy[topic]; });
   }
 
   function isMyKey(key) {
@@ -2491,25 +2558,34 @@ canvas{
   }
 
   function closeStream() {
+    /* 让所有还在路上的轮询/SSE 回调失效，避免旧房间的响应写进新房间 */
+    online.gen++;
+    stopPolling();
+    stopLinkWatch();
     if (online.es) {
       try { online.es.close(); } catch (e) { /* ignore */ }
       online.es = null;
     }
-    if (online.pollTimer) {
-      window.clearInterval(online.pollTimer);
-      online.pollTimer = 0;
-    }
   }
 
   function subscribe(room) {
+    var topic = TOPIC_PREFIX + room.toLowerCase();
+    var sameRoom = online.topic === topic;
     online.room = room;
-    online.topic = TOPIC_PREFIX + room.toLowerCase();
-    online.lastSeq = -1;
-    online.lastTs = Math.floor(Date.now() / 1000) - 120;
+    online.topic = topic;
+    /* 重连同一个房间时保留游标和去重表，避免把已经处理过的落子再放一遍；
+       只有换房间才从头同步。 */
+    if (!sameRoom) {
+      online.lastSeq = -1;
+      online.lastTs = Math.floor(Date.now() / 1000) - 120;
+      online.seenMids = [];
+    }
     online.fail = 0;
     online.pollFails = 0;
+    online.pollDelay = 1200;
     online.lastState = Date.now();
     closeStream();
+    startLinkWatch();
     /* SSE 建立前先轮询兜底：部分 WebView 里 SSE 会静默连不上，不能干等 */
     startPolling();
     try {
@@ -2517,61 +2593,181 @@ canvas{
         var es = new window.EventSource(RELAY + online.topic + '/sse');
         online.es = es;
         es.onopen = function () {
+          if (online.es !== es) return;
           online.fail = 0;
-          stopPolling();
-          setStatus('房间连接好了');
+          online.lastHeard = Date.now();
+          /* 不打断已经在途的轮询：让它把断线期间的消息处理完，避免切换瞬间漏一手 */
+          stopPolling(false);
+          setConn('房间连接好了');
         };
         es.onmessage = function (ev) {
-          try {
-            var o = JSON.parse(ev.data);
-            if (o && o.time) online.lastTs = Math.max(online.lastTs, o.time);
-            var inner = o && typeof o.message === 'string' ? o.message : ev.data;
-            handleMsg(typeof inner === 'string' ? JSON.parse(inner) : inner);
-          } catch (e) { /* ignore */ }
+          if (online.es !== es) return;
+          var outer;
+          try { outer = JSON.parse(ev.data); } catch (e) { return; }
+          if (!outer || outer.event !== 'message' || !outer.message) return;
+          if (outer.time) online.lastTs = Math.max(online.lastTs, outer.time);
+          handleMsg(outer.message);
         };
         es.onerror = function () {
+          if (online.es !== es) return;
           online.fail++;
           /* 断了就立刻回退轮询，SSE 自己重连成功后 onopen 会再停掉轮询 */
           startPolling();
+          setConn('实时连接断开，已切到轮询重连…');
         };
       }
     } catch (e) { /* 已经在轮询 */ }
   }
 
   function startPolling() {
-    if (online.pollTimer) return;
-    online.pollFails = 0;
-    setStatus('轮询模式连接房间中…');
-    online.pollTimer = window.setInterval(pollOnce, 1200);
+    if (online.pollOn) return;
+    online.pollOn = true;
+    online.pollDelay = 1200;
+    /* 刚接入时快速对齐状态，10 秒后降到 2.5 秒，避免把公共中转刷限流 */
+    online.pollFastUntil = Date.now() + 10000;
+    setConn('轮询模式连接房间中…');
     pollOnce();
   }
 
-  function stopPolling() {
+  function stopPolling(abort) {
+    online.pollOn = false;
     if (online.pollTimer) {
-      window.clearInterval(online.pollTimer);
+      window.clearTimeout(online.pollTimer);
       online.pollTimer = 0;
+    }
+    /* abort === false 表示切到 SSE：保留在途请求，等它自己收尾 */
+    if (abort !== false) {
+      online.polling = false;
+      if (online.pollCtrl) {
+        try { online.pollCtrl.abort(); } catch (e) { /* ignore */ }
+        online.pollCtrl = null;
+      }
     }
   }
 
+  function schedulePoll() {
+    if (!online.pollOn) return;
+    online.pollTimer = window.setTimeout(function () {
+      online.pollTimer = 0;
+      pollOnce();
+    }, online.pollDelay);
+  }
+
   function pollOnce() {
-    if (!online.topic) return;
+    if (!online.pollOn || online.polling || !online.topic) return;
+    var gen = online.gen;
     var url = RELAY + online.topic + '/json?poll=1';
     if (online.lastTs) url += '&since=' + online.lastTs;
-    try {
-      window.fetch(url, { cache: 'no-store' }).then(readNdjson).then(function (list) {
-        for (var i = 0; i < list.length; i++) {
-          if (list[i].time) online.lastTs = Math.max(online.lastTs, list[i].time);
-          if (list[i].message) {
-            try { handleMsg(JSON.parse(list[i].message)); } catch (e) { /* ignore */ }
-          }
-        }
-      }).catch(function () {
-        online.pollFails++;
-        if (online.pollFails >= 3 && mode === 'online' && online.room) {
-          setStatus('联机服务连不上，先检查网络再试');
-        }
-      });
-    } catch (e) { /* ignore */ }
+    var ctrl = null;
+    var opts = { cache: 'no-store' };
+    if (window.AbortController) {
+      ctrl = new window.AbortController();
+      online.pollCtrl = ctrl;
+      opts.signal = ctrl.signal;
+    }
+    /* 弱网下请求可能一直挂着：给自己加超时，失败后按退避节奏重试 */
+    var timer = window.setTimeout(function () {
+      if (ctrl) { try { ctrl.abort(); } catch (e) { /* ignore */ } }
+    }, POLL_TIMEOUT_MS);
+    online.polling = true;
+    window.fetch(url, opts).then(readNdjson).then(function (list) {
+      window.clearTimeout(timer);
+      if (gen !== online.gen) return;
+      online.polling = false;
+      online.pollCtrl = null;
+      /* 这里不再要求 pollOn：切到 SSE 时保留的在途轮询也要把消息处理完 */
+      var wasDown = online.pollFails >= 3;
+      online.pollFails = 0;
+      online.lastHeard = Date.now();
+      online.pollDelay = Date.now() < online.pollFastUntil ? 1200 : 2500;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].time) online.lastTs = Math.max(online.lastTs, list[i].time);
+        if (list[i].message) handleMsg(list[i].message);
+      }
+      if (wasDown && mode === 'online' && online.room) setConn('连接恢复了');
+      updateRoomMeta();
+      if (online.pollOn) schedulePoll();
+    }).catch(function () {
+      window.clearTimeout(timer);
+      if (gen !== online.gen) return;
+      online.polling = false;
+      online.pollCtrl = null;
+      if (!online.pollOn) return;
+      online.pollFails++;
+      if (online.pollFails >= 3 && mode === 'online' && online.room) {
+        setConn('网络有点慢，正在自动重试…（也可点「重连」）');
+      }
+      online.pollDelay = online.pollFails <= 1 ? 1500 : Math.min(online.pollDelay * 2, 8000);
+      updateRoomMeta();
+      schedulePoll();
+    });
+  }
+
+  /* 房间信息里常驻显示网络提示，卡的时候不用只盯着棋盘干等 */
+  function netSuffix() {
+    return online.pollFails >= 3 ? ' · 网络慢，正在自动重试（可点「重连」）' : '';
+  }
+
+  function updateRoomMeta() {
+    if (!els.roomMeta || !online.room) return;
+    els.roomMeta.textContent = (online.baseMeta || '') + netSuffix();
+  }
+
+  function setConn(text) {
+    if (text) setStatus(text);
+    updateRoomMeta();
+  }
+
+  /* 弱网看门狗：长时间收不到房间消息就重建连接（处理半开连接/静默断流） */
+  function checkLink() {
+    updateRoomMeta();
+    if (!online.room || mode !== 'online') return;
+    if (window.navigator && window.navigator.onLine === false) {
+      setConn('网络断了，恢复后会自动重连（也可点「重连」）');
+      return;
+    }
+    /* 轮询自己带超时和退避重试，已经处于轮询兜底时别再重建，避免把退避节奏重置成猛刷 */
+    if (online.pollOn) return;
+    /* 房主一个人等客时没有消息是正常的，放宽阈值并静默刷新，不打扰界面 */
+    var alone = online.role === 'host' && !online.guestPid && !online.guestUid;
+    var staleMs = alone ? LINK_STALE_MS * 3 : LINK_STALE_MS;
+    if (Date.now() - online.lastHeard > staleMs) {
+      if (!alone) setConn('连接卡住了，正在自动重连…（也可点「重连」）');
+      restartStream();
+    }
+  }
+
+  function startLinkWatch() {
+    stopLinkWatch();
+    online.lastHeard = Date.now();
+    online.linkTimer = window.setInterval(checkLink, 6000);
+  }
+
+  function stopLinkWatch() {
+    if (online.linkTimer) {
+      window.clearInterval(online.linkTimer);
+      online.linkTimer = 0;
+    }
+  }
+
+  function restartStream() {
+    if (online.room) subscribe(online.room);
+  }
+
+  /* 手动重连：卡住时不用干等，重建 SSE/轮询并主动要一次完整棋局状态 */
+  function reconnectRoom() {
+    if (!online.room) return;
+    setConn('正在重连房间…');
+    online.pollFails = 0;
+    subscribe(online.room);
+    window.setTimeout(function () {
+      if (!online.room) return;
+      if (online.role === 'host') broadcastState(true);
+      else if (online.role === 'guest') publish({ t: 'sync', u: myUid(), p: myPid() });
+    }, 350);
+    window.setTimeout(function () {
+      if (online.room) setConn('已重连，正在同步棋局…');
+    }, 2500);
   }
 
   function createRoom(code) {
@@ -2599,10 +2795,11 @@ canvas{
     if (presence.started) pushPresence();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(function () {
-      if (online.role === 'host') broadcastState(true);
+      /* 没有对手时不用定时发全量状态，减少公共中转的消息量，避免被限流 */
+      if (online.role === 'host' && (online.guestPid || online.guestUid)) broadcastState(false);
       /* 修复：访客崩溃后座位会永久占着，这里按心跳超时自动释放 */
       reclaimStaleGuest();
-    }, 5000);
+    }, 8000);
   }
 
   function joinRoom(code) {
@@ -2633,7 +2830,7 @@ canvas{
     sendHi();
     if (presence.started) pushPresence();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
-    online.hbTimer = window.setInterval(sendHi, 8000);
+    online.hbTimer = window.setInterval(sendHi, 12000);
     return true;
   }
 
@@ -2682,8 +2879,12 @@ canvas{
     online.guestPid = '';
     online.seen = {};
     online.denied = {};
+    online.seenMids = [];
     online.lastSeq = -1;
+    online.lastTs = 0;
     online.undoReq = '';
+    online.baseMeta = '';
+    if (online.stateTimer) { window.clearTimeout(online.stateTimer); online.stateTimer = 0; }
     refreshOnlineUI();
     if (presence.started) pushPresence();
   }
@@ -2725,7 +2926,7 @@ canvas{
     if (els.lobbyList) els.lobbyList.innerHTML = '<div class="lobby-empty">正在找房间…</div>';
     pollLobby();
     if (lobby.listTimer) window.clearInterval(lobby.listTimer);
-    lobby.listTimer = window.setInterval(pollLobby, 3000);
+    lobby.listTimer = window.setInterval(pollLobby, 5000);
   }
 
   function closeLobby() {
@@ -2743,7 +2944,7 @@ canvas{
   function pollLobby() {
     if (lobby.loading) return;
     lobby.loading = true;
-    window.fetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=45s', { cache: 'no-store' })
+    timedFetch(RELAY + LOBBY_TOPIC + '/json?poll=1&since=45s', { cache: 'no-store' }, REQUEST_TIMEOUT_MS)
       .then(function (r) {
         if (!r.ok) throw new Error('http ' + r.status);
         return r.text();
@@ -2850,8 +3051,19 @@ canvas{
     setStatus('已向 ' + (it.name || '房主') + ' 发出加入请求，等对方同意…');
   }
 
-  function handleMsg(m) {
-    if (!m || typeof m !== 'object') return;
+  function handleMsg(raw) {
+    var m = raw;
+    if (typeof raw === 'string') {
+      try { m = JSON.parse(raw); } catch (e) { return; }
+    }
+    if (!m || typeof m !== 'object' || !m.t) return;
+    online.lastHeard = Date.now();
+    /* 弱网重试/轮询和 SSE 可能收到同一条消息，用 mid 去重，避免重复落子 */
+    if (m.mid) {
+      if (online.seenMids.indexOf(m.mid) >= 0) return;
+      online.seenMids.push(m.mid);
+      if (online.seenMids.length > 160) online.seenMids.shift();
+    }
     if (m.t === 'hi') {
       var hid = m.p || m.u;
       if (!hid || hid === myPid()) return;
@@ -2988,13 +3200,47 @@ canvas{
     }
   }
 
+  /* ntfy.sh 单条消息上限 4096 字节。19 路长对局的全量 mv 数组可能超过这个限制，
+     服务端会直接 413，表现就是“突然同步不动了”。超过阈值时改用紧凑编码：
+     每手 3 个字符（x/y 用 36 进制，虚手用 z，颜色 1/2）。 */
+  function utf8ByteLen(text) {
+    try { return new Blob([text]).size; } catch (e) { return String(text).length * 3; }
+  }
+
+  var MOVE_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
+
+  function encodeMoves(mv) {
+    var out = '';
+    for (var i = 0; i < mv.length; i++) {
+      var a = mv[i];
+      var pass = (a[0] === -1 && a[1] === -1);
+      out += (pass ? 'z' : MOVE_CHARS.charAt(a[0])) +
+             (pass ? 'z' : MOVE_CHARS.charAt(a[1])) +
+             (a[2] === WHITE ? '2' : '1');
+    }
+    return out;
+  }
+
+  function decodeMoves(str) {
+    var out = [];
+    for (var i = 0; i + 2 < str.length; i += 3) {
+      var xc = str.charAt(i), yc = str.charAt(i + 1), cc = str.charAt(i + 2);
+      var c = cc === '2' ? WHITE : BLACK;
+      if (xc === 'z' && yc === 'z') { out.push([-1, -1, c]); continue; }
+      var x = parseInt(xc, 36), y = parseInt(yc, 36);
+      if (isNaN(x) || isNaN(y)) continue;
+      out.push([x, y, c]);
+    }
+    return out;
+  }
+
   function buildState() {
     var mv = [];
     for (var i = 0; i < moves.length; i++) {
       var m = moves[i];
       mv.push(m.pass ? [-1, -1, m.c] : [m.x, m.y, m.c]);
     }
-    return {
+    var st = {
       t: 'st', q: online.seq, n: N, mv: mv,
       b: online.hostUid, bn: online.hostName, bp: online.hostPid || '',
       w: online.guestUid || '', wn: online.guestName || '', gp: online.guestPid || '',
@@ -3003,6 +3249,11 @@ canvas{
       wq: (over && winner) ? (winner === online.hostColor ? online.hostUid : online.guestUid) : '',
       wqp: (over && winner) ? winnerPidOf(winner) : ''
     };
+    if (utf8ByteLen(JSON.stringify(st)) > 3800) {
+      st.mv = encodeMoves(mv);
+      st.mvc = 1;
+    }
+    return st;
   }
 
   function broadcastState(force) {
@@ -3079,6 +3330,7 @@ canvas{
     }
     var remoteMoves = [];
     var rawMv = st.mv || [];
+    if (st.mvc && typeof rawMv === 'string') rawMv = decodeMoves(rawMv);
     for (var mi = 0; mi < rawMv.length; mi++) {
       var a = rawMv[mi];
       if (!a) continue;
@@ -3164,7 +3416,8 @@ canvas{
       meta = '观战中 · 房主：' + online.hostName + (online.guestPid || online.guestUid ? (' · 朋友：' + nameOf(online.guestPid || online.guestUid)) : '');
     }
     if (online.role !== 'host' && people > 0) meta += ' · 一起观战 ' + people + ' 人';
-    if (els.roomMeta) els.roomMeta.textContent = meta;
+    online.baseMeta = meta;
+    if (els.roomMeta) els.roomMeta.textContent = meta + netSuffix();
     if (els.roomTools) els.roomTools.classList.toggle('on', online.role === 'host');
     if (els.kickGuestBtn) els.kickGuestBtn.hidden = !(online.role === 'host' && online.guestPid);
     if (els.colorHint) els.colorHint.textContent = online.hostColor === BLACK ? '现在执黑先手' : '现在执白后手';
@@ -3800,6 +4053,10 @@ canvas{
     els.kickGuestBtn.addEventListener('click', function () { kickGuest(); });
   }
 
+  if (els.reconnectBtn) {
+    els.reconnectBtn.addEventListener('click', function () { reconnectRoom(); });
+  }
+
   if (els.leaveRoomBtn) {
     els.leaveRoomBtn.addEventListener('click', function () {
       leaveRoom(false);
@@ -3985,6 +4242,30 @@ canvas{
   startPresence();
   bindToyLinks();
   updateSegmentStates();
+  /* 弱网：断网/恢复/切回前台时主动重建连接，不用等用户手动刷新 */
+  window.addEventListener('offline', function () {
+    if (online.room) setConn('网络断了，恢复后会自动重连（也可点「重连」）');
+  });
+  window.addEventListener('online', function () {
+    if (!online.room) return;
+    online.pollFails = 0;
+    online.pollDelay = 1200;
+    setConn('网络恢复，正在重连…');
+    reconnectRoom();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || !online.room) return;
+    if (online.pollOn) {
+      online.pollDelay = 1200;
+      if (online.pollTimer) {
+        window.clearTimeout(online.pollTimer);
+        online.pollTimer = 0;
+      }
+      if (!online.polling) pollOnce();
+    } else if (Date.now() - online.lastHeard > LINK_STALE_MS) {
+      reconnectRoom();
+    }
+  });
   /* 修复：页面被关闭/切后台时补发 bye，让房主及时释放座位 */
   window.addEventListener('pagehide', function () { sendByeBeacon(); });
   window.addEventListener('beforeunload', function () { sendByeBeacon(); });
