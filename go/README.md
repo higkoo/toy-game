@@ -29,21 +29,22 @@
 - 发布：`POST https://ntfy.sh/<topic>`
 - 接收：优先 SSE 实时订阅，SSE 不可用时自动回退到轮询
 - 协议消息：加入申请、同意 / 拒绝、落子、悔棋、全量状态同步、离开房间等
-- 弱网处理：请求超时、发布重试、消息去重、轮询退避、连接看门狗、断网恢复与手动「重连」
 
 ## 目录结构
 
 ```text
 go/
-├── src/index.html     # 游戏源码
-├── assets/icon.png    # Toy 图标
-├── assets/poster.jpg  # Toy 海报
+├── src/
+│   ├── index.html      # 游戏源码
+│   └── img/
+│       ├── icon.png    # Toy 图标（512×512）
+│       └── poster.jpg  # Toy 海报（1200×900）
 └── README.md
 ```
 
 ## 版本
 
-当前源码版本：`v18`
+当前源码版本：`v17`
 
 ## 正式发布
 
