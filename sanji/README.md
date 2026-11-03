@@ -38,15 +38,22 @@
 
 ```text
 sanji/
-├── src/index.html   # 页面源码
+├── src/
+│   ├── index.html        # 页面源码
+│   └── img/              # 图片素材
+│       ├── cover-*.jpg   # 7 张课程封面（天纪/针灸/内经/本草/伤寒/金匮/仲景）
+│       ├── diji-vista.jpg  # 地纪残章卡片背景
+│       ├── hero-portrait.jpg  # 首屏倪海厦人像
+│       ├── icon.png      # Toy 图标（1024×1024）
+│       └── poster.jpg    # Toy 海报（1280×720）
 └── README.md
 ```
 
-页面没有本地图片素材，视觉装饰全部用 CSS 和内联 SVG 完成。
+页面图片放在 `src/img/`，HTML 里用相对路径 `img/xxx.jpg` 引用；`toy update` 打包 `src/` 时整体上传到 CDN。装饰性视觉元素（渐变、纹样）仍由 CSS 与内联 SVG 完成。
 
 ## 版本
 
-当前源码版本：`v1.10`
+当前源码版本：`v1.15`
 
 ## 正式发布
 
