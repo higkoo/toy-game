@@ -1794,7 +1794,7 @@ canvas{
     return { x: bestMove.x, y: bestMove.y };
   }
 
-  /* ---------------- 联机房间（公共消息中转，无需自建服务） ---------------- */
+  /* ---------------- 联机房间：优先 P2P 直连 + ntfy 兜底 ---------------- */
 
   var RELAY = 'https://ntfy.sh/';
   var TOPIC_PREFIX = 'bg-gomoku-';
@@ -1823,8 +1823,14 @@ canvas{
     /* 修复：记录访客入座时间与建房探测状态，用于掉线释放与房间号查重 */
     guestSince: 0, roomProbe: null, roomTries: 0,
     /* 加入房间后的回执看门狗：12 秒没等到房主任何回执就给用户明确提示 */
-    joinTimer: 0, joinHeard: false
+    joinTimer: 0, joinHeard: false,
+    /* P2P 直连状态：建连成功后所有消息改走 DataChannel，ntfy 仅在建连阶段传信令 */
+    pc: null, dc: null, p2pOn: false, p2pJoin: false, sdpHandled: false,
+    p2pRole: '', p2pTimer: 0, p2pFails: 0, p2pUser: '', p2pName: ''
   };
+  /* P2P 信令走 ntfy 房间 topic，消息体带上发送者 pid，避免两人同时操作互相踩 */
+  var P2P_ROLE = { NONE: 'none', HOST: 'host', GUEST: 'guest' };
+  var DTLS_MAX = 1400; /* DataChannel 单条 1.4KB，棋局同步切成多条发送 */
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
 
@@ -2056,6 +2062,11 @@ canvas{
   function publish(msg) {
     if (!online.topic) return Promise.resolve(false);
     if (!msg.mid) msg.mid = newMid();
+    /* P2P 已连通：走 DataChannel，不再发 ntfy */
+    if (p2pState.on && p2pState.dc && p2pSend(msg)) {
+      online.lastHeard = Date.now();
+      return Promise.resolve(true);
+    }
     var body = JSON.stringify(msg);
     var attempt = 0;
     var limited = false;
@@ -2493,6 +2504,274 @@ canvas{
     }
   }
 
+  /* ================ P2P 直连层（WebRTC） ================ */
+  /* 信令复用 ntfy 房间 topic：房主发 offer，访客回 answer，双方互发 ICE candidates。
+     建连成功后 publish/handleMsg 自动改走 DataChannel，ntfy 全域停发。 */
+
+  var p2pState = {
+    pc: null, dc: null, on: false, offerSent: false, answerSent: false,
+    gathered: [], trickleDone: false
+  };
+
+  function p2pStop() {
+    if (p2pState.dc) {
+      try { p2pState.dc.close(); } catch (e) { /* ignore */ }
+    }
+    p2pState.dc = null;
+    if (p2pState.pc) {
+      try { p2pState.pc.close(); } catch (e) { /* ignore */ }
+    }
+    p2pState.pc = null;
+    p2pState.on = false;
+    p2pState.offerSent = false;
+    p2pState.answerSent = false;
+    p2pState.gathered = [];
+    p2pState.trickleDone = false;
+  }
+
+  function p2pCanUse() {
+    return !!(window.RTCPeerConnection || window.webkitRTCPeerConnection);
+  }
+
+  function p2pCreate(isHost) {
+    p2pStop();
+    var RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    var pc = new RTC({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    });
+    var dc = null;
+    if (isHost) {
+      dc = pc.createDataChannel('game', { ordered: true });
+      bindDataChannel(dc);
+    } else {
+      pc.ondatachannel = function (ev) {
+        dc = ev.channel;
+        bindDataChannel(dc);
+      };
+    }
+    pc.onicecandidate = function (ev) {
+      if (ev.candidate) {
+        p2pSignal({ t: 'ice', u: myUid(), p: myPid(), c: ev.candidate.toJSON() });
+      }
+    };
+    pc.oniceconnectionstatechange = function () {
+      var st = pc.iceConnectionState;
+      if (st === 'disconnected' || st === 'failed') {
+        if (p2pState.on) {
+          p2pState.on = false;
+          setConn('P2P 连接异常，正在退回普通通道');
+          p2pReopenStream();
+        }
+      }
+      if (st === 'connected' && !p2pState.on && p2pState.dc && p2pState.dc.readyState === 'open') {
+        p2pState.on = true;
+        p2pOnConnected();
+      }
+    };
+    p2pState.pc = pc;
+    p2pState.dc = dc;
+    return pc;
+  }
+
+  function bindDataChannel(dc) {
+    dc.onopen = function () {
+      p2pState.on = true;
+      p2pOnConnected();
+    };
+    dc.onclose = function () {
+      if (p2pState.on) {
+        p2pState.on = false;
+        setConn('P2P 连接断了，已自动切回普通通道');
+        p2pReopenStream();
+      }
+    };
+    dc.onmessage = function (ev) {
+      var txt = ev.data;
+      if (typeof txt !== 'string') return;
+      online.lastHeard = Date.now();
+      p2pOnData(txt);
+    };
+  }
+
+  /* 发信令：仅走 ntfy；DataChannel 建好后不再调用 */
+  function p2pSignal(signal) {
+    if (!online.topic) return;
+    var msg = JSON.stringify(signal);
+    publishRaw(online.topic, msg);
+  }
+
+  /* 收到消息中的 P2P 信令 */
+  function p2pOnSignal(m) {
+    if (!p2pCanUse()) return;
+    /* 对方 process peer 的 pid */
+    var opp = m.p || '';
+    if (!opp) opp = m.u || '';
+    if (!opp || opp === myPid()) return;
+    online.p2pUser = m.u || '';
+    if (m.n) online.p2pName = m.n;
+
+    if (m.t === 'sdp-offer') {
+      /* 房主收到 offer 只有访客能发；访客收到 offer 也应处理以应对角色切换 */
+      if (online.role === 'host' || online.role === 'guest') {
+        p2pStartGuest(m.sdp);
+      }
+    } else if (m.t === 'sdp-answer') {
+      /* 只有房主处理 answer */
+      if (p2pState.pc && m.sdp) {
+        var desc = new RTCSessionDescription(m.sdp);
+        p2pState.pc.setRemoteDescription(desc).catch(function () { /* ignore */ });
+      }
+    } else if (m.t === 'ice') {
+      /* 收到对方 ICE 候选 */
+      if (p2pState.pc && m.c) {
+        var cand = new RTCIceCandidate(m.c);
+        p2pState.pc.addIceCandidate(cand).catch(function () { /* ignore */ });
+      }
+    }
+  }
+
+  /* 房主发起 P2P：创建 offer 并通过 ntfy 发出 */
+  function p2pStartHost() {
+    if (!p2pCanUse() || !online.topic) return;
+    if (p2pState.pc) return; // 已有连接尝试中
+    var pc = p2pCreate(true);
+    pc.createOffer().then(function (off) {
+      pc.setLocalDescription(off).then(function () {
+        p2pSignal({ t: 'sdp-offer', u: myUid(), p: myPid(), n: me.name, sdp: off });
+      });
+    }).catch(function () { /* ignore */ });
+  }
+
+  /* 访客收到 offer：建 answer 并回传 */
+  function p2pStartGuest(offerSdp) {
+    if (!p2pCanUse() || !online.topic) return;
+    if (p2pState.pc) return;
+    var pc = p2pCreate(false);
+    var desc = new RTCSessionDescription(offerSdp);
+    pc.setRemoteDescription(desc).then(function () {
+      return pc.createAnswer();
+    }).then(function (ans) {
+      return pc.setLocalDescription(ans);
+    }).then(function () {
+      p2pSignal({ t: 'sdp-answer', u: myUid(), p: myPid(), n: me.name, sdp: pc.localDescription });
+    }).catch(function () { /* ignore */ });
+  }
+
+  /* P2P 连通：停掉 ntfy 轮询/SSE，提示用户 */
+  function p2pOnConnected() {
+    if (!p2pState.on) return;
+    setConn('P2P 直连已建立，消息不再经过服务器');
+    stopPolling();
+    if (online.es) {
+      try { online.es.close(); } catch (e) { /* ignore */ }
+      online.es = null;
+    }
+    /* 心跳 hi 以及状态广播都在 publish 里自动改走 P2P，无需改动 */
+  }
+
+  /* P2P 断开后恢复 ntfy 通道：重启轮询并尝试重建 SSE */
+  function p2pReopenStream() {
+    if (!online.topic) return;
+    startPolling();
+    if (window.EventSource) {
+      /* 短延迟重建 SSE，避免即刻重连被 same-origin/网络抖动影响 */
+      window.setTimeout(function () {
+        if (p2pState.on || !online.topic) return;
+        try {
+          if (!online.es) {
+            var es = new window.EventSource(RELAY + online.topic + '/sse');
+            online.es = es;
+            es.onopen = function () {
+              stopPolling();
+              setConn('已连接房间');
+            };
+            es.onmessage = function (ev) {
+              var outer;
+              try { outer = JSON.parse(ev.data); } catch (e) { return; }
+              if (outer && outer.event === 'message' && outer.message) {
+                handleMsg(outer.message);
+              }
+            };
+            es.onerror = function () {
+              startPolling();
+            };
+          }
+        } catch (e) { /* ntfy 通道继续轮询兜底 */ }
+      }, 800);
+    }
+  }
+
+  /* 底层发送：publish() 的双通道版本。P2P 开时优先走 DataChannel */
+  function publishRaw(topic, body) {
+    if (!topic) return Promise.resolve(false);
+    return timedFetch(RELAY + topic, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: body
+    }, 3000).then(function (r) { return r.ok; }, function () { return false; });
+  }
+
+  /* 通过 P2P 发一条消息（自动切片大号消息） */
+  function p2pSend(msgObj) {
+    if (!p2pState.on || !p2pState.dc) return false;
+    var body = JSON.stringify(msgObj);
+    var mid = msgObj.mid;
+    var total = Math.ceil(body.length / DTLS_MAX) || 1;
+    for (var i = 0; i < total; i++) {
+      var chunk = body.slice(i * DTLS_MAX, (i + 1) * DTLS_MAX);
+      var part = {
+        _p2p: 1, mid: mid, i: i, n: total, b: chunk
+      };
+      p2pState.dc.send(JSON.stringify(part));
+    }
+    return true;
+  }
+
+  /* 组装并返回 P2P 消息 */
+  var p2pBuf = {};
+  function p2pOnData(raw) {
+    var part;
+    try { part = JSON.parse(raw); } catch (e) { return; }
+    if (!part || !part._p2p) return;
+    /* 非切片消息（极小消息直接透传） */
+    if (!part.n && part.n !== 0) {
+      var body = part.b || '';
+      if (body) {
+        try { handleMsg(body); } catch (e) { /* ignore */ }
+      }
+      return;
+    }
+    /* 切片消息 */
+    var key = part.mid || '';
+    if (!p2pBuf[key]) p2pBuf[key] = [];
+    p2pBuf[key][part.i] = part.b;
+    /* 收到全部片段才拼装 */
+    var arr = p2pBuf[key];
+    var full = '';
+    for (var i = 0; i < part.n; i++) {
+      if (arr[i] == null) return; // 还缺片
+      full += arr[i];
+    }
+    delete p2pBuf[key];
+    try { handleMsg(full); } catch (e) { /* ignore */ }
+  }
+
+  /* 统一发消息：P2P 优先，ntfy 兜底 */
+  function sendGameMsg(msg) {
+    if (!msg.mid) msg.mid = newMid();
+    if (p2pState.on && p2pState.dc) {
+      var ok = p2pSend(msg);
+      if (ok) {
+        online.lastHeard = Date.now();
+        return Promise.resolve(true);
+      }
+    }
+    return publish(msg);
+  }
+
   function subscribe(room) {
     var topic = TOPIC_PREFIX + room.toLowerCase();
     var sameRoom = online.topic === topic;
@@ -2720,7 +2999,12 @@ canvas{
     try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || !m.t) return;
     online.lastHeard = Date.now();
-    /* 房主回执到达（状态/同意/拒绝/已满），撤销“没连上房间”的超时提示 */
+    /* WebRTC 信令：房主/访客建连时交换 SDP 与 ICE；P2P 连通后信令自动忽略 */
+    if (m.t === 'sdp-offer' || m.t === 'sdp-answer' || m.t === 'ice') {
+      if (!p2pState.on) p2pOnSignal(m);
+      return;
+    }
+    /* 房主回执到达（状态/同意/拒绝/已满），撤销"没连上房间"的超时提示 */
     if (online.joinTimer && (m.t === 'st' || m.t === 'ok' || m.t === 'no' || m.t === 'busy')) {
       online.joinHeard = true;
     }
@@ -2738,13 +3022,17 @@ canvas{
       online.seen[m.u] = { n: nm || prev || '', ts: Date.now(), p: m.p || '' };
       if (m.u === online.guestUid && nm) online.guestName = nm;
       if (online.role === 'host') {
-        /* 修复：房间已有对手时原先静默忽略申请，申请人永远停在“等对方同意”且毫无提示 */
+        /* 修复：房间已有对手时原先静默忽略申请，申请人永远停在"等对方同意"且毫无提示 */
         if (online.guestUid && m.u && m.u !== online.guestUid) {
           publish({ t: 'busy', u: m.u, b: online.hostUid });
         }
         renderPending();
         refreshOnlineUI();
         broadcastState(nm && m.u === online.guestUid);
+        /* P2P：房主收到访客 hi 时补发 offer，覆盖访客比 offer 更早到达的情况 */
+        if (p2pCanUse() && !p2pState.on && !p2pState.pc) {
+          p2pStartHost();
+        }
       }
       return;
     }
@@ -3360,6 +3648,10 @@ canvas{
     if (presence.started) pushPresence();
     setStatus('房间建好啦，把邀请发给朋友吧');
     window.setTimeout(function () { broadcastState(true); }, 260);
+    /* P2P：房主提前发起 offer，访客进房后通过 hi 触发补发（见 handleMsg） */
+    if (p2pCanUse()) {
+      window.setTimeout(function () { if (online.role === 'host' && !p2pState.on) p2pStartHost(); }, 500);
+    }
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(function () {
       /* 没有对手时不用定时发全量状态，减少公共中转的消息量 */
@@ -3413,6 +3705,16 @@ canvas{
     armJoinWatch();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(sendHi, 12000);
+    /* P2P：访客等待房主 offer，8 秒没建连就放弃 P2P（ntfy 通道继续兜底） */
+    if (p2pCanUse()) {
+      if (online.p2pTimer) window.clearTimeout(online.p2pTimer);
+      online.p2pTimer = window.setTimeout(function () {
+        online.p2pTimer = 0;
+        if (!p2pState.on && !p2pState.pc && online.role !== 'host') {
+          /* 静默放弃 P2P，不提示用户，ntfy 通道正常工作即可 */
+        }
+      }, 8000);
+    }
   }
 
   function sendHi() {
@@ -3428,6 +3730,11 @@ canvas{
   function sendByeBeacon() {
     if (!online.topic || online.role === 'host') return;
     var payload = JSON.stringify({ t: 'bye', u: myUid(), p: myPid() });
+    /* P2P 已连通：优先通过 DataChannel 发 bye，对方立刻能收到 */
+    if (p2pState.on && p2pState.dc) {
+      p2pSend({ t: 'bye', u: myUid(), p: myPid(), mid: newMid() });
+      return;
+    }
     try {
       if (navigator.sendBeacon) {
         var ok = navigator.sendBeacon(RELAY + online.topic, new Blob([payload], { type: 'text/plain' }));
@@ -3452,7 +3759,10 @@ canvas{
     if (online.joinTimer) { window.clearTimeout(online.joinTimer); online.joinTimer = 0; }
     online.joinHeard = false;
     if (online.stateTimer) { window.clearTimeout(online.stateTimer); online.stateTimer = 0; }
+    if (online.p2pTimer) { window.clearTimeout(online.p2pTimer); online.p2pTimer = 0; }
     closeStream();
+    /* P2P：彻底关闭 PeerConnection 与 DataChannel，避免泄漏连接 */
+    p2pStop();
     online.room = '';
     online.topic = '';
     online.role = 'none';
