@@ -177,6 +177,7 @@ canvas#board{
 }
 .ctrl small{font-size:9px;font-weight:800;color:#9db0ca;letter-spacing:.4px}
 .ctrl:active{transform:translateY(3px);box-shadow:0 1px 0 #e6f1fb}
+.ctrl[hidden]{display:none}
 .ctrl.accent{background:linear-gradient(160deg,#ffe6a8,#ffd166);border-color:#ffe6a8;color:#a46a17;box-shadow:0 4px 0 #eec36b}
 .ctrl.accent small{color:#b78633}
 .ctrl.coral{background:linear-gradient(160deg,#ffd0da,#ffb3c2);border-color:#ffd0da;color:#b84f6b;box-shadow:0 4px 0 #eda5b5}
@@ -249,7 +250,7 @@ canvas#board{
     <div class="controls">
       <button type="button" class="ctrl" id="pauseBtn">Ⅱ<small>暂停</small></button>
       <button type="button" class="ctrl" id="restartBtn">↺<small>重开</small></button>
-      <button type="button" class="ctrl" id="undoBtn">↶<small>撤回</small></button>
+      <button type="button" class="ctrl" id="undoBtn" hidden>↩<small>悔方块</small></button>
       <button type="button" class="ctrl accent" id="padStyleBtn">⌨<small>键盘方向</small></button>
     </div>
   </main>
@@ -334,14 +335,15 @@ canvas#board{
   var fsBtn = document.getElementById('fsBtn');
   var dpad = document.getElementById('dpad');
   var padStyleBtn = document.getElementById('padStyleBtn');
+  var undoBtnEl = document.getElementById('undoBtn');
   var DPAD_KEY = 'tetris_pad_style_v1';
   var DPAD_POS_KEY = 'tetris_pad_pos_v1';
   var padStyle = 'kbd';
   var padPos = { x: 0, y: 0 };
   var padPosReady = false;
 
-  var MAX_HISTORY = 20;
-  var history = [];
+  var spawnSnap = null;   /* 当前方块刚出现时的快照 */
+  var lastPieceSnap = null; /* 刚落地那一块的快照，供悔方块使用 */
 
   var grid = [];
   var cur = null;
@@ -398,6 +400,7 @@ canvas#board{
       finishGame();
       return false;
     }
+    spawnSnap = snapshotState();
     return true;
   }
 
@@ -430,7 +433,6 @@ canvas#board{
      （I 块与 JLSTZ 使用不同踢墙表），并支持逆向旋转。 */
   function rotate(dir) {
     if (!canPlay()) return;
-    pushHistory();
     if (cur.type === 'O') return;              // O 块旋转无意义
     var from = cur.rot || 0;
     var to = (from + (dir > 0 ? 1 : 3)) % 4;
@@ -453,7 +455,6 @@ canvas#board{
 
   function move(dx) {
     if (!canPlay()) return;
-    pushHistory();
     if (!collide(cur.m, cur.x + dx, cur.y)) {
       cur.x += dx;
       draw();
@@ -462,7 +463,6 @@ canvas#board{
 
   function softDrop(manual) {
     if (!canPlay()) return;
-    pushHistory();
     if (!collide(cur.m, cur.x, cur.y + 1)) {
       cur.y++;
       if (manual) addScore(1);
@@ -475,7 +475,6 @@ canvas#board{
 
   function hardDrop() {
     if (!canPlay()) return;
-    pushHistory();
     var dist = 0;
     while (!collide(cur.m, cur.x, cur.y + 1)) {
       cur.y++;
@@ -491,6 +490,7 @@ canvas#board{
   }
 
   function lockPiece() {
+    lastPieceSnap = spawnSnap;
     for (var y = 0; y < cur.m.length; y++) {
       for (var x = 0; x < cur.m[y].length; x++) {
         if (!cur.m[y][x]) continue;
@@ -512,7 +512,8 @@ canvas#board{
     } else {
       setStatus('方块落好啦，继续堆');
     }
-    if (!spawn()) return;
+    if (!spawn()) { setUndoVisible(true); return; }
+    setUndoVisible(true);
     draw();
   }
 
@@ -554,27 +555,35 @@ canvas#board{
     };
   }
 
-  function pushHistory() {
-    history.push(snapshotState());
-    if (history.length > MAX_HISTORY) history.shift();
+  function setUndoVisible(v) {
+    if (undoBtnEl) undoBtnEl.hidden = !v;
   }
 
-  function undo() {
-    if (over) return;
-    var snap = history.pop();
-    if (!snap) return;
-    grid = snap.grid;
-    cur = snap.cur;
+  /* 悔方块：把刚落地的那一块从棋盘拿走，并让它回到出生位置重新落 */
+  function undoPiece() {
+    if (!lastPieceSnap || paused) return;
+    var snap = lastPieceSnap;
+    lastPieceSnap = null;
+    grid = snap.grid.map(function (row) { return row.slice(); });
+    cur = snap.cur ? {
+      type: snap.cur.type,
+      m: snap.cur.m.map(function (r) { return r.slice(); }),
+      x: snap.cur.x, y: snap.cur.y, rot: snap.cur.rot
+    } : null;
     nextType = snap.nextType;
-    bag = snap.bag;
+    bag = snap.bag.slice();
     score = snap.score;
     lines = snap.lines;
     level = snap.level;
-    dropAcc = snap.dropAcc;
+    dropAcc = 0; lastTs = 0;
+    over = false; paused = false; started = true;
+    spawnSnap = snapshotState();
     updateHUD();
     drawNext();
     draw();
-    setStatus('已撤回上一步');
+    hideMask();
+    setUndoVisible(false);
+    setStatus('方块回到天上啦，再来一次');
   }
 
   function updateHUD() {
@@ -729,7 +738,9 @@ canvas#board{
     bag = [];
     dropAcc = 0; lastTs = 0;
     over = false; paused = false;
-    history.length = 0;
+    lastPieceSnap = null;
+    spawnSnap = null;
+    setUndoVisible(false);
     if (scoreEl) scoreEl.textContent = '0';
     if (linesEl) linesEl.textContent = '0';
     if (levelEl) levelEl.textContent = '1';
@@ -933,7 +944,7 @@ canvas#board{
 
   document.getElementById('pauseBtn').addEventListener('click', function () { togglePause(); });
   document.getElementById('restartBtn').addEventListener('click', function () { resetGame(); });
-  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('undoBtn').addEventListener('click', undoPiece);
   if (padStyleBtn) {
     padStyleBtn.addEventListener('click', function () {
       applyPadStyle(padStyle === 'pad' ? 'kbd' : 'pad');
@@ -952,7 +963,7 @@ canvas#board{
     var k = ev.key;
     if ((ev.ctrlKey || ev.metaKey) && (k === 'z' || k === 'Z')) {
       ev.preventDefault();
-      undo();
+      undoPiece();
       return;
     }
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { ev.preventDefault(); move(-1); }
