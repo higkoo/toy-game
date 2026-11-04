@@ -942,7 +942,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v28</div>
+<div class="ver" id="verTag">v29</div>
 
 <script>
 (function () {
@@ -2179,13 +2179,15 @@ canvas{
   }
 
   function publish(msg) {
-    if (!online.topic) return Promise.resolve(false);
     if (!msg.mid) msg.mid = newMid();
-    /* P2P 已连通：走 DataChannel，不再发 ntfy */
+    /* P2P 已连通：走 DataChannel，不再发 ntfy。
+       必须放在 topic 检查之前——扫码直连的独立对局没有 ntfy room topic，
+       否则建连成功后落子/状态消息会被静默丢弃，看起来连上了却动不了。 */
     if (p2pState.on && p2pState.dc && p2pSend(msg)) {
       online.lastHeard = Date.now();
       return Promise.resolve(true);
     }
+    if (!online.topic) return Promise.resolve(false);
     var body = JSON.stringify(msg);
     var attempt = 0;
     var limited = false;
@@ -2390,8 +2392,41 @@ canvas{
     presence.poll = 0;
     presence.ui = 0;
     presence.started = false;
+    presencePaused = false;
     presence.since = {};
     presence.seen = {};
+  }
+
+  /* ---- presence 网络节流 ----
+     好友在线心跳原本 12s 一轮、每个好友一个 topic 请求，10 个好友约 55 请求/分钟，
+     会把 ntfy 公共中转的限流额度耗光，导致棋局消息被 429 挤掉。
+     对战期间降到 60s；P2P 直连后完全停发。 */
+  var presencePaused = false, presenceThrottled = false;
+  var PRESENCE_FAST_MS = 12000, PRESENCE_SLOW_MS = 60000;
+  function presenceTimers(ms) {
+    if (!presence.started || presencePaused) return;
+    if (presence.hb) window.clearInterval(presence.hb);
+    if (presence.poll) window.clearInterval(presence.poll);
+    presence.hb = window.setInterval(pushPresence, ms);
+    presence.poll = window.setInterval(pollPresence, ms);
+  }
+  function pausePresenceNet() {
+    if (!presence.started || presencePaused) return;
+    presencePaused = true;
+    if (presence.hb) { window.clearInterval(presence.hb); presence.hb = 0; }
+    if (presence.poll) { window.clearInterval(presence.poll); presence.poll = 0; }
+  }
+  function resumePresenceNet() {
+    if (!presence.started || !presencePaused) return;
+    presencePaused = false;
+    pushPresence();
+    presenceTimers(presenceThrottled ? PRESENCE_SLOW_MS : PRESENCE_FAST_MS);
+    pollPresence();
+  }
+  function throttlePresence(on) {
+    if (presenceThrottled === on) return;
+    presenceThrottled = on;
+    presenceTimers(on ? PRESENCE_SLOW_MS : PRESENCE_FAST_MS);
   }
 
   function pollPresence() {
@@ -2649,6 +2684,7 @@ canvas{
   };
 
   function p2pStop() {
+    if (typeof p2pStopRetry === 'function') p2pStopRetry();
     if (p2pState.dc) {
       try { p2pState.dc.close(); } catch (e) { /* ignore */ }
     }
@@ -2662,6 +2698,26 @@ canvas{
     p2pState.answerSent = false;
     p2pState.gathered = [];
     p2pState.trickleDone = false;
+  }
+
+  /* 等 ICE 收集完毕再打包 SDP（扫码直连用） */
+  function waitIceGather(pc, ms) {
+    return new Promise(function (resolve) {
+      if (!pc || pc.iceGatheringState === 'complete') { resolve(); return; }
+      var done = false, tm = 0;
+      function fin() {
+        if (done) return;
+        done = true;
+        try { pc.removeEventListener('icegatheringstatechange', onChange); } catch (e) { /* ignore */ }
+        window.clearTimeout(tm);
+        resolve();
+      }
+      function onChange() {
+        if (pc.iceGatheringState === 'complete') fin();
+      }
+      try { pc.addEventListener('icegatheringstatechange', onChange); } catch (e) { /* ignore */ }
+      tm = window.setTimeout(fin, ms || 2500);
+    });
   }
 
   function p2pCanUse() {
@@ -2684,6 +2740,7 @@ canvas{
     } else {
       pc.ondatachannel = function (ev) {
         dc = ev.channel;
+        p2pState.dc = dc; /* 访客端必须写回，否则只能收不能发 */
         bindDataChannel(dc);
       };
     }
@@ -2731,11 +2788,33 @@ canvas{
     };
   }
 
-  /* 发信令：仅走 ntfy；DataChannel 建好后不再调用 */
-  function p2pSignal(signal) {
-    if (!online.topic) return;
-    var msg = JSON.stringify(signal);
-    publishRaw(online.topic, msg);
+  /* 发信令：建连阶段走 ntfy，复用 publish() 的重试与 429 处理。
+     原先走 publishRaw（单次、无重试、无限流处理），一条 SDP 丢包就永远建不上。
+     SDP offer/answer 额外限次重发；ICE candidate 量大，不重发。 */
+  var p2pRetry = { timer: 0, tries: 0, msg: null };
+  var p2pRebuildTries = 0;
+  function p2pStopRetry() {
+    if (!p2pRetry) return;
+    if (p2pRetry.timer) { window.clearInterval(p2pRetry.timer); p2pRetry.timer = 0; }
+    p2pRetry.msg = null;
+    p2pRetry.tries = 0;
+  }
+  function p2pSignal(signal, important) {
+    if (!online.topic || p2pState.on) return;
+    if (important) {
+      p2pRetry.msg = signal;
+      p2pRetry.tries = 0;
+      if (p2pRetry.timer) window.clearInterval(p2pRetry.timer);
+      p2pRetry.timer = window.setInterval(function () {
+        if (p2pState.on || !p2pRetry.msg || p2pRetry.tries >= 5) {
+          p2pStopRetry();
+          return;
+        }
+        p2pRetry.tries++;
+        publish(p2pRetry.msg);
+      }, 2500);
+    }
+    publish(signal);
   }
 
   /* 收到消息中的 P2P 信令 */
@@ -2749,13 +2828,14 @@ canvas{
     if (m.n) online.p2pName = m.n;
 
     if (m.t === 'sdp-offer') {
-      /* 房主收到 offer 只有访客能发；访客收到 offer 也应处理以应对角色切换 */
-      if (online.role === 'host' || online.role === 'guest') {
+      /* 只有访客该响应 offer：房主自己是发 offer 的一方，观战者不参与建连，
+         否则多人房间下会互相踩状态机 */
+      if (online.role === 'guest') {
         p2pStartGuest(m.sdp);
       }
     } else if (m.t === 'sdp-answer') {
       /* 只有房主处理 answer */
-      if (p2pState.pc && m.sdp) {
+      if (online.role === 'host' && p2pState.pc && m.sdp) {
         var desc = new RTCSessionDescription(m.sdp);
         p2pState.pc.setRemoteDescription(desc).catch(function () { /* ignore */ });
       }
@@ -2775,7 +2855,7 @@ canvas{
     var pc = p2pCreate(true);
     pc.createOffer().then(function (off) {
       pc.setLocalDescription(off).then(function () {
-        p2pSignal({ t: 'sdp-offer', u: myUid(), p: myPid(), n: me.name, sdp: off });
+        p2pSignal({ t: 'sdp-offer', u: myUid(), p: myPid(), n: me.name, sdp: off }, true);
       });
     }).catch(function () { /* ignore */ });
   }
@@ -2791,7 +2871,7 @@ canvas{
     }).then(function (ans) {
       return pc.setLocalDescription(ans);
     }).then(function () {
-      p2pSignal({ t: 'sdp-answer', u: myUid(), p: myPid(), n: me.name, sdp: pc.localDescription });
+      p2pSignal({ t: 'sdp-answer', u: myUid(), p: myPid(), n: me.name, sdp: pc.localDescription }, true);
     }).catch(function () { /* ignore */ });
   }
 
@@ -2799,18 +2879,34 @@ canvas{
   function p2pOnConnected() {
     if (!p2pState.on) return;
     setConn('P2P 直连已建立，消息不再经过服务器');
+    p2pStopRetry();
+    p2pRebuildTries = 0;
     stopPolling();
     if (online.es) {
       try { online.es.close(); } catch (e) { /* ignore */ }
       online.es = null;
     }
+    /* 直连期间停掉 ntfy 侧的好友在线轮询/心跳：既不再需要公共中转，
+       也避免它持续打 ntfy 耗光限流额度（好友多时每 30s 十几个请求）。 */
+    pausePresenceNet();
     /* 心跳 hi 以及状态广播都在 publish 里自动改走 P2P，无需改动 */
   }
 
   /* P2P 断开后恢复 ntfy 通道：重启轮询并尝试重建 SSE */
   function p2pReopenStream() {
     if (!online.topic) return;
+    resumePresenceNet();
     startPolling();
+    /* 断开后房主限次重建 P2P；失败就稳定留在 ntfy 通道，避免无限重连刷中转 */
+    if (online.role === 'host' && p2pCanUse() && p2pRebuildTries < 2) {
+      p2pRebuildTries++;
+      window.setTimeout(function () {
+        if (!p2pState.on && online.room && online.role === 'host') {
+          p2pStop();
+          p2pStartHost();
+        }
+      }, 3000);
+    }
     if (window.EventSource) {
       /* 短延迟重建 SSE，避免即刻重连被 same-origin/网络抖动影响 */
       window.setTimeout(function () {
@@ -2867,6 +2963,13 @@ canvas{
 
   /* 组装并返回 P2P 消息 */
   var p2pBuf = {};
+  /* 丢片后 15s 清理缓冲，避免永久驻留占内存 */
+  function p2pBufSweep() {
+    var now = Date.now();
+    for (var k in p2pBuf) {
+      if (p2pBuf[k] && p2pBuf[k].ts && now - p2pBuf[k].ts > 15000) delete p2pBuf[k];
+    }
+  }
   function p2pOnData(raw) {
     var part;
     try { part = JSON.parse(raw); } catch (e) { return; }
@@ -2881,8 +2984,9 @@ canvas{
     }
     /* 切片消息 */
     var key = part.mid || '';
-    if (!p2pBuf[key]) p2pBuf[key] = [];
+    if (!p2pBuf[key]) { p2pBuf[key] = []; p2pBuf[key].ts = Date.now(); }
     p2pBuf[key][part.i] = part.b;
+    p2pBufSweep();
     /* 收到全部片段才拼装 */
     var arr = p2pBuf[key];
     var full = '';
@@ -3492,17 +3596,9 @@ canvas{
     qrState.pc.createOffer().then(function (off) {
       return qrState.pc.setLocalDescription(off);
     }).then(function () {
-      /* 等 ICE candidates 收集完毕（最多 2 秒） */
-      return new Promise(function (resolve) {
-        var tryCount = 0;
-        var iv = window.setInterval(function () {
-          tryCount++;
-          if (qrState.gathered.length > 0 || tryCount > 40) {
-            window.clearInterval(iv);
-            resolve();
-          }
-        }, 50);
-      });
+      /* 等 ICE 收集真正 complete：只等"第一个 candidate"会漏掉 srflx，
+         跨网段直连几乎必然失败。STUN 不可达时用超时兜底。 */
+      return waitIceGather(qrState.pc, 2500);
     }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
       /* 把 ICE candidate 追加到 SDP 中 */
@@ -3591,17 +3687,8 @@ canvas{
     }).then(function (ans) {
       return qrState.pc.setLocalDescription(ans);
     }).then(function () {
-      /* 等 ICE candidates 收集完毕（最多 1.5 秒） */
-      return new Promise(function (resolve) {
-        var tryCount = 0;
-        var iv = window.setInterval(function () {
-          tryCount++;
-          if (qrState.gathered.length > 0 || tryCount > 30) {
-            window.clearInterval(iv);
-            resolve();
-          }
-        }, 50);
-      });
+      /* 等 ICE 收集真正 complete（同上） */
+      return waitIceGather(qrState.pc, 2500);
     }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
       /* 把 ICE candidate 追加到 SDP 中 */
@@ -3688,6 +3775,7 @@ canvas{
     } else {
       pc.ondatachannel = function (ev) {
         dc = ev.channel;
+        qrState.dc = dc; /* 访客端必须写回，否则只能收不能发 */
         bindQRDataChannel(dc);
       };
     }
@@ -3964,6 +4052,7 @@ canvas{
   }
 
   function subscribe(room) {
+    throttlePresence(true); /* 对战期间让 ntfy 额度优先给棋局消息 */
     var topic = TOPIC_PREFIX + room.toLowerCase();
     var sameRoom = online.topic === topic;
     online.room = room;
@@ -4941,6 +5030,7 @@ canvas{
   }
 
   function leaveRoom(silent) {
+    throttlePresence(false); /* 离房恢复好友在线感知频率 */
     stopLobbyPublish(true);
     closeLobby();
     if (online.topic) {
