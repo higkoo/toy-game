@@ -295,6 +295,23 @@ body{
 }
 @keyframes qrspin{to{transform:rotate(360deg)}}
 .qr-wait-txt{font-size:12px;font-weight:700;color:#7d8ead;text-align:center}
+.qr-scanner{
+  width:100%;aspect-ratio:1/1;flex:0 0 auto;
+  background:#000;border-radius:16px;overflow:hidden;
+  display:none;position:relative;
+}
+.qr-scanner.on{display:block}
+.qr-scanner video{width:100%;height:100%;object-fit:cover}
+.qr-scanner .scan-frame{
+  position:absolute;inset:15%;
+  border:2px solid #5fc0f5;border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.45);
+}
+.qr-scanner .scan-tip{
+  position:absolute;bottom:8px;left:0;right:0;
+  text-align:center;font-size:11px;font-weight:800;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
+}
 .row-label{
   flex:0 0 38px;
   font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#8fa2bf;
@@ -904,7 +921,7 @@ canvas{
   <div class="qr-card">
     <button type="button" class="qr-close" id="qrCloseBtn">✕</button>
     <div class="qr-title" id="qrTitle">扫码直连</div>
-    <div class="qr-sub" id="qrSub">和朋友的手机互扫二维码，无需服务器中转</div>
+    <div class="qr-sub" id="qrSub">和朋友互扫二维码（微信/浏览器/系统相机均可扫），无需服务器中转</div>
     <div class="qr-step" id="qrStep" hidden><span class="dot"></span><span id="qrStepTxt">第 1 步</span></div>
     <div class="qr-code" id="qrCode"></div>
     <div class="qr-wait" id="qrWait" hidden>
@@ -912,15 +929,20 @@ canvas{
       <div class="qr-wait-txt" id="qrWaitTxt">等待对方…</div>
     </div>
     <textarea class="qr-text" id="qrTextInput" placeholder="粘贴对方给你的连接串" rows="3"></textarea>
+    <div class="qr-scanner" id="qrScanner">
+      <video id="qrVideo" playsinline autoplay muted></video>
+      <div class="scan-frame"></div>
+      <div class="scan-tip" id="qrScanTip">将二维码放入框内</div>
+    </div>
     <div class="qr-actions">
-      <button type="button" class="mini-btn" id="qrScanBtn" hidden>用手机扫描</button>
-      <button type="button" class="mini-btn coral" id="qrSendBtn" hidden>我扫好了，继续</button>
+      <button type="button" class="mini-btn" id="qrScanBtn" hidden>扫对方的码</button>
+      <button type="button" class="mini-btn coral" id="qrSendBtn" hidden>我已粘贴邀请码，继续</button>
       <button type="button" class="mini-btn ghost" id="qrCancelBtn">取消</button>
     </div>
   </div>
 </div>
 
-<div class="ver" id="verTag">v25</div>
+<div class="ver" id="verTag">v26</div>
 
 <script>
 (function () {
@@ -1018,6 +1040,9 @@ canvas{
   var qrSendBtn = document.getElementById('qrSendBtn');
   var qrCancelBtn = document.getElementById('qrCancelBtn');
   var qrCloseBtn = document.getElementById('qrCloseBtn');
+  var qrScanner = document.getElementById('qrScanner');
+  var qrVideo = document.getElementById('qrVideo');
+  var qrScanTip = document.getElementById('qrScanTip');
 
   var STORE_KEY = 'gomoku_idol_v1';
   var RECORD_KEY = 'gomoku_records_v1';
@@ -2614,7 +2639,12 @@ canvas{
     offerSent: false, answerSent: false,
     gathered: [],
     waitTimer: 0,
-    scanResult: ''    // 临时存储扫描/粘贴的结果
+    scanResult: '',    // 临时存储扫描/粘贴的结果
+    /* 摄像头扫码相关 */
+    scanActive: false,
+    scanStream: null,
+    scanTimer: 0,
+    scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
   };
 
   function p2pStop() {
@@ -2900,7 +2930,17 @@ canvas{
       7:  { data: 156, ecc: 40, total: 196 },
       8:  { data: 194, ecc: 48, total: 242 },
       9:  { data: 232, ecc: 60, total: 292 },
-      10: { data: 274, ecc: 72, total: 346 }
+      10: { data: 274, ecc: 72, total: 346 },
+      11: { data: 297, ecc: 76, total: 372 },
+      12: { data: 345, ecc: 96, total: 441 },
+      13: { data: 395, ecc: 108, total: 503 },
+      14: { data: 441, ecc: 120, total: 561 },
+      15: { data: 492, ecc: 132, total: 624 },
+      16: { data: 534, ecc: 144, total: 678 },
+      17: { data: 588, ecc: 120, total: 708 },
+      18: { data: 640, ecc: 144, total: 784 },
+      19: { data: 698, ecc: 156, total: 854 },
+      20: { data: 756, ecc: 156, total: 912 }
     };
     var RS_BLOCK_TABLE = {
       1: { L: 19, M: 16, Q: 13, H: 9 },
@@ -2912,7 +2952,17 @@ canvas{
       7: { L: 156, M: 124, Q: 88, H: 66 },
       8: { L: 194, M: 154, Q: 110, H: 86 },
       9: { L: 232, M: 182, Q: 132, H: 100 },
-      10: { L: 274, M: 216, Q: 154, H: 122 }
+      10: { L: 274, M: 216, Q: 154, H: 122 },
+      11: { L: 297, M: 238, Q: 164, H: 136 },
+      12: { L: 345, M: 272, Q: 194, H: 152 },
+      13: { L: 395, M: 310, Q: 222, H: 172 },
+      14: { L: 441, M: 348, Q: 252, H: 198 },
+      15: { L: 492, M: 388, Q: 283, H: 220 },
+      16: { L: 534, M: 418, Q: 307, H: 242 },
+      17: { L: 588, M: 456, Q: 331, H: 264 },
+      18: { L: 640, M: 496, Q: 361, H: 296 },
+      19: { L: 698, M: 528, Q: 385, H: 318 },
+      20: { L: 756, M: 568, Q: 411, H: 340 }
     };
 
     function getRSBlockInfo(type, ecc) {
@@ -2983,10 +3033,10 @@ canvas{
 
     /* 选择版本 */
     function pickVersion(len, ecc) {
-      for (var v = 1; v <= 10; v++) {
+      for (var v = 1; v <= 20; v++) {
         if (len <= QR_TABLE[v].data) return v;
       }
-      return 10;
+      return 20;
     }
 
     /* 掩码评分 */
@@ -3126,16 +3176,15 @@ canvas{
       placeFinder(0, size - 1);
       placeFinder(size - 1, 0);
 
-      /* 校正图形 */
-      var alignPos = [6];
-      if (version >= 2) {
-        var ap = version * 4 + 10;
-        alignPos.push(ap);
-      }
-      if (version >= 7) {
-        var ap2 = version * 4 + 7;
-        alignPos.push(ap2);
-      }
+      /* 校正图形位置（QR Code 标准定义表） */
+      var ALIGN_PATTERN_POS = {
+        1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30], 6: [6, 34],
+        7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50],
+        11: [6, 30, 54], 12: [6, 32, 58], 13: [6, 34, 62], 14: [6, 26, 46, 66],
+        15: [6, 26, 48, 70], 16: [6, 26, 50, 74], 17: [6, 30, 54, 78],
+        18: [6, 30, 56, 82], 19: [6, 30, 58, 86], 20: [6, 26, 48, 70, 92]
+      };
+      var alignPos = ALIGN_PATTERN_POS[version] || [];
       for (var ai = 0; ai < alignPos.length; ai++) {
         for (var aj = 0; aj < alignPos.length; aj++) {
           var ar = alignPos[ai], ac = alignPos[aj];
@@ -3250,6 +3299,34 @@ canvas{
     return { make: makeQR };
   })();
 
+  /* 精简 SDP：去掉 audio/video 段和冗余属性行，只保留 DataChannel 核心字段 */
+  function compactSDP(sdp) {
+    var lines = sdp.split(/\r?\n/);
+    var filtered = [];
+    var skipUntilNextM = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (skipUntilNextM) {
+        if (line.startsWith('m=')) skipUntilNextM = false;
+        else continue;
+      }
+      if (line.startsWith('m=audio') || line.startsWith('m=video')) {
+        skipUntilNextM = true;
+        continue;
+      }
+      if (line === 'c=IN IP4 0.0.0.0') continue;
+      if (line.startsWith('a=extmap:')) continue;
+      if (line.startsWith('a=msid:')) continue;
+      if (line.startsWith('a=ssrc:')) continue;
+      if (line.startsWith('a=rtcp-mux')) continue;
+      if (line.startsWith('a=sctp-port:')) continue;
+      if (line.startsWith('a=rtpmap:')) continue;
+      if (line.startsWith('a=rtcp-fb:')) continue;
+      filtered.push(line);
+    }
+    return filtered.join('\r\n');
+  }
+
   /* 将文本渲染为 QR 码到容器 */
   function renderQR(container, text) {
     if (!container) return;
@@ -3257,7 +3334,7 @@ canvas{
     try {
       var qr = QR_LIB.make(text);
       var size = qr.size;
-      var cellSize = Math.floor(200 / size);
+      var cellSize = Math.max(1, Math.floor(220 / size));
       var canvas = document.createElement('canvas');
       canvas.width = size * cellSize;
       canvas.height = size * cellSize;
@@ -3330,6 +3407,7 @@ canvas{
   /* --- 扫码直连 P2P 逻辑 --- */
 
   function qrStop() {
+    qrStopScan();
     if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTimer = 0; }
     if (qrState.pc) { try { qrState.pc.close(); } catch (e) { /* ignore */ } }
     qrState.mode = '';
@@ -3376,7 +3454,7 @@ canvas{
     if (qrScanBtn) qrScanBtn.hidden = true;
     if (qrSendBtn) qrSendBtn.hidden = false;
     qrSendBtn.textContent = '我已收到朋友的回复码，粘贴到上面';
-    setQRTip('第 1 步：把邀请码发给朋友', '复制下面的文字串发给朋友，或让朋友扫你屏幕上的二维码', '');
+    setQRTip('第 1 步：把邀请码发给朋友', '复制文字串发给朋友，或让朋友用微信/浏览器扫你屏幕上的二维码', '');
 
     /* 生成 Offer */
     qrState.pc = p2pCreateQR(true);
@@ -3385,24 +3463,24 @@ canvas{
       return qrState.pc.setLocalDescription(off);
     }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
-      var payload = JSON.stringify({ t: 'q-offer', sdp: sdp });
-      var b64 = b64Encode(payload);
+      var compact = compactSDP(sdp);
+      /* 前缀 "1|" = offer */
+      var text = '1|' + compact;
       qrState.offerSent = true;
-      if (b64) {
-        /* 文本框始终可见（主路径） */
+      if (text) {
         if (qrTextInput) {
-          qrTextInput.value = b64;
+          qrTextInput.value = text;
           qrTextInput.readOnly = true;
           qrTextInput.hidden = false;
         }
-        /* QR 码仅当内容 <= 230 字节时尝试生成（QR v10-L 上限） */
-        if (b64.length <= 230) {
-          renderQR(qrCode, b64);
-        } else {
-          qrCode.innerHTML = '<div style="font-size:10px;color:#9aabc7;text-align:center;padding:8px">邀请串较长<br>请用复制按钮发送</div>';
-        }
+        renderQR(qrCode, text);
       }
       if (qrWait) qrWait.hidden = true;
+      /* 第 2 步：等待访客回复码，显示扫码和粘贴两种方式 */
+      qrState.step = 2;
+      if (qrScanBtn) { qrScanBtn.hidden = false; qrScanBtn.textContent = '扫朋友的回复码'; }
+      qrSendBtn.textContent = '我已粘贴朋友的回复码，继续';
+      setQRTip('第 2 步：等朋友回复', '朋友扫码后会生成回复码，复制发给朋友，或让朋友扫你屏幕上的二维码', '');
     }).catch(function () { qrStop(); });
   }
 
@@ -3416,9 +3494,9 @@ canvas{
 
     if (qrCode) qrCode.innerHTML = '';
     if (qrTextInput) { qrTextInput.value = ''; qrTextInput.hidden = false; }
-    if (qrSendBtn) { qrSendBtn.hidden = false; qrSendBtn.textContent = '我已粘贴朋友的邀请码，继续'; }
-    if (qrScanBtn) qrScanBtn.hidden = true;
-    setQRTip('输入邀请码', '粘贴朋友给的邀请文字串', '第 1 步：输入朋友的邀请码');
+    if (qrSendBtn) { qrSendBtn.hidden = false; qrSendBtn.textContent = '我已粘贴邀请码，继续'; }
+    if (qrScanBtn) { qrScanBtn.hidden = false; qrScanBtn.textContent = '扫房主的二维码'; }
+    setQRTip('输入邀请码', '扫房主的二维码，或直接粘贴邀请文字串', '第 1 步：输入朋友的邀请码');
     openQRModal();
   }
 
@@ -3426,17 +3504,19 @@ canvas{
   function qrGuestSubmitOffer() {
     var text = (qrTextInput && qrTextInput.value || '').trim();
     if (!text) { setStatus('请先粘贴邀请码'); return; }
-    var payload;
-    try {
-      var json = b64Decode(text);
-      payload = JSON.parse(json);
-    } catch (e) { setStatus('邀请码格式有误'); return; }
-    if (!payload || payload.t !== 'q-offer' || !payload.sdp) {
-      setStatus('邀请码无效，请确认来源');
-      return;
+    var sdp;
+    if (text.indexOf('1|') === 0) {
+      sdp = text.substring(2);
+    } else {
+      /* 兼容旧格式：尝试 base64 解码 */
+      try {
+        var payload = JSON.parse(b64Decode(text));
+        if (payload && payload.sdp) sdp = payload.sdp;
+      } catch (e) { /* ignore */ }
     }
+    if (!sdp) { setStatus('邀请码格式有误'); return; }
     qrState.pc = p2pCreateQR(false);
-    var desc = new RTCSessionDescription(payload.sdp);
+    var desc = new RTCSessionDescription({ type: 'offer', sdp: sdp });
     qrState.pc.setRemoteDescription(desc).then(function () {
       return qrState.pc.createAnswer();
     }).then(function (ans) {
@@ -3455,24 +3535,19 @@ canvas{
       });
     }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
-      var cands = qrState.gathered;
-      var answerPayload = JSON.stringify({ t: 'q-answer', sdp: sdp, c: cands });
-      var b64 = b64Encode(answerPayload);
+      var compact = compactSDP(sdp);
+      /* 前缀 "2|" = answer，后跟 SDP */
+      var text = '2|' + compact;
       qrState.answerSent = true;
       qrState.iceB64 = '';
-      /* 显示回复码（含 answer + 访客 ICE） */
-      if (b64.length <= 230) {
-        renderQR(qrCode, b64);
-      } else {
-        qrCode.innerHTML = '<div style="font-size:10px;color:#9aabc7;text-align:center;padding:8px">回复串较长<br>请复制文字串发送</div>';
-      }
+      renderQR(qrCode, text);
       if (qrTextInput) {
-        qrTextInput.value = b64;
+        qrTextInput.value = text;
         qrTextInput.readOnly = true;
         qrTextInput.hidden = false;
       }
       if (qrSendBtn) { qrSendBtn.hidden = false; qrSendBtn.textContent = '我已把回复码发给房主'; }
-      setQRTip('第 2 步：把回复码发给房主', '复制下面的文字串发给房主', '');
+      setQRTip('第 2 步：把回复码发给房主', '复制下面的文字串发给房主，或让房主扫你屏幕上的二维码', '');
       qrState.step = 2;
     }).catch(function () { setStatus('建立连接失败，请重试'); qrStop(); });
   }
@@ -3481,32 +3556,19 @@ canvas{
   function qrHostSubmitAnswer() {
     var text = (qrTextInput && qrTextInput.value || '').trim();
     if (!text) { setStatus('请先粘贴朋友的回复码'); return; }
-    var payload;
-    try {
-      var json = b64Decode(text);
-      payload = JSON.parse(json);
-    } catch (e) { setStatus('回复码格式有误'); return; }
-    if (!payload || payload.t !== 'q-answer' || !payload.sdp) {
-      setStatus('回复码无效，请确认来源');
-      return;
+    var sdp;
+    if (text.indexOf('2|') === 0) {
+      sdp = text.substring(2);
+    } else {
+      /* 兼容旧格式 */
+      try {
+        var payload = JSON.parse(b64Decode(text));
+        if (payload && payload.sdp) sdp = payload.sdp;
+      } catch (e) { /* ignore */ }
     }
-    /* 先 addIceCandidate（访客的），再 setRemoteDescription */
-    var cands = payload.c || [];
-    var addCands = Promise.resolve();
-    if (cands.length > 0) {
-      addCands = Promise.all(cands.map(function (c) {
-        return qrState.pc.addIceCandidate(new RTCIceCandidate(c)).catch(function () { /* ignore */ });
-      }));
-    }
-    var desc = new RTCSessionDescription(payload.sdp);
-    addCands.then(function () {
-      return qrState.pc.setRemoteDescription(desc);
-    }).then(function () {
-      /* 房主也要把自己的 ICE candidates 通过 TextChannel 传给访客吗？
-         不需要——房主的 candidates 在 onicecandidate 时已收集，
-         但访客已经通过 answer 里的 'c' 字段拿到了访客的 candidates。
-         房主的 candidates 会在 DataChannel 建立过程中自动传递（ICE 协议）。
-         所以这里不再需要额外交换房主的 candidates。 */
+    if (!sdp) { setStatus('回复码格式有误'); return; }
+    var desc = new RTCSessionDescription({ type: 'answer', sdp: sdp });
+    qrState.pc.setRemoteDescription(desc).then(function () {
       setQRTip('连接成功', '正在建立直接连接…', '');
       qrState.step = 3;
       if (qrWait) qrWait.hidden = false;
@@ -3640,6 +3702,137 @@ canvas{
     if (qrState.mode === 'guest' && qrState.step === 1) {
       qrGuestSubmitOffer();
     } else if (qrState.mode === 'host' && qrState.step === 2) {
+      qrHostSubmitAnswer();
+    }
+  }
+
+  /* --- 摄像头扫码逻辑 --- */
+  /* 使用 BarcodeDetector API（Chrome 94+ 支持）检测 QR 码。
+     不支持的浏览器提示用户改用粘贴方式。 */
+  function qrStopScan() {
+    qrState.scanActive = false;
+    if (qrState.scanTimer) {
+      window.clearInterval(qrState.scanTimer);
+      qrState.scanTimer = 0;
+    }
+    if (qrState.scanStream) {
+      try {
+        qrState.scanStream.getTracks().forEach(function (tr) { tr.stop(); });
+      } catch (e) { /* ignore */ }
+      qrState.scanStream = null;
+    }
+    if (qrScanner) qrScanner.classList.remove('on');
+    if (qrScanBtn) {
+      qrScanBtn.textContent = qrState.mode === 'host' ? '扫朋友的回复码' : '扫房主的二维码';
+    }
+    if (qrScanTip) qrScanTip.textContent = '将二维码放入框内';
+  }
+
+  function qrStartScan() {
+    if (qrState.scanActive) { qrStopScan(); return; }
+
+    /* 检查 BarcodeDetector 支持 */
+    if (typeof window.BarcodeDetector === 'undefined') {
+      setStatus('当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('当前环境不支持摄像头访问，请直接粘贴文字串');
+      return;
+    }
+
+    qrState.scanTarget = qrState.mode === 'host' ? 'host' : 'guest';
+    setStatus('正在启动摄像头…');
+
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false
+    }).then(function (stream) {
+      qrState.scanStream = stream;
+      qrState.scanActive = true;
+
+      if (qrScanner) qrScanner.classList.add('on');
+      if (qrVideo) {
+        qrVideo.srcObject = stream;
+        qrVideo.setAttribute('playsinline', 'true');
+      }
+      if (qrScanTip) qrScanTip.textContent = '正在识别…';
+
+      /* 切换按钮文案 */
+      if (qrScanBtn) qrScanBtn.textContent = '关闭摄像头';
+
+      /* 开始循环检测 */
+      qrState.scanTimer = window.setInterval(function () {
+        if (!qrState.scanActive) return;
+        qrDetectFrame().then(function (result) {
+          if (result) {
+            qrStopScan();
+            qrOnScanSuccess(result);
+          }
+        }).catch(function () { /* 忽略检测错误 */ });
+      }, 300);
+    }).catch(function (err) {
+      qrState.scanActive = false;
+      if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+        setStatus('摄像头权限被拒绝，请在浏览器设置中允许摄像头访问，或直接粘贴文字串');
+      } else if (err && err.name === 'NotFoundError') {
+        setStatus('未检测到摄像头设备，请直接粘贴文字串');
+      } else {
+        setStatus('摄像头启动失败：' + (err && err.message ? err.message : '') + '，请直接粘贴文字串');
+      }
+    });
+  }
+
+  /* 对当前视频帧进行 QR 码检测 */
+  function qrDetectFrame() {
+    if (!qrVideo || !qrVideo.videoWidth) return Promise.resolve(null);
+    var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    return detector.detect(qrVideo).then(function (codes) {
+      if (codes && codes.length > 0) {
+        /* 取第一个检测到的 QR 码内容 */
+        for (var i = 0; i < codes.length; i++) {
+          if (codes[i].rawValue && codes[i].rawValue.indexOf('|') > -1) {
+            return codes[i].rawValue;
+          }
+        }
+        /* 没找到含 | 的，取第一个 */
+        if (codes[0].rawValue) return codes[0].rawValue;
+      }
+      return null;
+    });
+  }
+
+  /* 扫码成功后的处理 */
+  function qrOnScanSuccess(text) {
+    var target = qrState.scanTarget;
+    /* 验证格式：应有 "1|" 或 "2|" 前缀 */
+    if (!text || (text.indexOf('1|') !== 0 && text.indexOf('2|') !== 0)) {
+      setStatus('二维码内容不是有效的邀请码，请重试或直接粘贴文字串');
+      return;
+    }
+    /* 访客必须扫 "1|" 开头的 offer */
+    if (target === 'guest' && text.indexOf('1|') !== 0) {
+      setStatus('请扫描房主的邀请码（1| 开头）');
+      return;
+    }
+    /* 房主必须扫 "2|" 开头的 answer */
+    if (target === 'host' && text.indexOf('2|') !== 0) {
+      setStatus('请扫描朋友的回复码（2| 开头）');
+      return;
+    }
+
+    /* 填入文本框 */
+    if (qrTextInput) {
+      qrTextInput.value = text;
+      qrTextInput.readOnly = true;
+    }
+
+    setStatus('扫码成功，正在处理…');
+
+    /* 触发提交流程 */
+    if (target === 'guest' && qrState.step === 1) {
+      qrGuestSubmitOffer();
+    } else if (target === 'host' && qrState.step === 2) {
       qrHostSubmitAnswer();
     }
   }
@@ -5370,6 +5563,12 @@ qrHostBtn.addEventListener('click', function () {
 }
 if (qrSendBtn) {
 qrSendBtn.addEventListener('click', qrSubmit);
+}
+if (qrScanBtn) {
+qrScanBtn.addEventListener('click', function () {
+  if (qrState.scanActive) { qrStopScan(); }
+  else { qrStartScan(); }
+});
 }
 if (qrCancelBtn) {
 qrCancelBtn.addEventListener('click', function () { qrStop(); });
