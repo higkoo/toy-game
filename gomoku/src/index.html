@@ -942,7 +942,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v27</div>
+<div class="ver" id="verTag">v28</div>
 
 <script>
 (function () {
@@ -950,6 +950,7 @@ canvas{
 
   var DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
   var BLACK = 1, WHITE = 2;
+  var isBiliApp = /BiliApp/i.test((window.navigator && window.navigator.userAgent) || '');
 
   var canvas = document.getElementById('board');
   var ctx = canvas.getContext('2d');
@@ -3826,9 +3827,30 @@ canvas{
   function qrStartScan() {
     if (qrState.scanActive) { qrStopScan(); return; }
 
+    qrState.scanTarget = qrState.mode === 'host' ? 'host' : 'guest';
+
+    /* B站 App 内置浏览器不支持摄像头扫码，优先提示并尝试 scheme */
+    if (isBiliApp) {
+      var tipMsg = 'B站 App 内暂不支持摄像头扫码，请用 Chrome/Safari 打开本页面再扫，或直接粘贴文字串';
+      if (qrScanTip) { qrScanTip.textContent = tipMsg; }
+      if (qrScanner) qrScanner.classList.add('on');
+      if (qrVideo) qrVideo.parentElement.style.display = 'none';
+      setStatus(tipMsg);
+      /* 尝试 bilibili:// scheme 唤起原生扫码（部分版本可能支持） */
+      try {
+        var schemeUrl = 'bilibili://scan_qr';
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = schemeUrl;
+        document.body.appendChild(iframe);
+        setTimeout(function () { document.body.removeChild(iframe); }, 1000);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
     /* 检查 BarcodeDetector 支持 */
     if (typeof window.BarcodeDetector === 'undefined') {
-      if (qrScanTip) { qrScanTip.textContent = '当前浏览器不支持摄像头扫码，请直接粘贴文字串'; }
+      if (qrScanTip) { qrScanTip.textContent = '当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串'; }
       if (qrScanner) qrScanner.classList.add('on');
       setStatus('当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串');
       return;
@@ -3840,9 +3862,9 @@ canvas{
       return;
     }
 
-    qrState.scanTarget = qrState.mode === 'host' ? 'host' : 'guest';
     if (qrScanTip) qrScanTip.textContent = '正在启动摄像头…';
     if (qrScanner) qrScanner.classList.add('on');
+    if (qrVideo) qrVideo.parentElement.style.display = '';
     setStatus('正在启动摄像头…');
 
     navigator.mediaDevices.getUserMedia({
@@ -3876,7 +3898,7 @@ canvas{
       qrState.scanActive = false;
       var msg;
       if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        msg = '摄像头权限被拒绝，请在浏览器设置中允许摄像头访问，或直接粘贴文字串';
+        msg = '摄像头权限被拒绝。请在浏览器地址栏左侧的「锁/设置」图标中允许摄像头访问，然后重新点击扫码；或直接粘贴文字串';
       } else if (err && err.name === 'NotFoundError') {
         msg = '未检测到摄像头设备，请直接粘贴文字串';
       } else {
