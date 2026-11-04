@@ -103,7 +103,7 @@ body{
 
 .online{display:none;flex-direction:column;gap:6px}
 .online.on{display:flex}
-.online-empty{display:flex;gap:6px;align-items:center}
+.online-empty{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .room-input{
   flex:1;min-width:0;height:34px;border:2px solid #e7f3ff;border-radius:12px;
   padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:700;color:#3d4a68;
@@ -210,6 +210,12 @@ body{
   background:#f9fcff;outline:none;resize:none;
 }
 .qr-text::placeholder{color:#aab9d0}
+.qr-switch{
+  appearance:none;border:0;cursor:pointer;font-family:inherit;display:block;
+  background:none;color:#4a8fc2;font-size:12px;font-weight:700;
+  text-decoration:underline;padding:2px 0;margin:0 auto 8px;text-align:center;
+}
+.qr-switch[hidden]{display:none}
 .qr-actions{display:flex;gap:8px;width:100%}
 .qr-actions .mini-btn{flex:1;height:38px}
 .qr-close{
@@ -548,6 +554,7 @@ canvas{
         <div class="online-empty" id="onlineEmpty">
           <button type="button" class="mini-btn coral" id="createRoomBtn">创建房间</button>
           <button type="button" class="mini-btn" id="qrHostBtn">扫码直连</button>
+          <button type="button" class="mini-btn" id="qrGuestBtn">扫码加入</button>
           <button type="button" class="mini-btn" id="roomListBtn">房间</button>
           <input class="room-input" id="roomInput" maxlength="6" inputmode="numeric" placeholder="房间号" />
           <button type="button" class="mini-btn" id="joinRoomBtn">加入</button>
@@ -664,7 +671,8 @@ canvas{
   <div class="qr-card">
     <button type="button" class="qr-close" id="qrCloseBtn">✕</button>
     <div class="qr-title" id="qrTitle">扫码直连</div>
-    <div class="qr-sub" id="qrSub">和朋友互扫二维码（微信/浏览器/系统相机均可扫），无需服务器中转</div>
+    <div class="qr-sub" id="qrSub">一方点「扫码直连」生成邀请码，另一方点「扫码加入」输入；App 内请用复制粘贴，无需摄像头</div>
+    <button type="button" class="qr-switch" id="qrSwitchBtn" hidden>我是加入方：输入朋友的码</button>
     <div class="qr-step" id="qrStep" hidden><span class="dot"></span><span id="qrStepTxt">第 1 步</span></div>
     <div class="qr-code" id="qrCode"></div>
     <div class="qr-wait" id="qrWait" hidden>
@@ -685,7 +693,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v22</div>
+<div class="ver" id="verTag">v23</div>
 
 <script>
 (function () {
@@ -695,7 +703,7 @@ canvas{
   var STORE_KEY = 'go_idol_v1';
   var RECORD_KEY = 'go_records_v1';
   var RECORD_MAX = 30;
-  var VERSION = 'v22';
+  var VERSION = 'v23';
   var UA = (window.navigator && window.navigator.userAgent) || '';
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(UA);
   var IN_APP = /BiliApp/i.test(UA);
@@ -779,6 +787,8 @@ canvas{
     verTag: document.getElementById('verTag'),
     /* 扫码直连 */
     qrHostBtn: document.getElementById('qrHostBtn'),
+    qrGuestBtn: document.getElementById('qrGuestBtn'),
+    qrSwitchBtn: document.getElementById('qrSwitchBtn'),
     qrMask: document.getElementById('qrMask'),
     qrTitle: document.getElementById('qrTitle'),
     qrSub: document.getElementById('qrSub'),
@@ -3022,6 +3032,9 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
     qrState.answerSent = false;
     qrState.gathered = [];
     qrState.scanResult = '';
+    /* 关闭时清空输入并解除只读：避免下次打开残留上一次生成的码、或输入框粘不进东西 */
+    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.readOnly = false; }
+    if (els.qrSwitchBtn) els.qrSwitchBtn.hidden = true;
     closeQRModal();
   }
 
@@ -3056,7 +3069,8 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
     if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.hidden = false; }
     if (els.qrScanBtn) els.qrScanBtn.hidden = true;
     if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已收到朋友的回复码，粘贴到上面'; }
-    setQRTip('第 1 步：把邀请码发给朋友', '复制文字串发给朋友，或让朋友用微信/浏览器扫你屏幕上的二维码', '');
+    setQRTip('第 1 步：把邀请码发给朋友', '把下面文字串发给朋友，朋友点「扫码加入」粘贴进去；也可让朋友扫你屏幕上的二维码', '');
+    if (els.qrSwitchBtn) { els.qrSwitchBtn.hidden = false; els.qrSwitchBtn.textContent = '我是加入方：输入朋友的码'; }
 
     /* 生成 Offer */
     qrState.pc = p2pCreateQR(true);
@@ -3086,9 +3100,10 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
 if (els.qrWait) els.qrWait.hidden = true;
 /* 第 2 步：等待访客回复码，显示扫码和粘贴两种方式 */
 qrState.step = 2;
-if (els.qrScanBtn) { els.qrScanBtn.hidden = false; els.qrScanBtn.textContent = '扫联机码'; }
+/* App 内置浏览器不支持摄像头扫码，隐藏扫码按钮，只保留粘贴入口 */
+if (els.qrScanBtn) { els.qrScanBtn.hidden = IN_APP; els.qrScanBtn.textContent = '扫联机码'; }
 els.qrSendBtn.textContent = '已粘贴联机码，下一步';
-setQRTip('联机码', '朋友扫码后会生成回复码，复制发给朋友，或让朋友扫你屏幕上的二维码', '');
+setQRTip('第 2 步：输入朋友的回复码', '把朋友发来的回复码粘贴到下面输入框，再点「已粘贴联机码」', '');
 }).catch(function () { qrStop(); });
 }
 
@@ -3101,10 +3116,13 @@ setQRTip('联机码', '朋友扫码后会生成回复码，复制发给朋友，
     qrState.step = 1;
 
     if (els.qrCode) els.qrCode.innerHTML = '';
-    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.hidden = false; }
+    /* 关键：解除房主模式留下的 readOnly，否则邀请码粘不进输入框 */
+    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.readOnly = false; els.qrTextInput.hidden = false; }
 if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已粘贴邀请码，继续'; }
-if (els.qrScanBtn) { els.qrScanBtn.hidden = false; els.qrScanBtn.textContent = '扫房主的二维码'; }
-setQRTip('输入邀请码', '扫房主的二维码，或直接粘贴邀请文字串', '第 1 步：输入朋友的邀请码');
+/* App 内置浏览器不支持摄像头扫码，隐藏扫码按钮，只保留粘贴入口 */
+if (els.qrScanBtn) { els.qrScanBtn.hidden = IN_APP; els.qrScanBtn.textContent = '扫房主的二维码'; }
+if (els.qrSwitchBtn) { els.qrSwitchBtn.hidden = false; els.qrSwitchBtn.textContent = '我是发起方：生成我的码'; }
+setQRTip('第 1 步：输入朋友的邀请码', '把朋友给你的邀请码粘贴到下面输入框，再点「我已粘贴邀请码」', '第 1 步：输入朋友的邀请码');
     openQRModal();
   }
 
@@ -5627,6 +5645,22 @@ if (target === 'guest' && qrState.step === 1) {
       openQRModal();
     });
   }
+/* 朋友侧入口：直接进「输入邀请码」模式，避免两人都点「扫码直连」各自当房主 */
+if (els.qrGuestBtn) {
+els.qrGuestBtn.addEventListener('click', function () {
+  if (mode !== 'online') forceMode('online');
+  qrStartGuest();
+  openQRModal();
+});
+}
+/* 弹窗内就地切换角色：等于清掉当前生成的码，换到另一方的输入状态 */
+if (els.qrSwitchBtn) {
+els.qrSwitchBtn.addEventListener('click', function () {
+  if (qrState.mode === 'guest') { qrStartHost(); }
+  else { qrStartGuest(); }
+  openQRModal();
+});
+}
 if (els.qrSendBtn) {
 els.qrSendBtn.addEventListener('click', qrSubmit);
 }
