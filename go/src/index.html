@@ -680,12 +680,12 @@ canvas{
     <div class="qr-actions">
       <button type="button" class="mini-btn" id="qrScanBtn" hidden>扫对方的码</button>
       <button type="button" class="mini-btn coral" id="qrSendBtn" hidden>我已粘贴邀请码，继续</button>
-      <button type="button" class="mini-btn ghost" id="qrCancelBtn">取消</button>
+      <button type="button" class="mini-btn ghost" id="qrCancelBtn">关闭</button>
     </div>
   </div>
 </div>
 
-<div class="ver" id="verTag">v19</div>
+<div class="ver" id="verTag">v20</div>
 
 <script>
 (function () {
@@ -695,7 +695,7 @@ canvas{
   var STORE_KEY = 'go_idol_v1';
   var RECORD_KEY = 'go_records_v1';
   var RECORD_MAX = 30;
-  var VERSION = 'v18';
+  var VERSION = 'v20';
   var UA = (window.navigator && window.navigator.userAgent) || '';
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(UA);
   var IN_APP = /BiliApp/i.test(UA);
@@ -2819,7 +2819,6 @@ scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
         skipUntilNextM = true;
         continue;
       }
-      if (line === 'c=IN IP4 0.0.0.0') continue;
       if (line.startsWith('a=extmap:')) continue;
       if (line.startsWith('a=msid:')) continue;
       if (line.startsWith('a=ssrc:')) continue;
@@ -2830,6 +2829,36 @@ scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
       filtered.push(line);
     }
     return filtered.join('\r\n');
+  }
+
+  /* 把 ICE candidate 追加到 SDP 中（在 a=setup 行后面插入） */
+  function appendICESDP(sdp, gathered) {
+    if (!gathered || gathered.length === 0) return sdp;
+    var lines = sdp.split(/\r?\n/);
+    var candidateLines = [];
+    for (var j = 0; j < gathered.length; j++) {
+      var c = gathered[j];
+      if (!c || !c.candidate) continue;
+      candidateLines.push('a=candidate:' + c.candidate);
+    }
+    if (candidateLines.length === 0) return sdp;
+    var result = [];
+    var inserted = false;
+    for (var i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
+      if (!inserted && lines[i].startsWith('a=setup:')) {
+        for (var j = 0; j < candidateLines.length; j++) {
+          result.push(candidateLines[j]);
+        }
+        inserted = true;
+      }
+    }
+    if (!inserted) {
+      for (var j = 0; j < candidateLines.length; j++) {
+        result.push(candidateLines[j]);
+      }
+    }
+    return result.join('\r\n');
   }
 
   /* 将文本渲染为 QR 码到容器 */
@@ -2966,8 +2995,22 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
     qrState.pc.createOffer().then(function (off) {
       return qrState.pc.setLocalDescription(off);
     }).then(function () {
+      /* 等 ICE candidates 收集完毕（最多 2 秒） */
+      return new Promise(function (resolve) {
+        var tryCount = 0;
+        var iv = window.setInterval(function () {
+          tryCount++;
+          if (qrState.gathered.length > 0 || tryCount > 40) {
+            window.clearInterval(iv);
+            resolve();
+          }
+        }, 50);
+      });
+    }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
-      var compact = compactSDP(sdp);
+      /* 把 ICE candidate 追加到 SDP 中 */
+      var withIce = appendICESDP(sdp, qrState.gathered);
+      var compact = compactSDP(withIce);
       /* 前缀 "1|" = offer */
       var text = '1|' + compact;
       qrState.offerSent = true;
@@ -2982,9 +3025,9 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
 if (els.qrWait) els.qrWait.hidden = true;
 /* 第 2 步：等待访客回复码，显示扫码和粘贴两种方式 */
 qrState.step = 2;
-if (els.qrScanBtn) { els.qrScanBtn.hidden = false; els.qrScanBtn.textContent = '扫朋友的回复码'; }
-els.qrSendBtn.textContent = '我已粘贴朋友的回复码，继续';
-setQRTip('第 2 步：等朋友回复', '朋友扫码后会生成回复码，复制发给朋友，或让朋友扫你屏幕上的二维码', '');
+if (els.qrScanBtn) { els.qrScanBtn.hidden = false; els.qrScanBtn.textContent = '扫联机码'; }
+els.qrSendBtn.textContent = '已粘贴联机码，下一步';
+setQRTip('联机码', '朋友扫码后会生成回复码，复制发给朋友，或让朋友扫你屏幕上的二维码', '');
 }).catch(function () { qrStop(); });
 }
 
@@ -3019,9 +3062,34 @@ setQRTip('输入邀请码', '扫房主的二维码，或直接粘贴邀请文字
       } catch (e) { /* ignore */ }
     }
     if (!sdp) { setStatus('邀请码格式有误'); return; }
+    /* 解析 SDP 中的 ICE candidate 行 */
+    var iceCandidates = [];
+    var sdpLines = sdp.split(/\r?\n/);
+    for (var i = 0; i < sdpLines.length; i++) {
+      if (sdpLines[i].startsWith('a=candidate:')) {
+        var candStr = sdpLines[i].substring('a=candidate:'.length);
+        var parts = candStr.split(' ');
+        if (parts.length >= 8) {
+          iceCandidates.push({
+            candidate: candStr,
+            sdpMid: parts[2] || '0',
+            sdpMLineIndex: parseInt(parts[1], 10) || 0
+          });
+        }
+      }
+    }
     qrState.pc = p2pCreateQR(false);
     var desc = new RTCSessionDescription({ type: 'offer', sdp: sdp });
     qrState.pc.setRemoteDescription(desc).then(function () {
+      /* 把房主的 ICE candidate 加到访客的 pc 上 */
+      var addPromises = [];
+      for (var i = 0; i < iceCandidates.length; i++) {
+        try {
+          addPromises.push(qrState.pc.addIceCandidate(new RTCIceCandidate(iceCandidates[i])).catch(function () { /* ignore */ }));
+        } catch (e) { /* ignore */ }
+      }
+      return Promise.all(addPromises);
+    }).then(function () {
       return qrState.pc.createAnswer();
     }).then(function (ans) {
       return qrState.pc.setLocalDescription(ans);
@@ -3039,7 +3107,9 @@ setQRTip('输入邀请码', '扫房主的二维码，或直接粘贴邀请文字
       });
     }).then(function () {
       var sdp = qrState.pc.localDescription.sdp;
-      var compact = compactSDP(sdp);
+      /* 把 ICE candidate 追加到 SDP 中 */
+      var withIce = appendICESDP(sdp, qrState.gathered);
+      var compact = compactSDP(withIce);
       /* 前缀 "2|" = answer，后跟 SDP */
       var text = '2|' + compact;
       qrState.answerSent = true;
@@ -3071,8 +3141,33 @@ setQRTip('输入邀请码', '扫房主的二维码，或直接粘贴邀请文字
       } catch (e) { /* ignore */ }
     }
     if (!sdp) { setStatus('回复码格式有误'); return; }
+    /* 解析 SDP 中的 ICE candidate 行 */
+    var iceCandidates = [];
+    var sdpLines = sdp.split(/\r?\n/);
+    for (var i = 0; i < sdpLines.length; i++) {
+      if (sdpLines[i].startsWith('a=candidate:')) {
+        var candStr = sdpLines[i].substring('a=candidate:'.length);
+        var parts = candStr.split(' ');
+        if (parts.length >= 8) {
+          iceCandidates.push({
+            candidate: candStr,
+            sdpMid: parts[2] || '0',
+            sdpMLineIndex: parseInt(parts[1], 10) || 0
+          });
+        }
+      }
+    }
     var desc = new RTCSessionDescription({ type: 'answer', sdp: sdp });
     qrState.pc.setRemoteDescription(desc).then(function () {
+      /* 把 visitor 的 ICE candidate 加到房主的 pc 上 */
+      var addPromises = [];
+      for (var i = 0; i < iceCandidates.length; i++) {
+        try {
+          addPromises.push(qrState.pc.addIceCandidate(new RTCIceCandidate(iceCandidates[i])).catch(function () { /* ignore */ }));
+        } catch (e) { /* ignore */ }
+      }
+      return Promise.all(addPromises);
+    }).then(function () {
       setQRTip('连接成功', '正在建立直接连接…', '');
       qrState.step = 3;
       if (els.qrWait) els.qrWait.hidden = false;
@@ -3223,7 +3318,7 @@ if (qrState.scanStream) {
 }
 if (els.qrScanner) els.qrScanner.classList.remove('on');
 if (els.qrScanBtn) {
-  els.qrScanBtn.textContent = qrState.mode === 'host' ? '扫朋友的回复码' : '扫房主的二维码';
+    els.qrScanBtn.textContent = qrState.mode === 'host' ? '扫联机码' : '扫房主的二维码';
 }
 if (els.qrScanTip) els.qrScanTip.textContent = '将二维码放入框内';
 }
@@ -3233,15 +3328,21 @@ if (qrState.scanActive) { qrStopScan(); return; }
 
 /* 检查 BarcodeDetector 支持 */
 if (typeof window.BarcodeDetector === 'undefined') {
+  if (els.qrScanTip) { els.qrScanTip.textContent = '当前浏览器不支持摄像头扫码，请直接粘贴文字串'; }
+  if (els.qrScanner) els.qrScanner.classList.add('on');
   setStatus('当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串');
   return;
 }
 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  if (els.qrScanTip) { els.qrScanTip.textContent = '当前环境不支持摄像头访问，请直接粘贴文字串'; }
+  if (els.qrScanner) els.qrScanner.classList.add('on');
   setStatus('当前环境不支持摄像头访问，请直接粘贴文字串');
   return;
 }
 
 qrState.scanTarget = qrState.mode === 'host' ? 'host' : 'guest';
+if (els.qrScanTip) els.qrScanTip.textContent = '正在启动摄像头…';
+if (els.qrScanner) els.qrScanner.classList.add('on');
 setStatus('正在启动摄像头…');
 
 navigator.mediaDevices.getUserMedia({
@@ -3273,13 +3374,16 @@ navigator.mediaDevices.getUserMedia({
   }, 300);
 }).catch(function (err) {
   qrState.scanActive = false;
+  var msg;
   if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-    setStatus('摄像头权限被拒绝，请在浏览器设置中允许摄像头访问，或直接粘贴文字串');
+    msg = '摄像头权限被拒绝，请在浏览器设置中允许摄像头访问，或直接粘贴文字串';
   } else if (err && err.name === 'NotFoundError') {
-    setStatus('未检测到摄像头设备，请直接粘贴文字串');
+    msg = '未检测到摄像头设备，请直接粘贴文字串';
   } else {
-    setStatus('摄像头启动失败：' + (err && err.message ? err.message : '') + '，请直接粘贴文字串');
+    msg = '摄像头启动失败：' + (err && err.message ? err.message : '') + '，请直接粘贴文字串';
   }
+  if (els.qrScanTip) els.qrScanTip.textContent = msg;
+  setStatus(msg);
 });
 }
 
