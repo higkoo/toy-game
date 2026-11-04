@@ -103,7 +103,10 @@ body{
 
 .online{display:none;flex-direction:column;gap:6px}
 .online.on{display:flex}
-.online-empty{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.online-empty{display:flex;flex-direction:column;gap:8px}
+.online-actions{display:flex;gap:6px;align-items:center}
+.online-actions .mini-btn{flex:1;min-width:0;padding:0 4px;font-size:12px}
+.join-row{display:flex;gap:6px;align-items:center}
 .room-input{
   flex:1;min-width:0;height:34px;border:2px solid #e7f3ff;border-radius:12px;
   padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:700;color:#3d4a68;
@@ -552,12 +555,16 @@ canvas{
       </div>
       <div class="online" id="onlinePanel">
         <div class="online-empty" id="onlineEmpty">
-          <button type="button" class="mini-btn coral" id="createRoomBtn">创建房间</button>
-          <button type="button" class="mini-btn" id="qrHostBtn">扫码直连</button>
-          <button type="button" class="mini-btn" id="qrGuestBtn">扫码加入</button>
-          <button type="button" class="mini-btn" id="roomListBtn">房间</button>
-          <input class="room-input" id="roomInput" maxlength="6" inputmode="numeric" placeholder="房间号" />
-          <button type="button" class="mini-btn" id="joinRoomBtn">加入</button>
+          <div class="online-actions">
+            <button type="button" class="mini-btn coral" id="createRoomBtn">创建房间</button>
+            <button type="button" class="mini-btn ghost" id="joinRoomBtn">加入</button>
+            <button type="button" class="mini-btn" id="qrHostBtn">扫码联机</button>
+            <button type="button" class="mini-btn" id="roomListBtn">房间</button>
+          </div>
+          <div class="join-row" id="joinRow" hidden>
+            <input class="room-input" id="roomInput" maxlength="6" inputmode="numeric" placeholder="输入 6 位房间号" />
+            <button type="button" class="mini-btn coral" id="joinConfirmBtn">进入</button>
+          </div>
         </div>
         <div class="room-card" id="onlineRoom" hidden>
           <div class="room-line">
@@ -671,7 +678,7 @@ canvas{
   <div class="qr-card">
     <button type="button" class="qr-close" id="qrCloseBtn">✕</button>
     <div class="qr-title" id="qrTitle">扫码直连</div>
-    <div class="qr-sub" id="qrSub">一方点「扫码直连」生成邀请码，另一方点「扫码加入」输入；App 内请用复制粘贴，无需摄像头</div>
+    <div class="qr-sub" id="qrSub">一方生成邀请码、另一方输入；点上方按钮切换角色。App 内请用复制粘贴，无需摄像头</div>
     <button type="button" class="qr-switch" id="qrSwitchBtn" hidden>我是加入方：输入朋友的码</button>
     <div class="qr-step" id="qrStep" hidden><span class="dot"></span><span id="qrStepTxt">第 1 步</span></div>
     <div class="qr-code" id="qrCode"></div>
@@ -693,7 +700,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v23</div>
+<div class="ver" id="verTag">v24</div>
 
 <script>
 (function () {
@@ -703,7 +710,7 @@ canvas{
   var STORE_KEY = 'go_idol_v1';
   var RECORD_KEY = 'go_records_v1';
   var RECORD_MAX = 30;
-  var VERSION = 'v23';
+  var VERSION = 'v24';
   var UA = (window.navigator && window.navigator.userAgent) || '';
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(UA);
   var IN_APP = /BiliApp/i.test(UA);
@@ -787,8 +794,9 @@ canvas{
     verTag: document.getElementById('verTag'),
     /* 扫码直连 */
     qrHostBtn: document.getElementById('qrHostBtn'),
-    qrGuestBtn: document.getElementById('qrGuestBtn'),
     qrSwitchBtn: document.getElementById('qrSwitchBtn'),
+    joinRow: document.getElementById('joinRow'),
+    joinConfirmBtn: document.getElementById('joinConfirmBtn'),
     qrMask: document.getElementById('qrMask'),
     qrTitle: document.getElementById('qrTitle'),
     qrSub: document.getElementById('qrSub'),
@@ -3069,7 +3077,7 @@ if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTim
     if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.hidden = false; }
     if (els.qrScanBtn) els.qrScanBtn.hidden = true;
     if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已收到朋友的回复码，粘贴到上面'; }
-    setQRTip('第 1 步：把邀请码发给朋友', '把下面文字串发给朋友，朋友点「扫码加入」粘贴进去；也可让朋友扫你屏幕上的二维码', '');
+    setQRTip('第 1 步：把邀请码发给朋友', '把下面文字串发给朋友，让朋友点「扫码联机」后切到「我是加入方」粘贴；也可扫你屏幕上的二维码', '');
     if (els.qrSwitchBtn) { els.qrSwitchBtn.hidden = false; els.qrSwitchBtn.textContent = '我是加入方：输入朋友的码'; }
 
     /* 生成 Offer */
@@ -5645,14 +5653,6 @@ if (target === 'guest' && qrState.step === 1) {
       openQRModal();
     });
   }
-/* 朋友侧入口：直接进「输入邀请码」模式，避免两人都点「扫码直连」各自当房主 */
-if (els.qrGuestBtn) {
-els.qrGuestBtn.addEventListener('click', function () {
-  if (mode !== 'online') forceMode('online');
-  qrStartGuest();
-  openQRModal();
-});
-}
 /* 弹窗内就地切换角色：等于清掉当前生成的码，换到另一方的输入状态 */
 if (els.qrSwitchBtn) {
 els.qrSwitchBtn.addEventListener('click', function () {
@@ -5687,12 +5687,20 @@ if (els.qrCancelBtn) {
 
   if (els.joinRoomBtn) {
     els.joinRoomBtn.addEventListener('click', function () {
-      var code = els.roomInput ? String(els.roomInput.value || '').trim() : '';
-      if (!code) {
-        setStatus('先输入 6 位房间号哦');
-        return;
+      /* 主界面只留一行按钮；点「加入」才展开房间号输入，把纵向空间还给棋盘 */
+      if (els.joinRow) {
+        var opening = els.joinRow.hidden;
+        els.joinRow.hidden = !opening;
+        if (opening && els.roomInput) els.roomInput.focus();
       }
+    });
+  }
+  if (els.joinConfirmBtn) {
+    els.joinConfirmBtn.addEventListener('click', function () {
+      var code = els.roomInput ? String(els.roomInput.value || '').trim() : '';
+      if (!/^[0-9]{6}$/.test(code)) { setStatus('请输入 6 位数字房间号'); if (els.roomInput) els.roomInput.focus(); return; }
       if (mode !== 'online') forceMode('online');
+      if (els.joinRow) els.joinRow.hidden = true;
       joinRoom(code);
     });
   }
@@ -5711,7 +5719,7 @@ if (els.qrCancelBtn) {
 
   if (els.roomInput) {
     els.roomInput.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && els.joinRoomBtn) els.joinRoomBtn.click();
+      if (ev.key === 'Enter' && els.joinConfirmBtn) els.joinConfirmBtn.click();
     });
   }
 
