@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="zh-CN" data-resolution="landscape">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>倪海厦学习天地 · 60s 产品解说</title>
+<script src="assets/gsap.min.js"></script>
+<style>
+@font-face{font-family:"SanjiSerif";src:url("assets/SanjiSerif-subset.ttf") format("truetype");font-weight:400;font-display:block}
+:root{
+  --paper:#f7f2e7; --paper-lit:#fdfaf2; --ink:#2b2620; --ink-2:#6b6152;
+  --gold:#a3803f; --gold-text:#836733; --gold-lit:#c9a860; --rule:rgba(163,128,63,.32); --ash:#9a9488;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:"SanjiSerif",serif;color:var(--ink)}
+#root{position:relative;width:100%;height:100%;background:var(--paper)}
+.clip{position:absolute;inset:0;width:100%;height:100%}
+.fwrap{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+.center{display:flex;align-items:center;justify-content:center;flex-direction:column}
+.gold{color:var(--gold-text)}
+.dim{color:var(--ash)}
+.nowrap{white-space:nowrap}
+
+/* ---------- 背景层 T0：跨全片连续，不逐帧闪动 ---------- */
+#bg{background:var(--paper)}
+#bg .grain{position:absolute;inset:0;opacity:.42;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.5'/></svg>")}
+#bg .hills{position:absolute;left:0;right:0;bottom:0;width:100%;height:420px;opacity:.5}
+#bg .hills2{position:absolute;left:0;right:0;bottom:0;width:100%;height:300px;opacity:.32}
+
+/* ---------- 通用元件 ---------- */
+.tag{position:absolute;top:88px;left:120px;font-size:20px;letter-spacing:.2em;color:var(--gold-text)}
+.concept-tag{position:absolute;top:92px;right:120px;font-size:17px;letter-spacing:.14em;color:var(--ink-2);border:1px dashed var(--rule);padding:6px 14px;border-radius:2px}
+.kicker{font-size:22px;letter-spacing:.28em;color:var(--gold-text);margin-bottom:22px}
+.big{font-size:112px;font-weight:600;letter-spacing:.06em;line-height:1.2}
+.mid{font-size:58px;font-weight:600;letter-spacing:.05em}
+.small{font-size:24px;color:var(--ink-2);letter-spacing:.04em}
+.rule{width:120px;height:1px;background:var(--gold);margin:26px 0}
+
+/* 概念卡片 / 资料碎片 */
+.chip{position:absolute;width:210px;height:130px;background:var(--paper-lit);border:1px solid var(--rule);box-shadow:0 8px 26px rgba(43,38,32,.09);border-radius:3px;padding:18px;font-size:21px;color:var(--ink-2);display:flex;flex-direction:column;justify-content:space-between}
+.chip .cdot{width:34px;height:34px;border-radius:50%;background:var(--gold);opacity:.35}
+.chip .cl1{height:9px;width:76%;background:rgba(43,38,32,.16);border-radius:2px}
+.chip .cl2{height:9px;width:52%;background:rgba(43,38,32,.10);border-radius:2px}
+
+/* 窗口轮廓（F02） */
+.win{position:absolute;width:360px;height:220px;border:1px solid var(--rule);background:rgba(253,250,242,.62);border-radius:4px;padding:14px}
+.win .wtop{height:22px;border-bottom:1px solid var(--rule);margin-bottom:12px;display:flex;gap:7px;align-items:center}
+.win .wtop i{width:9px;height:9px;border-radius:50%;background:var(--rule);display:block}
+.win .wbody{font-size:19px;color:var(--ink-2)}
+.vtag{position:absolute;background:var(--paper-lit);border:1px solid var(--gold);color:var(--gold-text);font-size:18px;padding:5px 12px;border-radius:2px;letter-spacing:.06em}
+
+/* 进度条（F03） */
+.track{position:absolute;left:260px;top:520px;width:1400px;height:12px;background:rgba(43,38,32,.10);border-radius:6px}
+.fill{position:absolute;left:0;top:0;height:100%;width:0;background:var(--gold);border-radius:6px}
+.pnode{position:absolute;top:496px;width:26px;height:26px;border-radius:50%;background:var(--gold);transform:translateX(-13px)}
+
+/* 搜索框（F04） */
+.searchbox{position:absolute;left:230px;top:390px;width:660px;height:82px;background:var(--paper-lit);border:1px solid var(--rule);border-radius:4px;display:flex;align-items:center;padding:0 26px;gap:18px;font-size:34px}
+.searchbox .caret{width:2px;height:38px;background:var(--gold)}
+.spinner{position:absolute;left:470px;top:540px;width:48px;height:48px;border:3px solid var(--rule);border-top-color:var(--gold-text);border-radius:50%}
+.docwin{position:absolute;right:230px;top:360px;width:520px;height:300px;background:var(--paper-lit);border:1px solid var(--rule);border-radius:4px;padding:26px;font-size:22px;color:var(--ink-2)}
+.broken{position:absolute;left:900px;top:505px;width:320px;border-top:2px dashed var(--rule)}
+
+/* UI 底板 */
+.uiplate{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.uiveil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(247,242,231,.10),rgba(247,242,231,.55))}
+.col3{position:absolute;top:600px;left:0;right:0;display:flex;justify-content:center;gap:60px}
+.col3 .c{width:340px;background:rgba(253,250,242,.92);border:1px solid var(--gold);padding:22px 26px;text-align:center;font-size:30px;letter-spacing:.14em}
+
+/* 图谱节点 */
+.gnode{position:absolute;width:176px;text-align:center;font-size:22px}
+.gnode img{width:150px;height:104px;object-fit:cover;border:1px solid var(--rule);border-radius:3px;display:block;margin:0 auto 10px}
+.gnode .gl{color:var(--ink-2);font-size:19px}
+.gcol{position:absolute;top:210px;font-size:30px;letter-spacing:.22em;color:var(--gold-text)}
+.gline{position:absolute;height:1px;background:var(--rule);transform-origin:left center}
+
+/* 时间轴 / 路径 */
+.axis{position:absolute;left:220px;top:520px;width:1480px;height:3px;background:var(--gold);opacity:.55}
+.anode{position:absolute;top:494px;width:30px;height:30px;border-radius:50%;background:var(--paper-lit);border:3px solid var(--gold);transform:translateX(-15px)}
+.anode.on{background:var(--gold)}
+.alabel{position:absolute;top:548px;width:220px;text-align:center;font-size:22px;color:var(--ink-2);transform:translateX(-110px)}
+.wordcard{position:absolute;width:250px;background:var(--paper-lit);border:1px solid var(--gold);border-radius:4px;padding:14px;text-align:center;box-shadow:0 10px 30px rgba(43,38,32,.14)}
+.wordcard img{width:100%;height:130px;object-fit:cover;border-radius:2px;display:block;margin-bottom:10px}
+.wordcard .wc{font-size:23px}
+.wordcard .wb{position:absolute;top:-13px;right:12px;background:var(--gold-text);color:var(--paper-lit);font-size:15px;padding:3px 10px;border-radius:2px}
+
+/* 双轨 */
+.rail{position:absolute;left:220px;width:1480px;height:2px;background:var(--rule)}
+.rtop{top:400px}.rbot{top:690px}
+.rnode{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--gold);transform:translateX(-11px)}
+.rlabel{position:absolute;font-size:22px;color:var(--ink-2);letter-spacing:.16em}
+
+/* 卡片底栏入口 */
+.linkrow{position:absolute;left:0;right:0;top:430px;display:flex;justify-content:center;gap:44px}
+.linkcard{width:400px;background:var(--paper-lit);border:1px solid var(--rule);border-radius:4px;padding:24px}
+.linkcard .lt{font-size:30px;margin-bottom:16px}
+.linkcard .lb{display:flex;gap:12px}
+.linkcard .lbtn{border:1px solid var(--gold);color:var(--gold-text);font-size:20px;padding:8px 16px;border-radius:2px;letter-spacing:.1em}
+.linkcard .lbtn.hot{background:var(--gold-text);color:var(--paper-lit)}
+.dest{position:absolute;font-size:18px;color:var(--ink-2);background:var(--paper-lit);border:1px dashed var(--rule);padding:5px 12px;border-radius:2px}
+
+/* 分集面板 / 资源包 */
+.sheet{position:absolute;right:200px;top:250px;width:470px;background:var(--paper-lit);border:1px solid var(--gold);border-radius:6px;padding:26px;box-shadow:0 16px 44px rgba(43,38,32,.18)}
+.sheet h4{font-size:27px;margin-bottom:18px;letter-spacing:.08em}
+.sheet .srow{font-size:21px;color:var(--ink-2);padding:9px 0;border-bottom:1px solid rgba(163,128,63,.16);display:flex;justify-content:space-between}
+.ebook{position:absolute;right:200px;left:auto;top:250px;width:470px;background:rgba(253,250,242,.85);border:1px solid var(--rule);border-radius:6px;padding:26px}
+.ebook .er{font-size:21px;color:var(--ink-2);padding:10px 0;border-bottom:1px solid rgba(163,128,63,.16)}
+.concept-card{position:absolute;right:150px;top:100px;width:330px;border:1px dashed var(--gold);background:rgba(253,250,242,.94);border-radius:4px;padding:20px;text-align:center}
+.concept-card .badge{display:inline-block;font-size:16px;color:var(--gold-text);border:1px dashed var(--gold);padding:2px 9px;margin-bottom:12px}
+.concept-card .ct{font-size:28px}
+.concept-card .cs{font-size:19px;color:var(--ink-2);margin-top:8px}
+
+/* 收束金线 */
+.thread{position:absolute;left:220px;top:540px;width:1480px;height:3px;background:var(--gold);transform:scaleX(0);transform-origin:left center}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--gold);opacity:.5}
+
+/* 光晕 */
+.halo{position:absolute;width:120px;height:120px;border-radius:50%;border:2px solid var(--gold-lit);opacity:.5}
+
+/* CTA */
+#f17 .logo{width:96px;height:96px;object-fit:contain;margin-bottom:28px}
+#f17 .url{font-size:26px;color:var(--gold-text);letter-spacing:.1em;margin-top:20px}
+#f17 .star{position:absolute;right:200px;top:170px;font-size:64px;color:var(--gold-text)}
+.disclaimer{position:absolute;left:0;right:0;bottom:170px;text-align:center;font-size:18px;color:var(--ink-2);line-height:1.7}
+
+/* ---------- 字幕带 T3 ---------- */
+#capbar{pointer-events:none}
+.capbar-inner{position:absolute;opacity:1;left:230px;bottom:52px;width:1460px;min-height:74px;background:rgba(253,250,242,.88);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:center;padding:0 40px}
+.capbar-inner:before,.capbar-inner:after{content:"";position:absolute;top:14px;bottom:14px;width:1px;background:var(--gold)}
+.capbar-inner:before{left:14px}.capbar-inner:after{right:14px}
+.capline{display:flex;align-items:flex-end;justify-content:center;padding-bottom:52px;pointer-events:none}
+.captext{font-size:35px;white-space:nowrap;color:var(--ink);letter-spacing:.02em}
+.captext em{font-style:normal;color:var(--gold-text)}
+.audio-clip{position:absolute;width:1px;height:1px;opacity:0}
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="sanji-60s" data-start="0" data-duration="60" data-width="1920" data-height="1080">
+
+  <!-- ============ T0 背景（0–60s 连续） ============ -->
+  <div class="clip" id="bg" data-start="0" data-duration="60" data-track-index="0">
+    <div class="fwrap">
+      <div class="grain"></div>
+      <svg class="hills" viewBox="0 0 1920 420" preserveAspectRatio="none"><path d="M0 420 L0 300 Q160 210 320 275 Q470 335 640 245 Q820 150 1000 260 Q1180 355 1360 250 Q1540 155 1720 265 Q1840 330 1920 285 L1920 420 Z" fill="rgba(163,128,63,.14)"/></svg>
+      <svg class="hills2" viewBox="0 0 1920 300" preserveAspectRatio="none"><path d="M0 300 L0 215 Q220 150 420 210 Q640 275 860 190 Q1080 115 1300 205 Q1520 285 1740 200 Q1850 165 1920 205 L1920 300 Z" fill="rgba(43,38,32,.10)"/></svg>
+    </div>
+  </div>
+
+  <!-- ============ F01 Hook · 越学越散 (0–3) ============ -->
+  <div class="clip frame" id="f01" data-start="0" data-duration="3" data-track-index="1">
+    <div class="fwrap center" id="w01">
+      <div class="tag">PAIN 01 / 资料零散</div>
+      <div class="concept-tag">痛点示意 · 非产品界面</div>
+      <div class="chip" style="left:60px;top:120px"><span class="cdot"></span><span>视频 · 未整理</span><span class="cl1"></span></div>
+      <div class="chip" style="left:330px;top:60px"><span class="cl2"></span><span>PDF 讲义</span><span class="cl1"></span></div>
+      <div class="chip" style="left:640px;top:140px"><span class="cl1"></span><span>链接 · 失效</span><span class="cl2"></span></div>
+      <div class="chip" style="left:1000px;top:70px"><span class="cdot"></span><span>笔记碎片</span><span class="cl2"></span></div>
+      <div class="chip" style="left:1360px;top:130px"><span class="cl2"></span><span>网盘 · 版本?</span><span class="cl1"></span></div>
+      <div class="chip" style="left:1650px;top:80px"><span class="cl1"></span><span>合集 · 分散</span><span class="cl2"></span></div>
+      <div class="chip" style="left:110px;top:760px"><span class="cdot"></span><span>截图 · 模糊</span><span class="cl2"></span></div>
+      <div class="chip" style="left:400px;top:840px"><span class="cl1"></span><span>转存 · 过期</span><span class="cl1"></span></div>
+      <div class="chip" style="left:760px;top:790px"><span class="cl2"></span><span>音频 · 缺集</span><span class="cdot"></span></div>
+      <div class="chip" style="left:1080px;top:850px"><span class="cl1"></span><span>目录 · 手抄</span><span class="cl2"></span></div>
+      <div class="chip" style="left:1400px;top:780px"><span class="cdot"></span><span>书签 · 找不到</span><span class="cl1"></span></div>
+      <div class="chip" style="left:1660px;top:830px"><span class="cl2"></span><span>重复收藏</span><span class="cl1"></span></div>
+      <div class="big center" id="big01" style="position:absolute;top:410px;left:0;right:0;text-align:center">越学越散？</div>
+    </div>
+  </div>
+
+  <!-- ============ F02 Pain · 版本混乱 (3–6) ============ -->
+  <div class="clip frame" id="f02" data-start="3" data-duration="3" data-track-index="1">
+    <div class="fwrap center" id="w02">
+      <div class="tag">PAIN 02 / 版本混乱</div>
+      <div class="concept-tag">痛点示意 · 非产品界面</div>
+      <div class="win" style="left:180px;top:230px;transform:rotate(-3deg)"><div class="wtop"><i></i><i></i><i></i></div><div class="wbody">针灸 · 全集</div></div>
+      <div class="win" style="left:620px;top:300px;transform:rotate(2deg)"><div class="wtop"><i></i><i></i><i></i></div><div class="wbody">针灸 · 另一版</div></div>
+      <div class="win" style="left:1060px;top:220px;transform:rotate(-1deg)"><div class="wtop"><i></i><i></i><i></i></div><div class="wbody">内经 · 谁的课</div></div>
+      <div class="win" style="left:390px;top:620px;transform:rotate(1deg)"><div class="wtop"><i></i><i></i><i></i></div><div class="wbody">伤寒 · 缺集?</div></div>
+      <div class="win" style="left:980px;top:640px;transform:rotate(-2deg)"><div class="wtop"><i></i><i></i><i></i></div><div class="wbody">本草 · 顺序?</div></div>
+      <div class="vtag" id="v1" style="left:250px;top:400px">480i</div>
+      <div class="vtag" id="v2" style="left:700px;top:470px">720p</div>
+      <div class="vtag" id="v3" style="left:1140px;top:390px">1080p</div>
+      <div class="vtag" id="v4" style="left:470px;top:790px">无删减</div>
+      <div class="vtag" id="v5" style="left:1060px;top:810px">删减版</div>
+    </div>
+  </div>
+
+  <!-- ============ F03 Pain · 学了后面忘了前面 (6–8.5) ============ -->
+  <div class="clip frame" id="f03" data-start="6" data-duration="2.5" data-track-index="1">
+    <div class="fwrap center" id="w03">
+      <div class="tag">PAIN 03 / 路径不清</div>
+      <div class="concept-tag">概念图解 · 产品无进度功能</div>
+      <div class="mid" style="position:absolute;top:330px;left:0;right:0;text-align:center">走到一半，又退回去</div>
+      <div class="track"><div class="fill" id="fill03"></div></div>
+      <div class="pnode" style="left:260px"></div><div class="pnode" style="left:540px"></div>
+      <div class="pnode" style="left:820px"></div><div class="pnode" style="left:1100px"></div>
+      <div class="pnode" style="left:1380px"></div><div class="pnode" style="left:1660px"></div>
+      <div class="small" style="position:absolute;top:600px;left:0;right:0;text-align:center">进度条仅为视觉隐喻</div>
+    </div>
+  </div>
+
+  <!-- ============ F04 Pain · 查讲脱节 (8.5–11) ============ -->
+  <div class="clip frame" id="f04" data-start="8.5" data-duration="2.5" data-track-index="1">
+    <div class="fwrap center" id="w04">
+      <div class="tag">PAIN 04 / 查讲脱节</div>
+      <div class="concept-tag">痛点示意 · 源码无搜索框与检索</div>
+      <div class="searchbox"><span class="gold">⌕</span><span id="type04">合</span><span class="caret"></span></div>
+      <div class="spinner" id="spin04"></div>
+      <div class="broken"></div>
+      <div class="docwin" id="doc04">讲义文档 · 在另一个窗口<br/><br/>《针灸》读书笔记<br/>《黄帝内经》读书笔记<br/>……</div>
+      <div class="small" style="position:absolute;top:720px;left:0;right:0;text-align:center">视频与讲义，对不上</div>
+    </div>
+  </div>
+
+  <!-- ============ F05 Solution · 一页收齐 (11–15) ============ -->
+  <div class="clip frame" id="f05" data-start="11" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w05">
+      <img id="im01" class="uiplate" src="assets/ui-home.png" alt="产品首页真实截图" />
+      <div class="uiveil"></div>
+      <div class="tag">SOLUTION 01 / 真实产品界面</div>
+      <div class="col3" id="col3">
+        <div class="c">天纪</div><div class="c">人纪</div><div class="c">地纪</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ F06 Solution · 两套体系 (15–19) ============ -->
+  <div class="clip frame" id="f06" data-start="15" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w06">
+      <div class="tag">SOLUTION 02 / 课程全貌</div>
+      <div class="concept-tag">信息图 · 节点与封面为源码真实内容</div>
+      <div class="gcol" style="left:300px">人纪 · 七部</div>
+      <div class="gcol" style="left:1180px">天纪 · 三路</div>
+      <div class="gnode" style="left:180px;top:290px"><img id="im02" src="assets/cover-zhenjiu.jpg" alt="针灸"/><div>针灸</div></div>
+      <div class="gnode" style="left:380px;top:290px"><img id="im03" src="assets/cover-neijing.jpg" alt="黄帝内经"/><div>黄帝内经</div></div>
+      <div class="gnode" style="left:580px;top:290px"><img id="im04" src="assets/cover-bencao.jpg" alt="神农本草经"/><div>神农本草经</div></div>
+      <div class="gnode" style="left:780px;top:290px"><img id="im05" src="assets/cover-shanghan.jpg" alt="伤寒论"/><div>伤寒论</div></div>
+      <div class="gnode" style="left:180px;top:520px"><img id="im06" src="assets/cover-jingui.jpg" alt="金匮要略"/><div>金匮要略</div></div>
+      <div class="gnode" style="left:380px;top:520px"><img id="im07" src="assets/cover-zhongjing.jpg" alt="仲景心法"/><div>仲景心法</div></div>
+      <div class="gnode" style="left:580px;top:520px"><img id="im08" src="assets/poster.jpg" alt="医案"/><div>医案</div></div>
+      <div class="gnode" style="left:1120px;top:290px"><img id="im09" src="assets/cover-tianji.jpg" alt="天纪"/><div>天机道</div></div>
+      <div class="gnode" style="left:1320px;top:290px"><img id="im10" src="assets/cover-tianji.jpg" alt="天纪"/><div>人间道</div></div>
+      <div class="gnode" style="left:1520px;top:290px"><img id="im11" src="assets/cover-tianji.jpg" alt="天纪"/><div>地脉道</div></div>
+      <div class="gnode" style="left:1320px;top:560px;opacity:.55"><img id="im12" src="assets/diji-vista.jpg" alt="地纪"/><div class="gl">地纪 · 未竟</div></div>
+    </div>
+  </div>
+
+  <!-- ============ F07 Solution · 顺序排好 (19–23) ============ -->
+  <div class="clip frame" id="f07" data-start="19" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w07">
+      <div class="tag">SOLUTION 03 / 学习路径</div>
+      <div class="concept-tag">路径图为信息图 · 顺序按源码「如何开始」</div>
+      <div class="axis"></div>
+      <div class="anode" style="left:260px"></div><div class="anode" style="left:556px"></div>
+      <div class="anode" style="left:852px"></div><div class="anode" style="left:1148px"></div>
+      <div class="anode" style="left:1444px"></div><div class="anode" style="left:1700px"></div>
+      <div class="alabel" style="left:260px">针灸</div><div class="alabel" style="left:556px">黄帝内经</div>
+      <div class="alabel" style="left:852px">神农本草经</div><div class="alabel" style="left:1148px">伤寒论</div>
+      <div class="alabel" style="left:1444px">金匮要略</div>
+      <div class="small" style="position:absolute;top:660px;left:0;right:0;text-align:center">按倪师教学逻辑排好，不必自己拼顺序</div>
+      <div class="small" style="position:absolute;right:150px;top:190px;border:1px solid var(--rule);background:var(--paper-lit);padding:18px 22px;max-width:420px;line-height:1.8">源码「如何开始」建议顺序<br/>针灸 → 黄帝内经 → 神农本草经 → 伤寒 / 金匮<br/>天纪可并行旁听，不必求快</div>
+    </div>
+  </div>
+
+  <!-- ============ F08 Solution · 前段路径 (23–27) ============ -->
+  <div class="clip frame" id="f08" data-start="23" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w08">
+      <div class="tag">SOLUTION 04 / 从针灸起手</div>
+      <div class="concept-tag">信息图 · 封面为产品真实素材</div>
+      <div id="pan08" style="position:absolute;inset:0">
+        <div class="axis" style="top:620px"></div>
+        <div class="anode on" style="left:260px;top:594px"></div><div class="anode on" style="left:556px;top:594px"></div>
+        <div class="anode on" style="left:852px;top:594px"></div><div class="anode" style="left:1148px;top:594px"></div>
+        <div class="anode" style="left:1444px;top:594px"></div><div class="anode" style="left:1700px;top:594px"></div>
+        <div class="alabel" style="left:260px;top:648px">针灸</div><div class="alabel" style="left:556px;top:648px">黄帝内经</div>
+        <div class="alabel" style="left:852px;top:648px">神农本草经</div>
+        <div class="wordcard" id="wc1" style="left:190px;top:230px"><span class="wb">观看</span><img id="im13" src="assets/cover-zhenjiu.jpg" alt="针灸"/><div class="wc">针灸</div></div>
+        <div class="wordcard" id="wc2" style="left:620px;top:230px"><span class="wb">观看</span><img id="im14" src="assets/cover-neijing.jpg" alt="黄帝内经"/><div class="wc">黄帝内经</div></div>
+        <div class="wordcard" id="wc3" style="left:1050px;top:230px"><span class="wb">观看</span><img id="im15" src="assets/cover-bencao.jpg" alt="神农本草经"/><div class="wc">神农本草经</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ F09 Solution · 后段路径 (27–31) ============ -->
+  <div class="clip frame" id="f09" data-start="27" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w09">
+      <div class="tag">SOLUTION 05 / 再进方证</div>
+      <div class="concept-tag">信息图 · 封面为产品真实素材</div>
+      <div class="axis" style="top:620px;width:1480px"></div>
+      <div class="anode on" style="left:260px;top:594px"></div><div class="anode on" style="left:556px;top:594px"></div>
+      <div class="anode on" style="left:852px;top:594px"></div><div class="anode on" style="left:1148px;top:594px"></div>
+      <div class="anode on" style="left:1444px;top:594px"></div><div class="anode" style="left:1700px;top:594px"></div>
+      <div class="wordcard" id="wc4" style="left:560px;top:220px;width:300px"><span class="wb">观看</span><img id="im16" src="assets/cover-shanghan.jpg" alt="伤寒论"/><div class="wc">伤寒论</div></div>
+      <div class="wordcard" id="wc5" style="left:1000px;top:220px;width:300px"><span class="wb">观看</span><img id="im17" src="assets/cover-jingui.jpg" alt="金匮要略"/><div class="wc">金匮要略</div></div>
+      <div class="small" style="position:absolute;top:720px;left:0;right:0;text-align:center">五部人纪，走完一条线</div>
+    </div>
+  </div>
+
+  <!-- ============ F10 Solution · 双线并行 (31–34) ============ -->
+  <div class="clip frame" id="f10" data-start="31" data-duration="3" data-track-index="1">
+    <div class="fwrap" id="w10">
+      <div class="tag">SOLUTION 06 / 双线并行</div>
+      <div class="concept-tag">信息图 · 天纪并行表述源自源码</div>
+      <div class="rlabel" style="left:220px;top:330px">人纪 · 五部</div>
+      <div class="rlabel" style="left:220px;top:620px;opacity:.7">天纪 · 三路</div>
+      <div class="rail rtop"></div><div class="rail rbot"></div>
+      <div class="rnode" style="left:320px;top:389px"></div><div class="rnode" style="left:640px;top:389px"></div>
+      <div class="rnode" style="left:960px;top:389px"></div><div class="rnode" style="left:1280px;top:389px"></div>
+      <div class="rnode" style="left:1600px;top:389px"></div>
+      <div class="rnode" style="left:420px;top:679px;opacity:.62"></div><div class="rnode" style="left:940px;top:679px;opacity:.62"></div>
+      <div class="rnode" style="left:1460px;top:679px;opacity:.62"></div>
+      <div class="small" style="position:absolute;top:470px;left:0;right:0;text-align:center;color:var(--gold-text)">并行旁听 · 不必求快</div>
+    </div>
+  </div>
+
+  <!-- ============ F11 Solution · 点开即播 (34–38) ============ -->
+  <div class="clip frame" id="f11" data-start="34" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w11">
+      <div class="tag">SOLUTION 07 / 真实产品界面</div>
+      <img class="uiplate" id="plate11" src="assets/ui-full.png" alt="产品长图截图" style="object-position:top center;opacity:.55" />
+      <div class="uiveil"></div>
+      <div class="sheet" id="sheet11">
+        <h4>针灸 · 分集</h4>
+        <div class="srow"><span>第 01 集</span><span>48:20</span></div>
+        <div class="srow"><span>第 02 集</span><span>51:04</span></div>
+        <div class="srow"><span>第 03 集</span><span>46:38</span></div>
+        <div class="srow"><span>第 04 集</span><span>49:12</span></div>
+        <div class="srow"><span>第 05 集</span><span>52:06</span></div>
+        <div class="small" style="margin-top:16px">点「观看」· App 内原生播放</div>
+      </div>
+      <div class="small" style="position:absolute;left:200px;top:280px;max-width:520px;line-height:1.9">底版为本地源码渲染的真实截图；<br/>仅「分集面板」这一会动的组件按源码 .sheet 样式叠加重建。</div>
+    </div>
+  </div>
+
+  <!-- ============ F12 Solution · 讲义笔记在一旁 (38–42) ============ -->
+  <div class="clip frame" id="f12" data-start="38" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w12">
+      <div class="tag">SOLUTION 08 / 真实产品界面</div>
+      <div class="linkrow">
+        <div class="linkcard"><div class="lt">天纪 · 天机道</div><div class="lb"><span class="lbtn hot">观看</span><span class="lbtn hot">讲义</span></div></div>
+        <div class="linkcard"><div class="lt">人纪 · 针灸</div><div class="lb"><span class="lbtn hot">观看</span><span class="lbtn hot">笔记</span></div></div>
+        <div class="linkcard"><div class="lt">地纪 · 未竟之章</div><div class="lb"><span class="lbtn hot">观看</span><span class="lbtn hot">讲义</span></div></div>
+      </div>
+      <div class="dest" id="d1" style="left:390px;top:620px">→ B 站视频合集</div>
+      <div class="dest" id="d2" style="left:790px;top:660px">→ 金山文档 · 讲义</div>
+      <div class="dest" id="d3" style="left:1190px;top:620px">→ 会员购 · 笔记</div>
+      <div class="small" style="position:absolute;top:760px;left:0;right:0;text-align:center">入口分布按源码真实呈现，不虚构站内笔记编辑器</div>
+    </div>
+  </div>
+
+  <!-- ============ F13 Solution · 一眼定位 (42–46) ============ -->
+  <div class="clip frame" id="f13" data-start="42" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w13">
+      <div class="tag">SOLUTION 09 / 同一页对得上</div>
+      <div class="sheet" style="left:200px;right:auto;top:250px">
+        <h4>针灸 · 分集</h4>
+        <div class="srow"><span>第 01 集</span><span>48:20</span></div>
+        <div class="srow" style="color:var(--gold-text)"><span>第 02 集</span><span>51:04</span></div>
+        <div class="srow"><span>第 03 集</span><span>46:38</span></div>
+        <div class="srow"><span>第 04 集</span><span>49:12</span></div>
+      </div>
+      <div class="ebook">
+        <h4 style="font-size:27px;margin-bottom:16px">电子书 · 读书笔记</h4>
+        <div class="er">《针灸》读书笔记</div>
+        <div class="er" style="color:var(--gold-text)">《针灸》讲义</div>
+        <div class="er">《黄帝内经》读书笔记</div>
+        <div class="er">《三纪》全套资源包</div>
+        <div class="er">共 5 本读书笔记</div>
+      </div>
+      <div class="concept-card" id="cc13">
+        <div class="badge">示意 · 非检索结果</div>
+        <div class="ct">合谷</div>
+        <div class="cs">手阳明大肠经</div>
+      </div>
+      <div class="small" style="position:absolute;top:790px;left:0;right:0;text-align:center">产品提供导航式定位；词卡仅为「随查随用」的视觉隐喻</div>
+    </div>
+  </div>
+
+  <!-- ============ F14 Result · 路径清晰 (46–50) ============ -->
+  <div class="clip frame" id="f14" data-start="46" data-duration="4" data-track-index="1">
+    <div class="fwrap" id="w14">
+      <div class="tag">RESULT 01 / 不再纠结从哪开始</div>
+      <div class="concept-tag">信息图 · 进度指示非产品功能</div>
+      <div class="axis" style="top:530px"></div>
+      <div class="anode on" style="left:260px;top:504px"></div><div class="anode on" style="left:556px;top:504px"></div>
+      <div class="anode on" style="left:852px;top:504px"></div><div class="anode on" style="left:1148px;top:504px"></div>
+      <div class="anode on" style="left:1444px;top:504px"></div><div class="anode on" style="left:1700px;top:504px"></div>
+      <div class="alabel" style="left:260px;top:558px">针灸</div><div class="alabel" style="left:556px;top:558px">黄帝内经</div>
+      <div class="alabel" style="left:852px;top:558px">神农本草经</div><div class="alabel" style="left:1148px;top:558px">伤寒论</div>
+      <div class="alabel" style="left:1444px;top:558px">金匮要略</div>
+      <div class="halo" id="halo14" style="left:206px;top:464px"></div>
+      <div class="mid" style="position:absolute;top:280px;left:0;right:0;text-align:center">从哪开始，一眼就看见</div>
+    </div>
+  </div>
+
+  <!-- ============ F15 Result · 反复温习 (50–53) ============ -->
+  <div class="clip frame" id="f15" data-start="50" data-duration="3" data-track-index="1">
+    <div class="fwrap" id="w15">
+      <div class="tag">RESULT 02 / 反复温习不丢线</div>
+      <div class="concept-tag">信息图 · 不暗示产品有进度存档</div>
+      <div class="axis" style="top:530px"></div>
+      <div class="anode on" style="left:260px;top:504px"></div><div class="anode on" style="left:556px;top:504px"></div>
+      <div class="anode on" style="left:852px;top:504px"></div><div class="anode on" style="left:1148px;top:504px"></div>
+      <div class="anode on" style="left:1444px;top:504px"></div><div class="anode on" style="left:1700px;top:504px"></div>
+      <div class="alabel" style="left:1148px;top:558px;color:var(--gold-text)">伤寒论 · 再回来</div>
+      <div class="halo" id="halo15" style="left:1094px;top:464px"></div>
+      <div class="small" style="position:absolute;top:680px;left:0;right:0;text-align:center">节点始终点亮，与 F03 的「褪色倒退」呼应</div>
+    </div>
+  </div>
+
+  <!-- ============ F16 Result · 串成一条线 (53–56) ============ -->
+  <div class="clip frame" id="f16" data-start="53" data-duration="3" data-track-index="1">
+    <div class="fwrap" id="w16">
+      <div class="tag">RESULT 03 / 散点收束</div>
+      <div class="concept-tag">概念图解 · 与 F01 首尾对照</div>
+      <div class="dot" style="left:320px;top:330px"></div><div class="dot" style="left:580px;top:250px"></div>
+      <div class="dot" style="left:880px;top:370px"></div><div class="dot" style="left:1180px;top:270px"></div>
+      <div class="dot" style="left:1480px;top:350px"></div><div class="dot" style="left:420px;top:720px"></div>
+      <div class="dot" style="left:760px;top:780px"></div><div class="dot" style="left:1080px;top:730px"></div>
+      <div class="dot" style="left:1420px;top:770px"></div><div class="dot" style="left:1680px;top:700px"></div>
+      <div class="thread" id="thread16"></div>
+      <div class="mid" id="mid16" style="position:absolute;top:420px;left:0;right:0;text-align:center">一条线，串起散落的课</div>
+    </div>
+  </div>
+
+  <!-- ============ F17 CTA (56–60) ============ -->
+  <div class="clip frame" id="f17" data-start="56" data-duration="4" data-track-index="1">
+    <div class="fwrap center" id="w17">
+      <div class="tag">倪海厦学习天地</div>
+      <img id="im19" class="logo" src="assets/icon.png" alt="品牌图标" />
+      <div class="mid">倪海厦学习天地</div>
+      <div class="url">bilibili.com/toy/sanji</div>
+      <div class="star" id="star17">★</div>
+      <div class="rule"></div>
+      <div class="small">收藏这一页，随时回来</div>
+      <div class="disclaimer">本页仅提供检索与导航，不存储、不转载任何课程文件。<br/>内容涉及医学，仅供研习参考，不能替代专业诊疗。</div>
+    </div>
+  </div>
+
+  <!-- ============ T3 字幕底板（0–60 常驻） ============ -->
+  <div class="clip" id="capbar" data-start="0" data-duration="60" data-track-index="3">
+    <div class="capbar-inner" id="capbarInner"></div>
+  </div>
+
+  <!-- ============ T3 18 句字幕（严格首尾相接） ============ -->
+  <div class="clip capline" id="capline01" data-start="0" data-duration="3" data-track-index="3"><span class="captext" id="cap1">倪师资料铺天盖地，<em>越学越散</em>？</span></div>
+  <div class="clip capline" id="capline02" data-start="3" data-duration="3" data-track-index="3"><span class="captext" id="cap2">视频散落各处，<em>版本还乱</em>。</span></div>
+  <div class="clip capline" id="capline03" data-start="6" data-duration="2.5" data-track-index="3"><span class="captext" id="cap3">学了后面，<em>忘了前面</em>。</span></div>
+  <div class="clip capline" id="capline04" data-start="8.5" data-duration="2.5" data-track-index="3"><span class="captext" id="cap4">查个穴位、找个方剂，<em>翻遍全网</em>。</span></div>
+  <div class="clip capline" id="capline05" data-start="11" data-duration="4" data-track-index="3"><span class="captext" id="cap5"><em>一页</em>收齐人纪与天纪。</span></div>
+  <div class="clip capline" id="capline06" data-start="15" data-duration="4" data-track-index="3"><span class="captext" id="cap6"><em>七部</em>人纪，<em>三路</em>天纪。</span></div>
+  <div class="clip capline" id="capline07" data-start="19" data-duration="4" data-track-index="3"><span class="captext" id="cap7"><em>顺序</em>按倪师教学逻辑<em>排好</em>。</span></div>
+  <div class="clip capline" id="capline08" data-start="23" data-duration="4" data-track-index="3"><span class="captext" id="cap8">针灸起手，内经、本草接续。</span></div>
+  <div class="clip capline" id="capline09" data-start="27" data-duration="4" data-track-index="3"><span class="captext" id="cap9">再进伤寒、金匮学<em>方证</em>。</span></div>
+  <div class="clip capline" id="capline10" data-start="31" data-duration="3" data-track-index="3"><span class="captext" id="cap10">天纪并行，<em>不必求快</em>。</span></div>
+  <div class="clip capline" id="capline11" data-start="34" data-duration="4" data-track-index="3"><span class="captext" id="cap11">点课程，App 内<em>直接播</em>。</span></div>
+  <div class="clip capline" id="capline12" data-start="38" data-duration="4" data-track-index="3"><span class="captext" id="cap12">讲义、笔记就在<em>一旁</em>。</span></div>
+  <div class="clip capline" id="capline13" data-start="42" data-duration="4" data-track-index="3"><span class="captext" id="cap13">哪一集、哪份讲义，<em>一眼</em>定位。</span></div>
+  <div class="clip capline" id="capline14" data-start="46" data-duration="4" data-track-index="3"><span class="captext" id="cap14"><em>路径清晰</em>，不再纠结从哪开始。</span></div>
+  <div class="clip capline" id="capline15" data-start="50" data-duration="3" data-track-index="3"><span class="captext" id="cap15">随查随用，<em>反复温习</em>。</span></div>
+  <div class="clip capline" id="capline16" data-start="53" data-duration="3" data-track-index="3"><span class="captext" id="cap16"><em>一条线</em>，把散落的课串起来。</span></div>
+  <div class="clip capline" id="capline17" data-start="56" data-duration="2" data-track-index="3"><span class="captext" id="cap17">打开<em>倪海厦学习天地</em>。</span></div>
+  <div class="clip capline" id="capline18" data-start="58" data-duration="2" data-track-index="3"><span class="captext" id="cap18">收藏这一页，<em>随时回来</em>。</span></div>
+
+  <!-- ============ T4 音频：本地程序化 BGM，纯字幕版无 VO ============ -->
+  <audio id="bgm" class="audio-clip" src="assets/bgm.wav" data-start="0" data-duration="60" data-volume="0.34" data-fade-in="0.5" data-fade-out="0.6" data-track-index="4"></audio>
+
+</div>
+
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({paused:true});
+const E = "power2.out";
+
+/* ---- 字幕：常驻底板开场淡入/收尾淡出；每句立即 60% → 7 帧全亮，不做淡出 ---- */
+tl.fromTo("#capbarInner",{opacity:0},{opacity:1,duration:.5,ease:"none",immediateRender:true},0);
+tl.to("#capbarInner",{opacity:0,duration:.8,ease:"none"},59.2);
+const capStarts=[0,3,6,8.5,11,15,19,23,27,31,34,38,42,46,50,53,56,58];
+capStarts.forEach((t,i)=>{
+  tl.fromTo("#cap"+(i+1),{opacity:.6},{opacity:1,duration:7/30,ease:"none"},t);
+});
+
+/* ---- F01 散卡漂入 + 大字重击落下 ---- */
+tl.fromTo("#f01 .chip",{opacity:0,scale:.82,x:(i)=>(i%2?-90:90),y:(i)=>(i<6?-120:120)},
+  {opacity:1,scale:1,x:0,y:0,duration:.8,stagger:.045,ease:"power3.out"},0);
+tl.fromTo("#big01",{opacity:0,scale:1.3},{opacity:1,scale:1,duration:.33,ease:"power4.out"},1.6);
+tl.to("#f01 .chip",{opacity:.15,filter:"saturate(0)",duration:.4},1.6);
+
+/* ---- F02 版本标签逐个闪现 ---- */
+["#v1","#v2","#v3","#v4","#v5"].forEach((s,i)=>{
+  tl.fromTo(s,{opacity:0,y:12},{opacity:1,y:0,duration:.22,ease:E},3.2+i*.42);
+});
+tl.fromTo("#w02",{x:-8},{x:8,duration:3,ease:"none"},3);
+
+/* ---- F03 进度 0→80%→35%，节点变灰 ---- */
+tl.fromTo("#fill03",{width:"0%"},{width:"80%",duration:1.1,ease:"power1.inOut"},6.1);
+tl.to("#fill03",{width:"35%",duration:.8,ease:"power2.inOut"},7.3);
+tl.to("#f03 .pnode",{background:"#9a9488",opacity:.45,duration:.5,stagger:.08},7.3);
+
+/* ---- F04 打字机 + 空转 + 右窗拉远 ---- */
+tl.fromTo("#spin04",{rotation:0},{rotation:360,duration:1.1,repeat:1,ease:"none"},8.6);
+tl.fromTo("#doc04",{scale:1,x:0},{scale:.82,x:120,duration:.55,ease:"power2.inOut"},8.9);
+tl.to("#doc04",{opacity:.5,duration:.5},8.9);
+
+/* ---- F05 真实 UI 底板：散卡吸附成三栏 + 回正 ---- */
+tl.fromTo("#col3 .c",{opacity:0,y:60,scale:.9},{opacity:1,y:0,scale:1,duration:.8,stagger:.1,ease:"power3.out"},11.1);
+tl.fromTo("#w05",{scale:1.15},{scale:1,duration:.9,ease:"power2.inOut"},11.1);
+
+/* ---- F06 图谱缓慢拉远 ---- */
+tl.fromTo("#w06",{scale:1.12},{scale:1,duration:.9,ease:"power2.inOut"},15.1);
+tl.fromTo("#f06 .gnode",{opacity:0,y:22},{opacity:1,y:0,duration:.5,stagger:.07,ease:E},15.2);
+
+/* ---- F07 五节点依次点亮 ---- */
+tl.fromTo("#f07 .anode",{background:"#fdfaf2",scale:.7},{background:"#a3803f",scale:1,duration:.4,stagger:.32,ease:E},19.2);
+
+/* ---- F08 路径 pan + 三张词卡弹出 ---- */
+tl.fromTo("#pan08",{x:0},{x:-260,duration:1.9,ease:"power1.inOut"},23.1);
+["#wc1","#wc2","#wc3"].forEach((s,i)=>{
+  tl.fromTo(s,{opacity:0,scale:.8,y:30},{opacity:1,scale:1,y:0,duration:.34,ease:"back.out(1.5)"},23.2+i*.9);
+});
+/* ---- F09 两张封面并排放大 ---- */
+tl.fromTo(["#wc4","#wc5"],{opacity:0,scale:.8},{opacity:1,scale:1,duration:.4,stagger:.15,ease:"back.out(1.5)"},27.2);
+tl.to(["#wc4","#wc5"],{scale:1.06,duration:.5,yoyo:true,repeat:1,ease:"sine.inOut"},27.8);
+
+/* ---- F10 双轨同速点亮 ---- */
+tl.fromTo("#f10 .rnode",{opacity:.15,scale:.6},{opacity:(i)=>(i<5?1:.62),scale:1,duration:.4,stagger:.12,ease:E},31.2);
+
+/* ---- F11 分集面板升起 ---- */
+tl.fromTo("#sheet11",{y:420,opacity:0},{y:0,opacity:1,duration:.75,ease:"power3.out"},34.35);
+tl.fromTo("#plate11",{scale:1},{scale:1.18,duration:.8,ease:"power2.out"},34.4);
+tl.fromTo("#sheet11 .srow",{opacity:0,x:20},{opacity:1,x:0,duration:.3,stagger:.1,ease:E},34.7);
+
+/* ---- F12 底栏入口横移 + 目标标签微弹 ---- */
+tl.fromTo("#w12 .linkrow",{x:0},{x:-140,duration:1.5,ease:"power1.inOut"},38.2);
+["#d1","#d2","#d3"].forEach((s,i)=>{
+  tl.fromTo(s,{opacity:0,scale:.85},{opacity:1,scale:1,duration:.3,ease:"back.out(1.6)"},38.4+i*.75);
+});
+
+/* ---- F13 两侧同步高亮 + 概念词卡 ---- */
+tl.fromTo("#cc13",{opacity:0,scale:.85,y:20},{opacity:1,scale:1,y:0,duration:.45,ease:"back.out(1.5)"},42.5);
+tl.fromTo("#f13 .srow",{opacity:.4},{opacity:1,duration:.35,stagger:.08},42.3);
+
+/* ---- F14 拉远到全景 + 起点呼吸光晕 ---- */
+tl.fromTo("#w14",{scale:1.2},{scale:1,duration:.8,ease:"power2.inOut"},46.1);
+tl.fromTo("#halo14",{scale:.7,opacity:.15},{scale:1.25,opacity:.6,duration:1.2,yoyo:true,repeat:1,ease:"sine.inOut"},46.6);
+
+/* ---- F15 光标回退到伤寒论节点 ---- */
+tl.fromTo("#halo15",{opacity:0,scale:.7},{opacity:.6,scale:1.15,duration:.5,ease:E},50.2);
+tl.fromTo("#w15",{x:0},{x:-60,duration:.6,yoyo:true,repeat:1,ease:"power1.inOut"},50.6);
+
+/* ---- F16 散点收束成金线 ---- */
+tl.to("#f16 .dot",{opacity:0,scale:.4,duration:.4,stagger:.05,ease:E},53.1);
+tl.fromTo("#thread16",{scaleX:0},{scaleX:1,duration:1.1,ease:"power2.inOut"},53.5);
+tl.fromTo("#mid16",{opacity:0,y:20},{opacity:1,y:0,duration:.6,ease:E},53.8);
+
+/* ---- F17 落款依次浮现 + 收藏星标 ---- */
+tl.fromTo(["#f17 .logo","#f17 .mid","#f17 .url"],{opacity:0,y:24},{opacity:1,y:0,duration:.5,stagger:.14,ease:E},56.2);
+tl.fromTo("#star17",{scale:.6,opacity:0},{scale:1,opacity:1,duration:.4,ease:"back.out(2)"},58.0);
+
+window.__timelines["sanji-60s"] = tl;
+tl.seek(0);
+</script>
+</body>
+</html>
