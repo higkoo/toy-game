@@ -45,9 +45,11 @@
 
 ```text
 anime-calculator/
-├── src/index.html      # 计算器源码
-├── assets/icon.png     # Toy 图标
-├── assets/poster.png   # Toy 海报
+├── src/
+│   ├── index.html      # 计算器源码
+│   └── img/
+│       ├── icon.png    # Toy 图标（512×512）
+│       └── poster.png  # Toy 海报（1200×900）
 └── README.md
 ```
 

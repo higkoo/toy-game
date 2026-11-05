@@ -4,3 +4,20 @@
 .trae-html-share-packages/
 .placeholder
 node_modules/
+.DS_Store
+*.zip
+
+# 音视频不进入仓库
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.webm
+*.avi
+*.flv
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.flac
+*.ogg

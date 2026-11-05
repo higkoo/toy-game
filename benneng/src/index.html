@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0C0B0A" />
+<title>郭生白 · 视频全集｜大医传承 · 本能系统医学</title>
+<link rel="icon" href="img/icon.jpg" />
+<link rel="stylesheet" href="css/app.css" />
+<script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js" defer></script>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <div class="hero-media">
+      <img class="hero-img" src="img/hero-portrait.jpg" alt="郭生白先生" fetchpriority="high" />
+      <div class="hero-shade"></div>
+    </div>
+    <div class="hero-glow"></div>
+    <div class="topbar">
+      <span class="brand"><span class="brand-seal">本</span>大医传承</span>
+      <span class="top-meta" id="topMeta">4 个合集 · 164 集</span>
+    </div>
+    <div class="hero-body">
+      <p class="eyebrow"><i></i>郭生白 · 本能系统医学</p>
+      <h1 class="hero-title">郭生白<span>视频全集</span></h1>
+      <p class="hero-sub">说白伤寒论 · 大医传承 · 本能系统论</p>
+      <div class="hero-stats">
+        <span class="stat">4 个合集</span>
+        <span class="stat">164 集完整收录</span>
+      </div>
+      <button class="hero-cta" id="startBtn" type="button">
+        开始学习
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="shelf">
+    <h2>选集入口</h2>
+    <span class="shelf-hint">按原合集顺序</span>
+  </section>
+
+  <div class="tabs-bar">
+    <div class="tabs" id="tabs" role="tablist" aria-label="视频合集"></div>
+  </div>
+
+  <main>
+    <section class="collection" id="collectionCard" aria-live="polite">
+      <div class="coll-media">
+        <img id="collCover" src="img/cover-shanghan.jpg" alt="" />
+        <span class="coll-kicker" id="collKicker">合集 01<i></i><span>20 集</span></span>
+      </div>
+      <div class="coll-body">
+        <h2 class="coll-name" id="collName">说白伤寒论</h2>
+        <p class="coll-intro" id="collIntro"></p>
+        <a class="coll-link" id="collLink" href="#" target="_blank" rel="noopener noreferrer">
+          在 B 站打开合集
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h6v6M10 2 4.5 7.5M9 7.5v2.5H2V3h2.5"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <div class="panel">
+    <div class="search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="m10.6 10.6 3 3"/></svg>
+      <input id="search" type="search" inputmode="search" autocomplete="off" placeholder="在本合集中搜索章节" aria-label="搜索当前合集章节" />
+      <button class="search-clear" id="searchClear" type="button" aria-label="清空搜索" hidden>×</button>
+    </div>
+
+    <div class="list-head">
+      <span>章节目录</span>
+      <b id="listMeta">20 集</b>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty" hidden>没有找到匹配的章节</div>
+    </div>
+  </main>
+
+  <footer class="dock" id="dock">
+    <div class="dock-inner">
+      <div class="dock-info">
+        <div class="dock-line">
+          <em id="dockName">说白伤寒论</em>
+          <span class="dock-seen">已看 <b id="seenCount">0</b> / <span id="seenTotal">20</span></span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+      </div>
+      <button class="dock-btn" id="continueBtn" type="button">继续学习</button>
+    </div>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data/videos.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -103,7 +103,10 @@ body{
 
 .online{display:none;flex-direction:column;gap:6px}
 .online.on{display:flex}
-.online-empty{display:flex;gap:6px;align-items:center}
+.online-empty{display:flex;flex-direction:column;gap:8px}
+.online-actions{display:flex;gap:6px;align-items:center}
+.online-actions .mini-btn{flex:1;min-width:0;padding:0 4px;font-size:12px}
+.join-row{display:flex;gap:6px;align-items:center}
 .room-input{
   flex:1;min-width:0;height:34px;border:2px solid #e7f3ff;border-radius:12px;
   padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:700;color:#3d4a68;
@@ -181,6 +184,85 @@ body{
 .lobby-empty{text-align:center;font-size:12px;font-weight:700;color:#9aabc7;line-height:1.9;padding:22px 8px;white-space:pre-line}
 .lobby-foot{text-align:center;font-size:10.5px;font-weight:700;color:#b3c1d6}
 
+/* ---------- 扫码直连 P2P ---------- */
+.qr-mask{
+  position:fixed;inset:0;z-index:80;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(45,58,84,.45);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.qr-mask.on{display:flex}
+.qr-card{
+  position:relative;width:calc(100% - 40px);max-width:380px;
+  background:#fff;border-radius:24px;padding:20px 16px;
+  box-shadow:0 12px 40px rgba(90,120,160,.3);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.qr-title{font-size:15px;font-weight:800;color:#3d4a68;text-align:center}
+.qr-sub{font-size:11px;font-weight:700;color:#9aabc7;text-align:center;line-height:1.5}
+.qr-code{
+  width:220px;height:220px;flex:0 0 220px;
+  background:#fff;border:2px solid #e7f3ff;border-radius:16px;
+  display:grid;place-items:center;overflow:hidden;
+}
+.qr-code canvas,.qr-code img{max-width:100%;max-height:100%}
+.qr-text{
+  width:100%;min-height:56px;max-height:120px;
+  border:2px solid #e7f3ff;border-radius:12px;
+  padding:8px 10px;font-family:inherit;font-size:11px;font-weight:700;color:#3d4a68;
+  background:#f9fcff;outline:none;resize:none;
+}
+.qr-text::placeholder{color:#aab9d0}
+.qr-switch{
+  appearance:none;border:0;cursor:pointer;font-family:inherit;display:block;
+  background:none;color:#4a8fc2;font-size:12px;font-weight:700;
+  text-decoration:underline;padding:2px 0;margin:0 auto 8px;text-align:center;
+}
+.qr-switch[hidden]{display:none}
+.qr-actions{display:flex;gap:8px;width:100%}
+.qr-actions .mini-btn{flex:1;height:38px}
+.qr-close{
+  position:absolute;top:12px;right:12px;
+  width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#f0f5fc;color:#7d8ead;font-size:14px;font-weight:800;
+  cursor:pointer;border:0;
+}
+.qr-step{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:800;color:#5fc0f5;
+}
+.qr-step .dot{
+  width:8px;height:8px;border-radius:50%;background:#5fc0f5;
+}
+.qr-wait{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:20px 0;
+}
+.qr-wait .spin{
+  width:32px;height:32px;border-radius:50%;
+  border:3px solid #e7f3ff;border-top-color:#5fc0f5;
+  animation:qrspin .8s linear infinite;
+}
+@keyframes qrspin{to{transform:rotate(360deg)}}
+.qr-wait-txt{font-size:12px;font-weight:700;color:#7d8ead;text-align:center}
+.qr-scanner{
+  width:100%;aspect-ratio:1/1;flex:0 0 auto;
+  background:#000;border-radius:16px;overflow:hidden;
+  display:none;position:relative;
+}
+.qr-scanner.on{display:block}
+.qr-scanner video{width:100%;height:100%;object-fit:cover}
+.qr-scanner .scan-frame{
+  position:absolute;inset:15%;
+  border:2px solid #5fc0f5;border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.45);
+}
+.qr-scanner .scan-tip{
+  position:absolute;bottom:8px;left:0;right:0;
+  text-align:center;font-size:11px;font-weight:800;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
+}
 .row-label{flex:0 0 38px;font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#8fa2bf}
 .seg{flex:1;display:flex;gap:4px;background:var(--sky-soft);border-radius:999px;padding:4px}
 .seg button{
@@ -474,10 +556,16 @@ canvas{
       </div>
       <div class="online" id="onlinePanel">
         <div class="online-empty" id="onlineEmpty">
-          <button type="button" class="mini-btn coral" id="createRoomBtn">创建房间</button>
-          <button type="button" class="mini-btn" id="roomListBtn">房间</button>
-          <input class="room-input" id="roomInput" maxlength="6" inputmode="numeric" placeholder="房间号" />
-          <button type="button" class="mini-btn" id="joinRoomBtn">加入</button>
+          <div class="online-actions">
+            <button type="button" class="mini-btn coral" id="createRoomBtn">创建房间</button>
+            <button type="button" class="mini-btn ghost" id="joinRoomBtn">加入</button>
+            <button type="button" class="mini-btn" id="qrHostBtn">扫码联机</button>
+            <button type="button" class="mini-btn" id="roomListBtn">房间</button>
+          </div>
+          <div class="join-row" id="joinRow" hidden>
+            <input class="room-input" id="roomInput" maxlength="6" inputmode="numeric" placeholder="输入 6 位房间号" />
+            <button type="button" class="mini-btn coral" id="joinConfirmBtn">进入</button>
+          </div>
         </div>
         <div class="room-card" id="onlineRoom" hidden>
           <div class="room-line">
@@ -586,7 +674,34 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v18</div>
+<!-- 扫码直连模态框 -->
+<div class="qr-mask" id="qrMask">
+  <div class="qr-card">
+    <button type="button" class="qr-close" id="qrCloseBtn">✕</button>
+    <div class="qr-title" id="qrTitle">扫码直连</div>
+    <div class="qr-sub" id="qrSub">一方生成邀请码、另一方输入；点上方按钮切换角色。App 内请用复制粘贴，无需摄像头</div>
+    <button type="button" class="qr-switch" id="qrSwitchBtn" hidden>我是加入方：输入朋友的码</button>
+    <div class="qr-step" id="qrStep" hidden><span class="dot"></span><span id="qrStepTxt">第 1 步</span></div>
+    <div class="qr-code" id="qrCode"></div>
+    <div class="qr-wait" id="qrWait" hidden>
+      <div class="spin"></div>
+      <div class="qr-wait-txt" id="qrWaitTxt">等待对方…</div>
+    </div>
+    <textarea class="qr-text" id="qrTextInput" placeholder="粘贴对方给你的连接串" rows="3"></textarea>
+    <div class="qr-scanner" id="qrScanner">
+      <video id="qrVideo" playsinline autoplay muted></video>
+      <div class="scan-frame"></div>
+      <div class="scan-tip" id="qrScanTip">将二维码放入框内</div>
+    </div>
+    <div class="qr-actions">
+      <button type="button" class="mini-btn" id="qrScanBtn" hidden>扫对方的码</button>
+      <button type="button" class="mini-btn coral" id="qrSendBtn" hidden>我已粘贴邀请码，继续</button>
+      <button type="button" class="mini-btn ghost" id="qrCancelBtn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="ver" id="verTag">v24</div>
 
 <script>
 (function () {
@@ -596,7 +711,7 @@ canvas{
   var STORE_KEY = 'go_idol_v1';
   var RECORD_KEY = 'go_records_v1';
   var RECORD_MAX = 30;
-  var VERSION = 'v18';
+  var VERSION = 'v24';
   var UA = (window.navigator && window.navigator.userAgent) || '';
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(UA);
   var IN_APP = /BiliApp/i.test(UA);
@@ -677,7 +792,28 @@ canvas{
     rpPlay: document.getElementById('rpPlay'),
     rpNext: document.getElementById('rpNext'),
     rpExit: document.getElementById('rpExit'),
-    verTag: document.getElementById('verTag')
+    verTag: document.getElementById('verTag'),
+    /* 扫码直连 */
+    qrHostBtn: document.getElementById('qrHostBtn'),
+    qrSwitchBtn: document.getElementById('qrSwitchBtn'),
+    joinRow: document.getElementById('joinRow'),
+    joinConfirmBtn: document.getElementById('joinConfirmBtn'),
+    qrMask: document.getElementById('qrMask'),
+    qrTitle: document.getElementById('qrTitle'),
+    qrSub: document.getElementById('qrSub'),
+    qrStep: document.getElementById('qrStep'),
+    qrStepTxt: document.getElementById('qrStepTxt'),
+    qrCode: document.getElementById('qrCode'),
+    qrWait: document.getElementById('qrWait'),
+    qrWaitTxt: document.getElementById('qrWaitTxt'),
+    qrTextInput: document.getElementById('qrTextInput'),
+    qrScanBtn: document.getElementById('qrScanBtn'),
+    qrSendBtn: document.getElementById('qrSendBtn'),
+    qrCancelBtn: document.getElementById('qrCancelBtn'),
+    qrCloseBtn: document.getElementById('qrCloseBtn'),
+    qrScanner: document.getElementById('qrScanner'),
+    qrVideo: document.getElementById('qrVideo'),
+    qrScanTip: document.getElementById('qrScanTip')
   };
 
   var canvas = els.canvas;
@@ -1853,7 +1989,7 @@ canvas{
     setStatus(mode === 'ai' ? '悔棋成功，轮到你啦' : '悔棋成功');
   }
 
-  /* ---------- 联机 ---------- */
+  /* ---------- 联机：优先 P2P 直连 + ntfy 兜底 ---------- */
   var RELAY = 'https://ntfy.sh/';
   var TOPIC_PREFIX = 'bg-go-';
   var LOBBY_TOPIC = TOPIC_PREFIX + 'lobby';
@@ -1886,7 +2022,15 @@ canvas{
     /* 入房回执看门狗：加入后 12 秒内没收到房主任何回执（st/ok/no/busy）就明确提示 */
     joinTimer: 0, joinHeard: false,
     /* 一次性提示宽限：入座确认（ok）后几秒内不被 st 的回合文案覆盖，否则一闪而过 */
-    statusLockUntil: 0
+    statusLockUntil: 0,
+    /* P2P 对端身份暂存（信令里带的 pid/名字） */
+    p2pUser: '', p2pName: ''
+  };
+  /* P2P 直连：建连成功后所有消息改走 DataChannel，ntfy 仅在建连阶段传信令 */
+  var DTLS_MAX = 1400; /* DataChannel 单条 1.4KB，棋局同步切成多条发送 */
+  var p2pState = {
+    pc: null, dc: null, on: false, offerSent: false, answerSent: false,
+    gathered: [], trickleDone: false
   };
   /* 房间大厅：房主定时广播房间信息，其他人打开「房间」时轮询汇总 */
   var lobby = { open: false, listTimer: 0, pubTimer: 0, loading: false, items: [] };
@@ -2057,9 +2201,1407 @@ canvas{
     return myPid() + '-' + Date.now().toString(36) + '-' + online.midSeq;
   }
 
-  function publish(msg) {
-    if (!online.topic) return Promise.resolve(false);
+  /* ================ P2P 直连层（WebRTC） ================ */
+  /* 信令复用 ntfy 房间 topic：房主发 offer，访客回 answer，双方互发 ICE candidates。
+     建连成功后 publish/handleMsg 自动改走 DataChannel，ntfy 全域停发。 */
+
+  function p2pStop() {
+    if (typeof p2pStopRetry === 'function') p2pStopRetry();
+    if (p2pState.dc) {
+      try { p2pState.dc.close(); } catch (e) { /* ignore */ }
+    }
+    p2pState.dc = null;
+    if (p2pState.pc) {
+      try { p2pState.pc.close(); } catch (e) { /* ignore */ }
+    }
+    p2pState.pc = null;
+    p2pState.on = false;
+    p2pState.offerSent = false;
+    p2pState.answerSent = false;
+    p2pState.gathered = [];
+    p2pState.trickleDone = false;
+  }
+
+  /* --- 扫码直连状态 --- */
+var qrState = {
+mode: '',       // 'host' | 'guest' | ''
+step: 0,        // 0=未开始, 1=等对方扫自己的码, 2=自己已扫, 等对方确认
+pc: null, dc: null, on: false,
+offerSent: false, answerSent: false,
+gathered: [],
+waitTimer: 0,
+scanResult: '',    // 临时存储扫描/粘贴的结果
+/* 摄像头扫码相关 */
+scanActive: false,
+scanStream: null,
+scanTimer: 0,
+scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
+};
+
+  /* 等 ICE 收集完毕再打包 SDP（扫码直连用） */
+  function waitIceGather(pc, ms) {
+    return new Promise(function (resolve) {
+      if (!pc || pc.iceGatheringState === 'complete') { resolve(); return; }
+      var done = false, tm = 0;
+      function fin() {
+        if (done) return;
+        done = true;
+        try { pc.removeEventListener('icegatheringstatechange', onChange); } catch (e) { /* ignore */ }
+        window.clearTimeout(tm);
+        resolve();
+      }
+      function onChange() {
+        if (pc.iceGatheringState === 'complete') fin();
+      }
+      try { pc.addEventListener('icegatheringstatechange', onChange); } catch (e) { /* ignore */ }
+      tm = window.setTimeout(fin, ms || 2500);
+    });
+  }
+
+  function p2pCanUse() {
+    return !!(window.RTCPeerConnection || window.webkitRTCPeerConnection);
+  }
+
+  function p2pCreate(isHost) {
+    p2pStop();
+    var RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    var pc = new RTC({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    });
+    var dc = null;
+    if (isHost) {
+      dc = pc.createDataChannel('game', { ordered: true });
+      bindDataChannel(dc);
+    } else {
+      pc.ondatachannel = function (ev) {
+        dc = ev.channel;
+        p2pState.dc = dc; /* 访客端必须写回，否则只能收不能发 */
+        bindDataChannel(dc);
+      };
+    }
+    pc.onicecandidate = function (ev) {
+      if (ev.candidate) {
+        p2pSignal({ t: 'ice', u: myUid(), p: myPid(), c: ev.candidate.toJSON() });
+      }
+    };
+    pc.oniceconnectionstatechange = function () {
+      var st = pc.iceConnectionState;
+      if (st === 'disconnected' || st === 'failed') {
+        if (p2pState.on) {
+          p2pState.on = false;
+          setConn('P2P 连接异常，正在退回普通通道');
+          p2pReopenStream();
+        }
+      }
+      if (st === 'connected' && !p2pState.on && p2pState.dc && p2pState.dc.readyState === 'open') {
+        p2pState.on = true;
+        p2pOnConnected();
+      }
+    };
+    p2pState.pc = pc;
+    p2pState.dc = dc;
+    return pc;
+  }
+
+  function bindDataChannel(dc) {
+    dc.onopen = function () {
+      p2pState.on = true;
+      p2pOnConnected();
+    };
+    dc.onclose = function () {
+      if (p2pState.on) {
+        p2pState.on = false;
+        setConn('P2P 连接断了，已自动切回普通通道');
+        p2pReopenStream();
+      }
+    };
+    dc.onmessage = function (ev) {
+      var txt = ev.data;
+      if (typeof txt !== 'string') return;
+      online.lastHeard = Date.now();
+      p2pOnData(txt);
+    };
+  }
+
+  /* 发信令：建连阶段走 ntfy，复用 publish() 的重试与 429 处理。
+     原先走 publishRaw（单次、无重试、无限流处理），一条 SDP 丢包就永远建不上。
+     SDP offer/answer 额外限次重发；ICE candidate 量大，不重发。 */
+  var p2pRetry = { timer: 0, tries: 0, msg: null };
+  var p2pRebuildTries = 0;
+  function p2pStopRetry() {
+    if (!p2pRetry) return;
+    if (p2pRetry.timer) { window.clearInterval(p2pRetry.timer); p2pRetry.timer = 0; }
+    p2pRetry.msg = null;
+    p2pRetry.tries = 0;
+  }
+  function p2pSignal(signal, important) {
+    if (!online.topic || p2pState.on) return;
+    if (important) {
+      p2pRetry.msg = signal;
+      p2pRetry.tries = 0;
+      if (p2pRetry.timer) window.clearInterval(p2pRetry.timer);
+      p2pRetry.timer = window.setInterval(function () {
+        if (p2pState.on || !p2pRetry.msg || p2pRetry.tries >= 5) {
+          p2pStopRetry();
+          return;
+        }
+        p2pRetry.tries++;
+        publish(p2pRetry.msg);
+      }, 2500);
+    }
+    publish(signal);
+  }
+
+  /* 收到消息中的 P2P 信令 */
+  function p2pOnSignal(m) {
+    if (!p2pCanUse()) return;
+    /* 对方 process peer 的 pid */
+    var opp = m.p || '';
+    if (!opp) opp = m.u || '';
+    if (!opp || opp === myPid()) return;
+    online.p2pUser = m.u || '';
+    if (m.n) online.p2pName = m.n;
+
+    if (m.t === 'sdp-offer') {
+      /* 只有访客该响应 offer：房主自己是发 offer 的一方，观战者不参与建连，
+         否则多人房间下会互相踩状态机 */
+      if (online.role === 'guest') {
+        p2pStartGuest(m.sdp);
+      }
+    } else if (m.t === 'sdp-answer') {
+      /* 只有房主处理 answer */
+      if (online.role === 'host' && p2pState.pc && m.sdp) {
+        var desc = new RTCSessionDescription(m.sdp);
+        p2pState.pc.setRemoteDescription(desc).catch(function () { /* ignore */ });
+      }
+    } else if (m.t === 'ice') {
+      /* 收到对方 ICE 候选 */
+      if (p2pState.pc && m.c) {
+        var cand = new RTCIceCandidate(m.c);
+        p2pState.pc.addIceCandidate(cand).catch(function () { /* ignore */ });
+      }
+    }
+  }
+
+  /* 房主发起 P2P：创建 offer 并通过 ntfy 发出 */
+  function p2pStartHost() {
+    if (!p2pCanUse() || !online.topic) return;
+    if (p2pState.pc) return; // 已有连接尝试中
+    var pc = p2pCreate(true);
+    pc.createOffer().then(function (off) {
+      pc.setLocalDescription(off).then(function () {
+        p2pSignal({ t: 'sdp-offer', u: myUid(), p: myPid(), n: me.name, sdp: off }, true);
+      });
+    }).catch(function () { /* ignore */ });
+  }
+
+  /* 访客收到 offer：建 answer 并回传 */
+  function p2pStartGuest(offerSdp) {
+    if (!p2pCanUse() || !online.topic) return;
+    if (p2pState.pc) return;
+    var pc = p2pCreate(false);
+    var desc = new RTCSessionDescription(offerSdp);
+    pc.setRemoteDescription(desc).then(function () {
+      return pc.createAnswer();
+    }).then(function (ans) {
+      return pc.setLocalDescription(ans);
+    }).then(function () {
+      p2pSignal({ t: 'sdp-answer', u: myUid(), p: myPid(), n: me.name, sdp: pc.localDescription }, true);
+    }).catch(function () { /* ignore */ });
+  }
+
+  /* P2P 连通：停掉 ntfy 轮询/SSE，提示用户 */
+  function p2pOnConnected() {
+    if (!p2pState.on) return;
+    setConn('P2P 直连已建立，消息不再经过服务器');
+    p2pStopRetry();
+    p2pRebuildTries = 0;
+    stopPolling();
+    if (online.es) {
+      try { online.es.close(); } catch (e) { /* ignore */ }
+      online.es = null;
+    }
+    /* 直连期间停掉 ntfy 侧的好友在线轮询/心跳：既不再需要公共中转，
+       也避免它持续打 ntfy 耗光限流额度（好友多时每 30s 十几个请求）。 */
+    pausePresenceNet();
+    /* 心跳 hi 以及状态广播都在 publish 里自动改走 P2P，无需改动 */
+  }
+
+  /* P2P 断开后恢复 ntfy 通道：重启轮询并尝试重建 SSE */
+  function p2pReopenStream() {
+    if (!online.topic) return;
+    resumePresenceNet();
+    startPolling();
+    /* 断开后房主限次重建 P2P；失败就稳定留在 ntfy 通道，避免无限重连刷中转 */
+    if (online.role === 'host' && p2pCanUse() && p2pRebuildTries < 2) {
+      p2pRebuildTries++;
+      window.setTimeout(function () {
+        if (!p2pState.on && online.room && online.role === 'host') {
+          p2pStop();
+          p2pStartHost();
+        }
+      }, 3000);
+    }
+    if (window.EventSource) {
+      /* 短延迟重建 SSE，避免即刻重连被 same-origin/网络抖动影响 */
+      window.setTimeout(function () {
+        if (p2pState.on || !online.topic) return;
+        try {
+          if (!online.es) {
+            var es = new window.EventSource(RELAY + online.topic + '/sse');
+            online.es = es;
+            es.onopen = function () {
+              if (online.es !== es) return;
+              stopPolling(false);
+              setConn('已连接房间');
+            };
+            es.onmessage = function (ev) {
+              if (online.es !== es) return;
+              var outer;
+              try { outer = JSON.parse(ev.data); } catch (e) { return; }
+              if (outer && outer.event === 'message' && outer.message) {
+                handleMsg(outer.message);
+              }
+            };
+            es.onerror = function () {
+              if (online.es !== es) return;
+              startPolling();
+            };
+          }
+        } catch (e) { /* ntfy 通道继续轮询兜底 */ }
+      }, 800);
+    }
+  }
+
+  /* 底层发送：信令/大厅等直接裸发 ntfy */
+  function publishRaw(topic, body) {
+    if (!topic) return Promise.resolve(false);
+    return timedFetch(RELAY + topic, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: body
+    }, PUBLISH_TIMEOUT_MS).then(function (r) { return r.ok; }, function () { return false; });
+  }
+
+  /* 通过 P2P 发一条消息（自动切片大号消息） */
+  function p2pSend(msgObj) {
+    if (!p2pState.on || !p2pState.dc) return false;
+    var body = JSON.stringify(msgObj);
+    var mid = msgObj.mid;
+    var total = Math.ceil(body.length / DTLS_MAX) || 1;
+    for (var i = 0; i < total; i++) {
+      var chunk = body.slice(i * DTLS_MAX, (i + 1) * DTLS_MAX);
+      var part = {
+        _p2p: 1, mid: mid, i: i, n: total, b: chunk
+      };
+      p2pState.dc.send(JSON.stringify(part));
+    }
+    return true;
+  }
+
+  /* 组装并返回 P2P 消息 */
+  var p2pBuf = {};
+  /* 丢片后 15s 清理缓冲，避免永久驻留占内存 */
+  function p2pBufSweep() {
+    var now = Date.now();
+    for (var k in p2pBuf) {
+      if (p2pBuf[k] && p2pBuf[k].ts && now - p2pBuf[k].ts > 15000) delete p2pBuf[k];
+    }
+  }
+  function p2pOnData(raw) {
+    var part;
+    try { part = JSON.parse(raw); } catch (e) { return; }
+    if (!part || !part._p2p) return;
+    /* 非切片消息（极小消息直接透传） */
+    if (!part.n && part.n !== 0) {
+      var body = part.b || '';
+      if (body) {
+        try { handleMsg(body); } catch (e) { /* ignore */ }
+      }
+      return;
+    }
+    /* 切片消息 */
+    var key = part.mid || '';
+    if (!p2pBuf[key]) { p2pBuf[key] = []; p2pBuf[key].ts = Date.now(); }
+    p2pBuf[key][part.i] = part.b;
+    p2pBufSweep();
+    /* 收到全部片段才拼装 */
+    var arr = p2pBuf[key];
+    var full = '';
+    for (var i = 0; i < part.n; i++) {
+      if (arr[i] == null) return; // 还缺片
+      full += arr[i];
+    }
+    delete p2pBuf[key];
+    try { handleMsg(full); } catch (e) { /* ignore */ }
+  }
+
+  /* --- 轻量 QR 码生成器（QR Code 2005, byte mode, ECC L, 纯 JS） ---
+     基于 Kazuhiko Arase 的 qrcode-generator MIT 实现精简 */
+  var QR_LIB = (function () {
+    var BIT_MATS = [
+      [16, 13, 10, 7, 4],
+      [15, 12, 9, 6, 3],
+      [14, 11, 8, 5, 2],
+      [13, 10, 7, 4, 1],
+      [12, 9, 6, 3, 0]
+    ];
+    /* 容量表：每个版本、每个 ECC 级别的数据码字数（byte mode）
+       以及对应的 ECC 码字数和总码字数 */
+    var QR_TABLE = {
+      1:  { data: 19,  ecc: 7,  total: 26 },
+      2:  { data: 34,  ecc: 10, total: 44 },
+      3:  { data: 55,  ecc: 15, total: 70 },
+      4:  { data: 80,  ecc: 20, total: 100 },
+      5:  { data: 108, ecc: 26, total: 134 },
+      6:  { data: 136, ecc: 36, total: 172 },
+      7:  { data: 156, ecc: 40, total: 196 },
+      8:  { data: 194, ecc: 48, total: 242 },
+      9:  { data: 232, ecc: 60, total: 292 },
+      10: { data: 274, ecc: 72, total: 346 },
+      11: { data: 297, ecc: 76, total: 372 },
+      12: { data: 345, ecc: 96, total: 441 },
+      13: { data: 395, ecc: 108, total: 503 },
+      14: { data: 441, ecc: 120, total: 561 },
+      15: { data: 492, ecc: 132, total: 624 },
+      16: { data: 534, ecc: 144, total: 678 },
+      17: { data: 588, ecc: 120, total: 708 },
+      18: { data: 640, ecc: 144, total: 784 },
+      19: { data: 698, ecc: 156, total: 854 },
+      20: { data: 756, ecc: 156, total: 912 }
+    };
+    var RS_BLOCK_TABLE = {
+      1: { L: 19, M: 16, Q: 13, H: 9 },
+      2: { L: 34, M: 28, Q: 22, H: 16 },
+      3: { L: 55, M: 44, Q: 34, H: 26 },
+      4: { L: 80, M: 64, Q: 48, H: 36 },
+      5: { L: 108, M: 86, Q: 62, H: 46 },
+      6: { L: 136, M: 108, Q: 76, H: 60 },
+      7: { L: 156, M: 124, Q: 88, H: 66 },
+      8: { L: 194, M: 154, Q: 110, H: 86 },
+      9: { L: 232, M: 182, Q: 132, H: 100 },
+      10: { L: 274, M: 216, Q: 154, H: 122 },
+      11: { L: 297, M: 238, Q: 164, H: 136 },
+      12: { L: 345, M: 272, Q: 194, H: 152 },
+      13: { L: 395, M: 310, Q: 222, H: 172 },
+      14: { L: 441, M: 348, Q: 252, H: 198 },
+      15: { L: 492, M: 388, Q: 283, H: 220 },
+      16: { L: 534, M: 418, Q: 307, H: 242 },
+      17: { L: 588, M: 456, Q: 331, H: 264 },
+      18: { L: 640, M: 496, Q: 361, H: 296 },
+      19: { L: 698, M: 528, Q: 385, H: 318 },
+      20: { L: 756, M: 568, Q: 411, H: 340 }
+    };
+
+    function getRSBlockInfo(type, ecc) {
+      var info = RS_BLOCK_TABLE[type] || RS_BLOCK_TABLE[10];
+      return info[ecc] || info.L;
+    }
+
+    /* GF(2^8) 运算表 */
+    var EXP_TABLE = [];
+    var LOG_TABLE = [];
+    (function () {
+      var x = 1;
+      for (var i = 0; i < 255; i++) {
+        EXP_TABLE[i] = x;
+        LOG_TABLE[x] = i;
+        x <<= 1;
+        if (x & 0x100) x ^= 0x11d;
+      }
+      EXP_TABLE[255] = EXP_TABLE[0];
+      LOG_TABLE[0] = 0;
+    })();
+
+    function gfMul(a, b) {
+      if (a === 0 || b === 0) return 0;
+      return EXP_TABLE[LOG_TABLE[a] + LOG_TABLE[b]];
+    }
+
+    /* 生成多项式 */
+    function genPoly(ecLen) {
+      var poly = [1];
+      for (var i = 0; i < ecLen; i++) {
+        var newPoly = new Array(poly.length + 1).fill(0);
+        for (var j = 0; j < poly.length; j++) {
+          newPoly[j] ^= poly[j];
+          newPoly[j + 1] ^= gfMul(poly[j], EXP_TABLE[i]);
+        }
+        poly = newPoly;
+      }
+      return poly;
+    }
+
+    /* 计算 Reed-Solomon ECC */
+    function reedSolomon(data, ecLen) {
+      var gp = genPoly(ecLen);
+      var res = new Array(ecLen).fill(0);
+      for (var i = 0; i < data.length; i++) {
+        var factor = data[i] ^ res[0];
+        res.shift();
+        res.push(0);
+        if (factor !== 0) {
+          for (var j = 0; j < gp.length; j++) {
+            res[j] ^= gfMul(gp[j], factor);
+          }
+        }
+      }
+      return res;
+    }
+
+    /* BCH (15,5) 编码 */
+    function bch(d) {
+      var dBit = d << 10;
+      var g = 0x537;
+      for (var i = 4; i >= 0; i--) {
+        if ((dBit >> (i + 10)) & 1) dBit ^= g << i;
+      }
+      return ((d << 10) | dBit) ^ 0x5412;
+    }
+
+    /* 选择版本 */
+    function pickVersion(len, ecc) {
+      for (var v = 1; v <= 20; v++) {
+        if (len <= QR_TABLE[v].data) return v;
+      }
+      return 20;
+    }
+
+    /* 掩码评分 */
+    function maskScore(matrix) {
+      var score = 0;
+      var size = matrix.length;
+      /* 规则1：同行同列连续相同颜色 >=5 */
+      for (var r = 0; r < size; r++) {
+        var run = 0;
+        var last = -1;
+        for (var c = 0; c < size; c++) {
+          var v = matrix[r][c];
+          if (v === last) { run++; if (run === 5) score += 3; else if (run > 5) score += 1; }
+          else { last = v; run = 1; }
+        }
+      }
+      for (var c = 0; c < size; c++) {
+        var run = 0;
+        var last = -1;
+        for (var r = 0; r < size; r++) {
+          var v = matrix[r][c];
+          if (v === last) { run++; if (run === 5) score += 3; else if (run > 5) score += 1; }
+          else { last = v; run = 1; }
+        }
+      }
+      /* 规则2：2x2 同色块 */
+      for (var r = 0; r < size - 1; r++) {
+        for (var c = 0; c < size - 1; c++) {
+          var v = matrix[r][c];
+          if (v === matrix[r][c + 1] && v === matrix[r + 1][c] && v === matrix[r + 1][c + 1]) score += 3;
+        }
+      }
+      return score;
+    }
+
+    /* 掩码函数 */
+    var MASK_FUNCS = [
+      function (r, c) { return (r + c) % 2 === 0; },
+      function (r, c) { return r % 2 === 0; },
+      function (r, c) { return c % 3 === 0; },
+      function (r, c) { return (r + c) % 3 === 0; },
+      function (r, c) { return (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0; },
+      function (r, c) { return (r * c) % 2 + (r * c) % 3 === 0; },
+      function (r, c) { return ((r * c) % 2 + (r * c) % 3) % 2 === 0; },
+      function (r, c) { return ((r * c) % 3 + (r + c) % 2) % 2 === 0; }
+    ];
+
+    /* 主要生成函数 */
+    function makeQR(text) {
+      var bytes = [];
+      for (var i = 0; i < text.length; i++) {
+        var code = text.charCodeAt(i);
+        if (code < 0x80) bytes.push(code);
+        else if (code < 0x800) {
+          bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+        } else if (code < 0xd800 || code >= 0xe000) {
+          bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        } else {
+          code = ((code - 0xd800) * 0x400) + (text.charCodeAt(++i) - 0xdc00) + 0x10000;
+          bytes.push(
+            0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f),
+            0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f)
+          );
+        }
+      }
+
+      var dataBits = [];
+      /* 模式指示：字节模式 = 0100 */
+      dataBits.push(0, 1, 0, 0);
+      /* 字符数指示：版本 1-9 为 8 位，10-26 为 16 位 */
+      var version = pickVersion(bytes.length, 'L');
+      var countBits = version < 10 ? 8 : 16;
+      for (var i = countBits - 1; i >= 0; i--) {
+        dataBits.push((bytes.length >> i) & 1);
+      }
+      /* 数据位 */
+      for (var i = 0; i < bytes.length; i++) {
+        for (var b = 7; b >= 0; b--) {
+          dataBits.push((bytes[i] >> b) & 1);
+        }
+      }
+      /* 终止符 + 填充到数据容量 */
+      var dataCap = QR_TABLE[version].data;
+      var maxBits = dataCap * 8;
+      for (var i = 0; i < 4 && dataBits.length < maxBits; i++) {
+        dataBits.push(0);
+      }
+      /* 填充到字节边界 */
+      while (dataBits.length % 8 !== 0 && dataBits.length < maxBits) {
+        dataBits.push(0);
+      }
+      /* 填充字节 */
+      var PAD_BYTES = [0xec, 0x11];
+      var padIdx = 0;
+      while (dataBits.length < maxBits) {
+        var pb = PAD_BYTES[padIdx % 2];
+        for (var b = 7; b >= 0; b--) {
+          dataBits.push((pb >> b) & 1);
+        }
+        padIdx++;
+      }
+
+      /* 转换为字节数组 */
+      var data = [];
+      for (var i = 0; i < dataBits.length; i += 8) {
+        var v = 0;
+        for (var b = 0; b < 8; b++) {
+          v = (v << 1) | dataBits[i + b];
+        }
+        data.push(v);
+      }
+
+      /* 计算 ECC（ECC 长度 = 总码字 - 数据码字） */
+      var eccLen = QR_TABLE[version].total - dataCap;
+      var eccBytes = reedSolomon(data, eccLen);
+      var all = data.concat(eccBytes);
+
+      /* 矩阵尺寸 = version * 4 + 17 */
+      var size = version * 4 + 17;
+      var matrix = [];
+      for (var r = 0; r < size; r++) {
+        matrix.push(new Array(size).fill('-'));
+      }
+
+      /* 放置定位图形 */
+      function placeFinder(r, c) {
+        for (var dr = -4; dr <= 4; dr++) {
+          for (var dc = -4; dc <= 4; dc++) {
+            var rr = r + dr, cc = c + dc;
+            if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+            var dist = Math.max(Math.abs(dr), Math.abs(dc));
+            matrix[rr][cc] = dist === 0 || dist === 1 || dist === 4 ? 1 : 0;
+          }
+        }
+      }
+      placeFinder(0, 0);
+      placeFinder(0, size - 1);
+      placeFinder(size - 1, 0);
+
+      /* 校正图形位置（QR Code 标准定义表） */
+      var ALIGN_PATTERN_POS = {
+        1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30], 6: [6, 34],
+        7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50],
+        11: [6, 30, 54], 12: [6, 32, 58], 13: [6, 34, 62], 14: [6, 26, 46, 66],
+        15: [6, 26, 48, 70], 16: [6, 26, 50, 74], 17: [6, 30, 54, 78],
+        18: [6, 30, 56, 82], 19: [6, 30, 58, 86], 20: [6, 26, 48, 70, 92]
+      };
+      var alignPos = ALIGN_PATTERN_POS[version] || [];
+      for (var ai = 0; ai < alignPos.length; ai++) {
+        for (var aj = 0; aj < alignPos.length; aj++) {
+          var ar = alignPos[ai], ac = alignPos[aj];
+          if (matrix[ar][ac] === '-') {
+            for (var dr = -2; dr <= 2; dr++) {
+              for (var dc = -2; dc <= 2; dc++) {
+                var dist = Math.max(Math.abs(dr), Math.abs(dc));
+                matrix[ar + dr][ac + dc] = dist === 1 ? 0 : 1;
+              }
+            }
+          }
+        }
+      }
+
+      /* 格式信息（预填，格式信息位置在定位图形周围） */
+      var formatBits = bch(0 << 3 | 0); /* L=00, mask=000 (占位) */
+      var formatPos = [
+        [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+        [7, 8], [8, 8], [8, 7], [8, 5], [8, 4], [8, 3],
+        [8, 2], [8, 1], [8, 0],
+        [8, size - 1], [size - 1, 8],
+        [size - 2, 8], [size - 3, 8], [size - 4, 8], [size - 5, 8],
+        [size - 6, 8], [size - 7, 8]
+      ];
+      for (var fi = 0; fi < formatPos.length; fi++) {
+        var fp = formatPos[fi];
+        matrix[fp[0]][fp[1]] = (formatBits >> fi) & 1;
+      }
+
+      /* 版本信息 */
+      if (version >= 7) {
+        var versionBits = 0;
+        var vVal = version;
+        var vG = 0x1f25;
+        var vBit = vVal << 12;
+        for (var i = 5; i >= 0; i--) {
+          if ((vBit >> (i + 12)) & 1) vBit ^= vG << i;
+        }
+        versionBits = (vVal << 12) | vBit;
+        for (var i = 0; i < 18; i++) {
+          var bit = (versionBits >> i) & 1;
+          matrix[size - 11 + i % 3][Math.floor(i / 3)] = bit;
+          matrix[Math.floor(i / 3)][size - 11 + i % 3] = bit;
+        }
+      }
+
+      /* 放置数据位 */
+      var bitIdx = 0;
+      var totalBits = all.length * 8;
+      var upward = true;
+      for (var c = size - 1; c > 0; c -= 2) {
+        if (c === 6) c--; /* skip vertical timing column */
+        for (var i = 0; i < size; i++) {
+          var r = upward ? (size - 1 - i) : i;
+          for (var j = 0; j < 2; j++) {
+            var cc = c - j;
+            if (matrix[r][cc] === '-') {
+              if (bitIdx < totalBits) {
+                matrix[r][cc] = all[bitIdx >> 3] >> (7 - (bitIdx & 7)) & 1;
+                bitIdx++;
+              } else {
+                matrix[r][cc] = 0;
+              }
+            }
+          }
+        }
+        upward = !upward;
+      }
+
+      /* 选择最佳掩码 */
+      var bestMask = 0;
+      var bestScore = Infinity;
+      var bestMatrix = null;
+      for (var m = 0; m < 8; m++) {
+        var temp = [];
+        for (var r = 0; r < size; r++) {
+          temp.push(matrix[r].slice());
+        }
+        for (var r = 0; r < size; r++) {
+          for (var c = 0; c < size; c++) {
+            if (MASK_FUNCS[m](r, c)) {
+              temp[r][c] = temp[r][c] === 0 ? 1 : (temp[r][c] === 1 ? 0 : temp[r][c]);
+            }
+          }
+        }
+        /* 更新格式信息与掩码 */
+        var fb = bch(0 << 3 | m);
+        for (var fi = 0; fi < formatPos.length; fi++) {
+          var fp = formatPos[fi];
+          temp[fp[0]][fp[1]] = (fb >> fi) & 1;
+        }
+        var score = maskScore(temp);
+        if (score < bestScore) {
+          bestScore = score;
+          bestMask = m;
+          bestMatrix = temp;
+        }
+      }
+
+      /* 最终矩阵：'#' = 黑, ' ' = 白 */
+      var lines = [];
+      for (var r = 0; r < size; r++) {
+        var line = '';
+        for (var c = 0; c < size; c++) {
+          line += bestMatrix[r][c] === 1 ? '#' : ' ';
+        }
+        lines.push(line);
+      }
+      return { lines: lines, size: size };
+    }
+
+    return { make: makeQR };
+  })();
+
+  /* 精简 SDP：去掉 audio/video 段和冗余属性行，只保留 DataChannel 核心字段 */
+  function compactSDP(sdp) {
+    var lines = sdp.split(/\r?\n/);
+    var filtered = [];
+    var skipUntilNextM = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (skipUntilNextM) {
+        if (line.startsWith('m=')) skipUntilNextM = false;
+        else continue;
+      }
+      if (line.startsWith('m=audio') || line.startsWith('m=video')) {
+        skipUntilNextM = true;
+        continue;
+      }
+      if (line.startsWith('a=extmap:')) continue;
+      if (line.startsWith('a=msid:')) continue;
+      if (line.startsWith('a=ssrc:')) continue;
+      if (line.startsWith('a=rtcp-mux')) continue;
+      if (line.startsWith('a=sctp-port:')) continue;
+      if (line.startsWith('a=rtpmap:')) continue;
+      if (line.startsWith('a=rtcp-fb:')) continue;
+      filtered.push(line);
+    }
+    return filtered.join('\r\n');
+  }
+
+  /* 把 ICE candidate 追加到 SDP 中（在 a=setup 行后面插入） */
+  function appendICESDP(sdp, gathered) {
+    if (!gathered || gathered.length === 0) return sdp;
+    var lines = sdp.split(/\r?\n/);
+    var candidateLines = [];
+    for (var j = 0; j < gathered.length; j++) {
+      var c = gathered[j];
+      if (!c || !c.candidate) continue;
+      candidateLines.push('a=candidate:' + c.candidate);
+    }
+    if (candidateLines.length === 0) return sdp;
+    var result = [];
+    var inserted = false;
+    for (var i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
+      if (!inserted && lines[i].startsWith('a=setup:')) {
+        for (var j = 0; j < candidateLines.length; j++) {
+          result.push(candidateLines[j]);
+        }
+        inserted = true;
+      }
+    }
+    if (!inserted) {
+      for (var j = 0; j < candidateLines.length; j++) {
+        result.push(candidateLines[j]);
+      }
+    }
+    return result.join('\r\n');
+  }
+
+  /* 将文本渲染为 QR 码到容器 */
+  function renderQR(container, text) {
+    if (!container) return;
+    container.innerHTML = '';
+    try {
+      var qr = QR_LIB.make(text);
+      var size = qr.size;
+      var cellSize = Math.max(1, Math.floor(220 / size));
+      var canvas = document.createElement('canvas');
+      canvas.width = size * cellSize;
+      canvas.height = size * cellSize;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000';
+      for (var r = 0; r < size; r++) {
+        for (var c = 0; c < size; c++) {
+          if (qr.lines[r][c] === '#') {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+      container.appendChild(canvas);
+    } catch (e) {
+      container.textContent = 'QR 生成失败';
+    }
+  }
+
+  /* Base64 编解码（兼容 UTF-8） */
+  function b64Encode(str) {
+    try {
+      if (window.btoa) {
+        var bytes = [];
+        for (var i = 0; i < str.length; i++) {
+          var code = str.charCodeAt(i);
+          if (code < 0x80) bytes.push(code);
+          else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+          else bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        }
+        var binary = '';
+        for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return window.btoa(binary).replace(/=/g, '');
+      }
+    } catch (e) { /* fallback */ }
+    return '';
+  }
+
+  function b64Decode(b64) {
+    try {
+      if (window.atob) {
+        b64 = b64.replace(/[^A-Za-z0-9+/=]/g, '');
+        while (b64.length % 4 !== 0) b64 += '=';
+        var binary = window.atob(b64);
+        var bytes = [];
+        for (var i = 0; i < binary.length; i++) bytes.push(binary.charCodeAt(i));
+        var str = '';
+        var i = 0;
+        while (i < bytes.length) {
+          if (bytes[i] < 0x80) { str += String.fromCharCode(bytes[i]); i++; }
+          else if ((bytes[i] & 0xe0) === 0xc0) {
+            str += String.fromCharCode(((bytes[i] & 0x1f) << 6) | (bytes[i + 1] & 0x3f)); i += 2;
+          } else if ((bytes[i] & 0xf0) === 0xe0) {
+            str += String.fromCharCode(((bytes[i] & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)); i += 3;
+          } else {
+            var cp = ((bytes[i] & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) |
+              ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f);
+            cp -= 0x10000;
+            str += String.fromCharCode(0xd800 + (cp >> 10), 0xdc00 + (cp & 0x3ff));
+            i += 4;
+          }
+        }
+        return str;
+      }
+    } catch (e) { /* fallback */ }
+    return '';
+  }
+
+  /* --- 扫码直连 P2P 逻辑 --- */
+
+function qrStop() {
+qrStopScan();
+if (qrState.waitTimer) { window.clearTimeout(qrState.waitTimer); qrState.waitTimer = 0; }
+    if (qrState.pc) { try { qrState.pc.close(); } catch (e) { /* ignore */ } }
+    qrState.mode = '';
+    qrState.step = 0;
+    qrState.pc = null;
+    qrState.dc = null;
+    qrState.on = false;
+    qrState.offerSent = false;
+    qrState.answerSent = false;
+    qrState.gathered = [];
+    qrState.scanResult = '';
+    /* 关闭时清空输入并解除只读：避免下次打开残留上一次生成的码、或输入框粘不进东西 */
+    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.readOnly = false; }
+    if (els.qrSwitchBtn) els.qrSwitchBtn.hidden = true;
+    closeQRModal();
+  }
+
+  function openQRModal() {
+    if (els.qrMask) els.qrMask.classList.add('on');
+  }
+
+  function closeQRModal() {
+    if (els.qrMask) els.qrMask.classList.remove('on');
+    if (els.qrCode) els.qrCode.innerHTML = '';
+  }
+
+  function setQRTip(title, sub, step) {
+    if (els.qrTitle) els.qrTitle.textContent = title || '';
+    if (els.qrSub) els.qrSub.textContent = sub || '';
+    if (els.qrStep) {
+      if (step) { els.qrStep.hidden = false; if (els.qrStepTxt) els.qrStepTxt.textContent = step; }
+      else { els.qrStep.hidden = true; }
+    }
+  }
+
+  /* 扫码直连：房主发起 */
+  function qrStartHost() {
+    if (!p2pCanUse()) { setStatus('当前设备不支持扫码直连'); return; }
+    qrStop();
+    closeStream();
+    qrState.mode = 'host';
+    qrState.step = 1;
+
+    if (els.qrWait) els.qrWait.hidden = false;
+    if (els.qrCode) els.qrCode.hidden = false;
+    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.hidden = false; }
+    if (els.qrScanBtn) els.qrScanBtn.hidden = true;
+    if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已收到朋友的回复码，粘贴到上面'; }
+    setQRTip('第 1 步：把邀请码发给朋友', '把下面文字串发给朋友，让朋友点「扫码联机」后切到「我是加入方」粘贴；也可扫你屏幕上的二维码', '');
+    if (els.qrSwitchBtn) { els.qrSwitchBtn.hidden = false; els.qrSwitchBtn.textContent = '我是加入方：输入朋友的码'; }
+
+    /* 生成 Offer */
+    qrState.pc = p2pCreateQR(true);
+    if (!qrState.pc) { qrStop(); return; }
+    qrState.pc.createOffer().then(function (off) {
+      return qrState.pc.setLocalDescription(off);
+    }).then(function () {
+      /* 等 ICE 收集真正 complete：只等"第一个 candidate"会漏掉 srflx，
+         跨网段直连几乎必然失败。STUN 不可达时用超时兜底。 */
+      return waitIceGather(qrState.pc, 2500);
+    }).then(function () {
+      var sdp = qrState.pc.localDescription.sdp;
+      /* 把 ICE candidate 追加到 SDP 中 */
+      var withIce = appendICESDP(sdp, qrState.gathered);
+      var compact = compactSDP(withIce);
+      /* 前缀 "1|" = offer */
+      var text = '1|' + compact;
+      qrState.offerSent = true;
+      if (text) {
+        if (els.qrTextInput) {
+          els.qrTextInput.value = text;
+          els.qrTextInput.readOnly = true;
+          els.qrTextInput.hidden = false;
+        }
+        renderQR(els.qrCode, text);
+      }
+if (els.qrWait) els.qrWait.hidden = true;
+/* 第 2 步：等待访客回复码，显示扫码和粘贴两种方式 */
+qrState.step = 2;
+/* App 内置浏览器不支持摄像头扫码，隐藏扫码按钮，只保留粘贴入口 */
+if (els.qrScanBtn) { els.qrScanBtn.hidden = IN_APP; els.qrScanBtn.textContent = '扫联机码'; }
+els.qrSendBtn.textContent = '已粘贴联机码，下一步';
+setQRTip('第 2 步：输入朋友的回复码', '把朋友发来的回复码粘贴到下面输入框，再点「已粘贴联机码」', '');
+}).catch(function () { qrStop(); });
+}
+
+/* 扫码直连：访客加入 */
+  function qrStartGuest() {
+    if (!p2pCanUse()) { setStatus('当前设备不支持扫码直连'); return; }
+    qrStop();
+    closeStream();
+    qrState.mode = 'guest';
+    qrState.step = 1;
+
+    if (els.qrCode) els.qrCode.innerHTML = '';
+    /* 关键：解除房主模式留下的 readOnly，否则邀请码粘不进输入框 */
+    if (els.qrTextInput) { els.qrTextInput.value = ''; els.qrTextInput.readOnly = false; els.qrTextInput.hidden = false; }
+if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已粘贴邀请码，继续'; }
+/* App 内置浏览器不支持摄像头扫码，隐藏扫码按钮，只保留粘贴入口 */
+if (els.qrScanBtn) { els.qrScanBtn.hidden = IN_APP; els.qrScanBtn.textContent = '扫房主的二维码'; }
+if (els.qrSwitchBtn) { els.qrSwitchBtn.hidden = false; els.qrSwitchBtn.textContent = '我是发起方：生成我的码'; }
+setQRTip('第 1 步：输入朋友的邀请码', '把朋友给你的邀请码粘贴到下面输入框，再点「我已粘贴邀请码」', '第 1 步：输入朋友的邀请码');
+    openQRModal();
+  }
+
+  /* 访客提交邀请码后：生成 Answer + 等待收房主 ICE，然后展示回复码 */
+  function qrGuestSubmitOffer() {
+    var text = (els.qrTextInput && els.qrTextInput.value || '').trim();
+    if (!text) { setStatus('请先粘贴邀请码'); return; }
+    var sdp;
+    if (text.indexOf('1|') === 0) {
+      sdp = text.substring(2);
+    } else {
+      /* 兼容旧格式：尝试 base64 解码 */
+      try {
+        var payload = JSON.parse(b64Decode(text));
+        if (payload && payload.sdp) sdp = payload.sdp;
+      } catch (e) { /* ignore */ }
+    }
+    if (!sdp) { setStatus('邀请码格式有误'); return; }
+    /* 解析 SDP 中的 ICE candidate 行 */
+    var iceCandidates = [];
+    var sdpLines = sdp.split(/\r?\n/);
+    for (var i = 0; i < sdpLines.length; i++) {
+      if (sdpLines[i].startsWith('a=candidate:')) {
+        var candStr = sdpLines[i].substring('a=candidate:'.length);
+        var parts = candStr.split(' ');
+        if (parts.length >= 8) {
+          iceCandidates.push({
+            candidate: candStr,
+            sdpMid: parts[2] || '0',
+            sdpMLineIndex: parseInt(parts[1], 10) || 0
+          });
+        }
+      }
+    }
+    qrState.pc = p2pCreateQR(false);
+    var desc = new RTCSessionDescription({ type: 'offer', sdp: sdp });
+    qrState.pc.setRemoteDescription(desc).then(function () {
+      /* 把房主的 ICE candidate 加到访客的 pc 上 */
+      var addPromises = [];
+      for (var i = 0; i < iceCandidates.length; i++) {
+        try {
+          addPromises.push(qrState.pc.addIceCandidate(new RTCIceCandidate(iceCandidates[i])).catch(function () { /* ignore */ }));
+        } catch (e) { /* ignore */ }
+      }
+      return Promise.all(addPromises);
+    }).then(function () {
+      return qrState.pc.createAnswer();
+    }).then(function (ans) {
+      return qrState.pc.setLocalDescription(ans);
+    }).then(function () {
+      /* 等 ICE 收集真正 complete（同上） */
+      return waitIceGather(qrState.pc, 2500);
+    }).then(function () {
+      var sdp = qrState.pc.localDescription.sdp;
+      /* 把 ICE candidate 追加到 SDP 中 */
+      var withIce = appendICESDP(sdp, qrState.gathered);
+      var compact = compactSDP(withIce);
+      /* 前缀 "2|" = answer，后跟 SDP */
+      var text = '2|' + compact;
+      qrState.answerSent = true;
+      qrState.iceB64 = '';
+      renderQR(els.qrCode, text);
+      if (els.qrTextInput) {
+        els.qrTextInput.value = text;
+        els.qrTextInput.readOnly = true;
+        els.qrTextInput.hidden = false;
+      }
+      if (els.qrSendBtn) { els.qrSendBtn.hidden = false; els.qrSendBtn.textContent = '我已把回复码发给房主'; }
+      setQRTip('第 2 步：把回复码发给房主', '复制下面的文字串发给房主，或让房主扫你屏幕上的二维码', '');
+      qrState.step = 2;
+    }).catch(function () { setStatus('建立连接失败，请重试'); qrStop(); });
+  }
+
+  /* 房主提交访客的回复码 + 访客 ICE，完成信令交换 */
+  function qrHostSubmitAnswer() {
+    var text = (els.qrTextInput && els.qrTextInput.value || '').trim();
+    if (!text) { setStatus('请先粘贴朋友的回复码'); return; }
+    var sdp;
+    if (text.indexOf('2|') === 0) {
+      sdp = text.substring(2);
+    } else {
+      /* 兼容旧格式 */
+      try {
+        var payload = JSON.parse(b64Decode(text));
+        if (payload && payload.sdp) sdp = payload.sdp;
+      } catch (e) { /* ignore */ }
+    }
+    if (!sdp) { setStatus('回复码格式有误'); return; }
+    /* 解析 SDP 中的 ICE candidate 行 */
+    var iceCandidates = [];
+    var sdpLines = sdp.split(/\r?\n/);
+    for (var i = 0; i < sdpLines.length; i++) {
+      if (sdpLines[i].startsWith('a=candidate:')) {
+        var candStr = sdpLines[i].substring('a=candidate:'.length);
+        var parts = candStr.split(' ');
+        if (parts.length >= 8) {
+          iceCandidates.push({
+            candidate: candStr,
+            sdpMid: parts[2] || '0',
+            sdpMLineIndex: parseInt(parts[1], 10) || 0
+          });
+        }
+      }
+    }
+    var desc = new RTCSessionDescription({ type: 'answer', sdp: sdp });
+    qrState.pc.setRemoteDescription(desc).then(function () {
+      /* 把 visitor 的 ICE candidate 加到房主的 pc 上 */
+      var addPromises = [];
+      for (var i = 0; i < iceCandidates.length; i++) {
+        try {
+          addPromises.push(qrState.pc.addIceCandidate(new RTCIceCandidate(iceCandidates[i])).catch(function () { /* ignore */ }));
+        } catch (e) { /* ignore */ }
+      }
+      return Promise.all(addPromises);
+    }).then(function () {
+      setQRTip('连接成功', '正在建立直接连接…', '');
+      qrState.step = 3;
+      if (els.qrWait) els.qrWait.hidden = false;
+      if (els.qrWaitTxt) els.qrWaitTxt.textContent = '正在建立 P2P 连接…';
+    }).catch(function () { setStatus('连接失败，请重试'); qrStop(); });
+  }
+
+  /* 创建扫码直连的 PeerConnection（与 ntfy 的 p2pCreate 独立） */
+  function p2pCreateQR(isHost) {
+    var RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    var pc = new RTC({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    });
+    var dc = null;
+    if (isHost) {
+      dc = pc.createDataChannel('game', { ordered: true });
+      bindQRDataChannel(dc);
+    } else {
+      pc.ondatachannel = function (ev) {
+        dc = ev.channel;
+        qrState.dc = dc; /* 访客端必须写回，否则只能收不能发 */
+        bindQRDataChannel(dc);
+      };
+    }
+    pc.onicecandidate = function (ev) {
+      if (ev.candidate) {
+        qrState.gathered.push(ev.candidate.toJSON());
+        /* 扫码直连：ICE candidate 通过文字框/QR 码自动交换 */
+        var cands = qrState.gathered;
+        if (cands.length > 0) {
+          var icePayload = JSON.stringify({ t: 'q-ice', c: cands });
+          qrState.iceB64 = b64Encode(icePayload);
+        }
+      }
+    };
+    pc.oniceconnectionstatechange = function () {
+      var st = pc.iceConnectionState;
+      if (st === 'connected' && !qrState.on) {
+        qrState.on = true;
+        qrP2pConnected();
+      }
+      if (st === 'disconnected' || st === 'failed') {
+        if (qrState.on) {
+          qrState.on = false;
+          /* 退回 ntfy */
+          setStatus('P2P 连接断了，正在切回普通通道');
+          qrStop();
+          /* 恢复原有 ntfy 通道 */
+          if (online.room) {
+            startPolling();
+          }
+        }
+      }
+    };
+    qrState.pc = pc;
+    qrState.dc = dc;
+    return pc;
+  }
+
+  function bindQRDataChannel(dc) {
+    dc.onopen = function () {
+      qrState.on = true;
+      qrP2pConnected();
+    };
+    dc.onclose = function () {
+      if (qrState.on) {
+        qrState.on = false;
+        setStatus('P2P 连接断了');
+        qrStop();
+      }
+    };
+    dc.onmessage = function (ev) {
+      var txt = ev.data;
+      if (typeof txt !== 'string') return;
+      online.lastHeard = Date.now();
+      /* 复用 p2pOnData 的处理 */
+      p2pOnData(txt);
+    };
+  }
+
+  /* 扫码 P2P 连通后的处理 */
+  function qrP2pConnected() {
+    if (!qrState.on) return;
+    /* 迁移到主 p2pState */
+    p2pState.pc = qrState.pc;
+    p2pState.dc = qrState.dc;
+    p2pState.on = true;
+    p2pState.offerSent = qrState.offerSent;
+    p2pState.answerSent = qrState.answerSent;
+    p2pState.gathered = qrState.gathered;
+    p2pState.trickleDone = true;
+
+    /* 如果在房间中：复用现有 P2P 通道 */
+    if (online.room) {
+      p2pOnConnected();
+      closeQRModal();
+      return;
+    }
+
+    /* 不在房间：创建扫码直连独立对局（仅 DataChannel 通信） */
+    online.role = qrState.mode === 'host' ? 'host' : 'guest';
+    online.hostUid = qrState.mode === 'host' ? myUid() : 'peer';
+    online.hostName = qrState.mode === 'host' ? me.name : '朋友';
+    online.hostPid = qrState.mode === 'host' ? myPid() : 'peer';
+    online.guestUid = qrState.mode === 'guest' ? myUid() : 'peer';
+    online.guestName = qrState.mode === 'guest' ? me.name : '朋友';
+    online.guestPid = qrState.mode === 'guest' ? myPid() : 'peer';
+    online.seen = {};
+    online.seq = 0;
+    online.lastSeq = -1;
+    online.seenMids = [];
+    newGame(false);
+    refreshOnlineUI();
+    if (online.role === 'host') {
+      broadcastState(true);
+    } else {
+      sendHi();
+    }
+    setStatus('扫码直连已建立，消息不再经过服务器');
+    closeQRModal();
+  }
+
+/* 提交按钮的点击逻辑 */
+function qrSubmit() {
+if (qrState.mode === 'guest' && qrState.step === 1) {
+qrGuestSubmitOffer();
+} else if (qrState.mode === 'host' && qrState.step === 2) {
+qrHostSubmitAnswer();
+}
+}
+
+/* --- 摄像头扫码逻辑 --- */
+/* 使用 BarcodeDetector API（Chrome 94+ 支持）检测 QR 码。
+   不支持的浏览器提示用户改用粘贴方式。 */
+function qrStopScan() {
+qrState.scanActive = false;
+if (qrState.scanTimer) {
+  window.clearInterval(qrState.scanTimer);
+  qrState.scanTimer = 0;
+}
+if (qrState.scanStream) {
+  try {
+    qrState.scanStream.getTracks().forEach(function (tr) { tr.stop(); });
+  } catch (e) { /* ignore */ }
+  qrState.scanStream = null;
+}
+if (els.qrScanner) els.qrScanner.classList.remove('on');
+if (els.qrScanBtn) {
+    els.qrScanBtn.textContent = qrState.mode === 'host' ? '扫联机码' : '扫房主的二维码';
+}
+if (els.qrScanTip) els.qrScanTip.textContent = '将二维码放入框内';
+}
+
+function qrStartScan() {
+if (qrState.scanActive) { qrStopScan(); return; }
+
+qrState.scanTarget = qrState.mode === 'host' ? 'host' : 'guest';
+
+/* B站 App 内置浏览器不支持摄像头扫码，优先提示并尝试 scheme */
+if (IN_APP) {
+  var tipMsg = 'B站 App 内暂不支持摄像头扫码，请用 Chrome/Safari 打开本页面再扫，或直接粘贴文字串';
+  if (els.qrScanTip) { els.qrScanTip.textContent = tipMsg; }
+  if (els.qrScanner) els.qrScanner.classList.add('on');
+  if (els.qrVideo) els.qrVideo.parentElement.style.display = 'none';
+  setStatus(tipMsg);
+  /* 尝试 bilibili:// scheme 唤起原生扫码（部分版本可能支持） */
+  try {
+    var schemeUrl = 'bilibili://scan_qr';
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = schemeUrl;
+    document.body.appendChild(iframe);
+    setTimeout(function () { document.body.removeChild(iframe); }, 1000);
+  } catch (e) { /* ignore */ }
+  return;
+}
+
+/* 检查 BarcodeDetector 支持 */
+if (typeof window.BarcodeDetector === 'undefined') {
+  if (els.qrScanTip) { els.qrScanTip.textContent = '当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串'; }
+  if (els.qrScanner) els.qrScanner.classList.add('on');
+  setStatus('当前浏览器不支持摄像头扫码，请用 Chrome 浏览器，或直接粘贴文字串');
+  return;
+}
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  if (els.qrScanTip) { els.qrScanTip.textContent = '当前环境不支持摄像头访问，请直接粘贴文字串'; }
+  if (els.qrScanner) els.qrScanner.classList.add('on');
+  setStatus('当前环境不支持摄像头访问，请直接粘贴文字串');
+  return;
+}
+
+if (els.qrScanTip) els.qrScanTip.textContent = '正在启动摄像头…';
+if (els.qrScanner) els.qrScanner.classList.add('on');
+setStatus('正在启动摄像头…');
+
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: 'environment' },
+  audio: false
+}).then(function (stream) {
+  qrState.scanStream = stream;
+  qrState.scanActive = true;
+
+  if (els.qrScanner) els.qrScanner.classList.add('on');
+  if (els.qrVideo) {
+    els.qrVideo.srcObject = stream;
+    els.qrVideo.setAttribute('playsinline', 'true');
+  }
+  if (els.qrScanTip) els.qrScanTip.textContent = '正在识别…';
+
+  /* 切换按钮文案 */
+  if (els.qrScanBtn) els.qrScanBtn.textContent = '关闭摄像头';
+
+  /* 开始循环检测 */
+  qrState.scanTimer = window.setInterval(function () {
+    if (!qrState.scanActive) return;
+    qrDetectFrame().then(function (result) {
+      if (result) {
+        qrStopScan();
+        qrOnScanSuccess(result);
+      }
+    }).catch(function () { /* 忽略检测错误 */ });
+  }, 300);
+}).catch(function (err) {
+  qrState.scanActive = false;
+  var msg;
+  if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+    msg = '摄像头权限被拒绝。请在浏览器地址栏左侧的「锁/设置」图标中允许摄像头访问，然后重新点击扫码；或直接粘贴文字串';
+  } else if (err && err.name === 'NotFoundError') {
+    msg = '未检测到摄像头设备，请直接粘贴文字串';
+  } else {
+    msg = '摄像头启动失败：' + (err && err.message ? err.message : '') + '，请直接粘贴文字串';
+  }
+  if (els.qrScanTip) els.qrScanTip.textContent = msg;
+  setStatus(msg);
+});
+}
+
+/* 对当前视频帧进行 QR 码检测 */
+function qrDetectFrame() {
+if (!els.qrVideo || !els.qrVideo.videoWidth) return Promise.resolve(null);
+var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+return detector.detect(els.qrVideo).then(function (codes) {
+  if (codes && codes.length > 0) {
+    /* 取第一个检测到的 QR 码内容 */
+    for (var i = 0; i < codes.length; i++) {
+      if (codes[i].rawValue && codes[i].rawValue.indexOf('|') > -1) {
+        return codes[i].rawValue;
+      }
+    }
+    /* 没找到含 | 的，取第一个 */
+    if (codes[0].rawValue) return codes[0].rawValue;
+  }
+  return null;
+});
+}
+
+/* 扫码成功后的处理 */
+function qrOnScanSuccess(text) {
+var target = qrState.scanTarget;
+/* 验证格式：应有 "1|" 或 "2|" 前缀 */
+if (!text || (text.indexOf('1|') !== 0 && text.indexOf('2|') !== 0)) {
+  setStatus('二维码内容不是有效的邀请码，请重试或直接粘贴文字串');
+  return;
+}
+/* 访客必须扫 "1|" 开头的 offer */
+if (target === 'guest' && text.indexOf('1|') !== 0) {
+  setStatus('请扫描房主的邀请码（1| 开头）');
+  return;
+}
+/* 房主必须扫 "2|" 开头的 answer */
+if (target === 'host' && text.indexOf('2|') !== 0) {
+  setStatus('请扫描朋友的回复码（2| 开头）');
+  return;
+}
+
+/* 填入文本框 */
+if (els.qrTextInput) {
+  els.qrTextInput.value = text;
+  els.qrTextInput.readOnly = true;
+}
+
+setStatus('扫码成功，正在处理…');
+
+/* 触发提交流程 */
+if (target === 'guest' && qrState.step === 1) {
+  qrGuestSubmitOffer();
+} else if (target === 'host' && qrState.step === 2) {
+  qrHostSubmitAnswer();
+}
+}
+
+/* 统一发消息：P2P 优先，ntfy 兜底 */
+  function sendGameMsg(msg) {
     if (!msg.mid) msg.mid = newMid();
+    if (p2pState.on && p2pState.dc) {
+      var ok = p2pSend(msg);
+      if (ok) {
+        online.lastHeard = Date.now();
+        return Promise.resolve(true);
+      }
+    }
+    return publish(msg);
+  }
+
+  function publish(msg) {
+    if (!msg.mid) msg.mid = newMid();
+    /* P2P 已连通：走 DataChannel，不再发 ntfy。
+       必须放在 topic 检查之前——扫码直连的独立对局没有 ntfy room topic，
+       否则建连成功后落子/状态消息会被静默丢弃，看起来连上了却动不了。 */
+    if (p2pState.on && p2pState.dc && p2pSend(msg)) {
+      online.lastHeard = Date.now();
+      return Promise.resolve(true);
+    }
+    if (!online.topic) return Promise.resolve(false);
     var body = JSON.stringify(msg);
     var attempt = 0;
     var limited = false;
@@ -2293,9 +3835,42 @@ canvas{
     presence.poll = 0;
     presence.ui = 0;
     presence.started = false;
+    presencePaused = false;
     presence.since = {};
     presence.seen = {};
     presence.busy = {};
+  }
+
+  /* ---- presence 网络节流 ----
+     好友在线心跳原本 12s 一轮、每个好友一个 topic 请求，10 个好友约 55 请求/分钟，
+     会把 ntfy 公共中转的限流额度耗光，导致棋局消息被 429 挤掉。
+     对战期间降到 60s；P2P 直连后完全停发。 */
+  var presencePaused = false, presenceThrottled = false;
+  var PRESENCE_FAST_MS = 12000, PRESENCE_SLOW_MS = 60000;
+  function presenceTimers(ms) {
+    if (!presence.started || presencePaused) return;
+    if (presence.hb) window.clearInterval(presence.hb);
+    if (presence.poll) window.clearInterval(presence.poll);
+    presence.hb = window.setInterval(pushPresence, ms);
+    presence.poll = window.setInterval(pollPresence, ms);
+  }
+  function pausePresenceNet() {
+    if (!presence.started || presencePaused) return;
+    presencePaused = true;
+    if (presence.hb) { window.clearInterval(presence.hb); presence.hb = 0; }
+    if (presence.poll) { window.clearInterval(presence.poll); presence.poll = 0; }
+  }
+  function resumePresenceNet() {
+    if (!presence.started || !presencePaused) return;
+    presencePaused = false;
+    pushPresence();
+    presenceTimers(presenceThrottled ? PRESENCE_SLOW_MS : PRESENCE_FAST_MS);
+    pollPresence();
+  }
+  function throttlePresence(on) {
+    if (presenceThrottled === on) return;
+    presenceThrottled = on;
+    presenceTimers(on ? PRESENCE_SLOW_MS : PRESENCE_FAST_MS);
   }
 
   function pollPresence() {
@@ -2616,6 +4191,7 @@ canvas{
   }
 
   function subscribe(room) {
+    throttlePresence(true); /* 对战期间让 ntfy 额度优先给棋局消息 */
     var topic = TOPIC_PREFIX + room.toLowerCase();
     var sameRoom = online.topic === topic;
     online.room = room;
@@ -2839,6 +4415,10 @@ canvas{
     refreshOnlineUI();
     setStatus('房间建好啦，把邀请发给朋友');
     window.setTimeout(function () { broadcastState(true); }, 260);
+    /* P2P：房主提前发起 offer，访客进房后通过 hi 触发补发（见 handleMsg） */
+    if (p2pCanUse()) {
+      window.setTimeout(function () { if (online.role === 'host' && !p2pState.on) p2pStartHost(); }, 500);
+    }
     if (presence.started) pushPresence();
     if (online.hbTimer) window.clearInterval(online.hbTimer);
     online.hbTimer = window.setInterval(function () {
@@ -2907,6 +4487,11 @@ canvas{
   function sendByeBeacon() {
     if (!online.topic || online.role === 'host') return;
     var payload = JSON.stringify({ t: 'bye', u: myUid(), p: myPid() });
+    /* P2P 已连通：优先通过 DataChannel 发 bye，对方立刻能收到 */
+    if (p2pState.on && p2pState.dc) {
+      p2pSend({ t: 'bye', u: myUid(), p: myPid(), mid: newMid() });
+      return;
+    }
     try {
       if (navigator.sendBeacon) {
         var ok = navigator.sendBeacon(RELAY + online.topic, new Blob([payload], { type: 'text/plain' }));
@@ -2922,10 +4507,20 @@ canvas{
   }
 
   function leaveRoom(silent) {
+    throttlePresence(false); /* 离房恢复好友在线感知频率 */
     stopLobbyPublish(true);
     closeLobby();
-    if (online.topic && !silent) publish({ t: 'bye', u: myUid(), p: myPid() });
+    if (online.topic && !silent) {
+      /* P2P 已连通：直接走 DataChannel 发 bye；否则走 ntfy */
+      if (p2pState.on && p2pState.dc) {
+        p2pSend({ t: 'bye', u: myUid(), p: myPid(), mid: newMid() });
+      } else {
+        publish({ t: 'bye', u: myUid(), p: myPid() });
+      }
+    }
     closeStream();
+    /* P2P：彻底关闭 PeerConnection 与 DataChannel，避免泄漏连接 */
+    p2pStop();
     if (online.hbTimer) {
       window.clearInterval(online.hbTimer);
       online.hbTimer = 0;
@@ -3121,6 +4716,11 @@ canvas{
     }
     if (!m || typeof m !== 'object' || !m.t) return;
     online.lastHeard = Date.now();
+    /* WebRTC 信令：房主/访客建连时交换 SDP 与 ICE；P2P 连通后信令自动忽略 */
+    if (m.t === 'sdp-offer' || m.t === 'sdp-answer' || m.t === 'ice') {
+      if (!p2pState.on) p2pOnSignal(m);
+      return;
+    }
     /* 房主回执到达（状态/同意/拒绝/已满），撤销“没连上房间”的超时提示 */
     if (online.joinTimer && (m.t === 'st' || m.t === 'ok' || m.t === 'no' || m.t === 'busy')) {
       online.joinHeard = true;
@@ -3143,6 +4743,10 @@ canvas{
         renderPending();
         refreshOnlineUI();
         broadcastState(false);
+        /* P2P：房主收到访客 hi 时补发 offer，覆盖访客比 offer 更早到达的情况 */
+        if (p2pCanUse() && !p2pState.on && !p2pState.pc) {
+          p2pStartHost();
+        }
       }
       return;
     }
@@ -4080,6 +5684,38 @@ canvas{
     els.settingToggle.addEventListener('click', function () { toggleSettings(); });
   }
 
+  /* 扫码直连事件 */
+  if (els.qrHostBtn) {
+    els.qrHostBtn.addEventListener('click', function () {
+      if (mode !== 'online') forceMode('online');
+      qrStartHost();
+      openQRModal();
+    });
+  }
+/* 弹窗内就地切换角色：等于清掉当前生成的码，换到另一方的输入状态 */
+if (els.qrSwitchBtn) {
+els.qrSwitchBtn.addEventListener('click', function () {
+  if (qrState.mode === 'guest') { qrStartHost(); }
+  else { qrStartGuest(); }
+  openQRModal();
+});
+}
+if (els.qrSendBtn) {
+els.qrSendBtn.addEventListener('click', qrSubmit);
+}
+if (els.qrScanBtn) {
+els.qrScanBtn.addEventListener('click', function () {
+  if (qrState.scanActive) { qrStopScan(); }
+  else { qrStartScan(); }
+});
+}
+if (els.qrCancelBtn) {
+    els.qrCancelBtn.addEventListener('click', function () { qrStop(); });
+  }
+  if (els.qrCloseBtn) {
+    els.qrCloseBtn.addEventListener('click', function () { qrStop(); });
+  }
+
   if (els.createRoomBtn) {
     els.createRoomBtn.addEventListener('click', function () {
       if (mode !== 'online') forceMode('online');
@@ -4090,12 +5726,20 @@ canvas{
 
   if (els.joinRoomBtn) {
     els.joinRoomBtn.addEventListener('click', function () {
-      var code = els.roomInput ? String(els.roomInput.value || '').trim() : '';
-      if (!code) {
-        setStatus('先输入 6 位房间号哦');
-        return;
+      /* 主界面只留一行按钮；点「加入」才展开房间号输入，把纵向空间还给棋盘 */
+      if (els.joinRow) {
+        var opening = els.joinRow.hidden;
+        els.joinRow.hidden = !opening;
+        if (opening && els.roomInput) els.roomInput.focus();
       }
+    });
+  }
+  if (els.joinConfirmBtn) {
+    els.joinConfirmBtn.addEventListener('click', function () {
+      var code = els.roomInput ? String(els.roomInput.value || '').trim() : '';
+      if (!/^[0-9]{6}$/.test(code)) { setStatus('请输入 6 位数字房间号'); if (els.roomInput) els.roomInput.focus(); return; }
       if (mode !== 'online') forceMode('online');
+      if (els.joinRow) els.joinRow.hidden = true;
       joinRoom(code);
     });
   }
@@ -4114,7 +5758,7 @@ canvas{
 
   if (els.roomInput) {
     els.roomInput.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && els.joinRoomBtn) els.joinRoomBtn.click();
+      if (ev.key === 'Enter' && els.joinConfirmBtn) els.joinConfirmBtn.click();
     });
   }
 
