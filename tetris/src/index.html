@@ -114,7 +114,7 @@ canvas#board{
   text-align:center;font-size:11.5px;font-weight:700;color:#93a3c0;min-height:16px;flex:0 0 auto;
 }
 .controls{
-  flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
+  flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
 }
 .dpad{
   position:fixed;left:0;top:0;z-index:46;
@@ -170,14 +170,16 @@ canvas#board{
 .dkey.down small{color:#c9798d}
 .ctrl{
   appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:800;color:#4d7bb0;
-  background:#f2f9ff;border:2px solid #e3f2ff;border-radius:16px;height:48px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:#f2f9ff;border:2px solid #e3f2ff;border-radius:14px;height:42px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   box-shadow:0 4px 0 #e6f1fb;transition:transform .1s, box-shadow .1s;
-  font-size:18px;line-height:1;
+  font-size:15px;line-height:1;
 }
-.ctrl small{font-size:9px;font-weight:800;color:#9db0ca;letter-spacing:.4px}
+.ctrl small{font-size:8px;font-weight:800;color:#9db0ca;letter-spacing:.2px;white-space:nowrap}
 .ctrl:active{transform:translateY(3px);box-shadow:0 1px 0 #e6f1fb}
 .ctrl[hidden]{display:none}
+.ctrl:disabled{opacity:.45;cursor:default;box-shadow:0 4px 0 #e6f1fb}
+.ctrl:disabled:active{transform:none;box-shadow:0 4px 0 #e6f1fb}
 .ctrl.accent{background:linear-gradient(160deg,#ffe6a8,#ffd166);border-color:#ffe6a8;color:#a46a17;box-shadow:0 4px 0 #eec36b}
 .ctrl.accent small{color:#b78633}
 .ctrl.coral{background:linear-gradient(160deg,#ffd0da,#ffb3c2);border-color:#ffd0da;color:#b84f6b;box-shadow:0 4px 0 #eda5b5}
@@ -250,7 +252,7 @@ canvas#board{
     <div class="controls">
       <button type="button" class="ctrl" id="pauseBtn">Ⅱ<small>暂停</small></button>
       <button type="button" class="ctrl" id="restartBtn">↺<small>重开</small></button>
-      <button type="button" class="ctrl" id="undoBtn" hidden>↩<small>悔方块</small></button>
+      <button type="button" class="ctrl" id="undoBtn" disabled>↩<small>悔方块</small></button>
       <button type="button" class="ctrl accent" id="padStyleBtn">⌨<small>键盘方向</small></button>
     </div>
   </main>
@@ -512,8 +514,8 @@ canvas#board{
     } else {
       setStatus('方块落好啦，继续堆');
     }
-    if (!spawn()) { setUndoVisible(true); return; }
-    setUndoVisible(true);
+    if (!spawn()) { setUndoEnabled(true); return; }
+    setUndoEnabled(true);
     draw();
   }
 
@@ -555,8 +557,8 @@ canvas#board{
     };
   }
 
-  function setUndoVisible(v) {
-    if (undoBtnEl) undoBtnEl.hidden = !v;
+  function setUndoEnabled(v) {
+    if (undoBtnEl) undoBtnEl.disabled = !v;
   }
 
   /* 悔方块：把刚落地的那一块从棋盘拿走，并让它回到出生位置重新落 */
@@ -582,7 +584,7 @@ canvas#board{
     drawNext();
     draw();
     hideMask();
-    setUndoVisible(false);
+    setUndoEnabled(false);
     setStatus('方块回到天上啦，再来一次');
   }
 
@@ -740,7 +742,7 @@ canvas#board{
     over = false; paused = false;
     lastPieceSnap = null;
     spawnSnap = null;
-    setUndoVisible(false);
+    setUndoEnabled(false);
     if (scoreEl) scoreEl.textContent = '0';
     if (linesEl) linesEl.textContent = '0';
     if (levelEl) levelEl.textContent = '1';
