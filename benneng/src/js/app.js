@@ -18,6 +18,7 @@
   var collNameEl = document.getElementById('collName');
   var collIntroEl = document.getElementById('collIntro');
   var collLinkEl = document.getElementById('collLink');
+  var docLinkEl = document.getElementById('docLink');
   var listMetaEl = document.getElementById('listMeta');
   var dockNameEl = document.getElementById('dockName');
   var seenCountEl = document.getElementById('seenCount');
@@ -52,11 +53,12 @@
   }
   function current() { return DATA.collections[active]; }
 
-  function showToast(msg) {
+  function showToast(msg, hold) {
     toastEl.textContent = msg;
     toastEl.classList.add('show');
+    if (hold) toastEl.classList.add('sel'); else toastEl.classList.remove('sel');
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2200);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, hold ? 6000 : 2200);
   }
 
   /* Toy SDK 在不同容器里可能挂在 window.Toy 或 window.toy 下，统一探测 */
@@ -100,6 +102,50 @@
     } catch (e) {}
     showToast(copied ? '已复制视频链接 · ' + video.bv : '视频地址：' + url);
   }
+
+  /* 非安全上下文下 navigator.clipboard 不可用，用临时 input 兜底 */
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-2000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* 文档外链：容器内若拦截新窗口，退化为复制链接 / 可长按复制的地址 */
+  function openDoc(e) {
+    if (!docLinkEl) return;
+    e.preventDefault();
+    var url = docLinkEl.href;
+    var win = null;
+    try { win = window.open(url, '_blank'); } catch (err) { win = null; }
+    if (win) {
+      try { win.opener = null; } catch (err2) {}
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(
+        function () { showToast('文档链接已复制，可在浏览器打开'); },
+        function () { showToast(legacyCopy(url) ? '文档链接已复制，可在浏览器打开' : '文档地址：' + url, true); }
+      );
+    } else {
+      var ok = legacyCopy(url);
+      showToast(ok ? '文档链接已复制，可在浏览器打开' : '文档地址：' + url, !ok);
+    }
+  }
+
+  if (docLinkEl) docLinkEl.addEventListener('click', openDoc);
 
   function markSeen(bv) {
     if (seen.has(bv)) { updateDock(); return; }
