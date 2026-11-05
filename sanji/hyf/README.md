@@ -20,11 +20,14 @@
 npm install                      # 装 hyperframes@0.9.14
 python3 scripts/make_font_subset.py   # 生成字体子集（已入库，通常无需重跑）
 python3 scripts/make_bgm.py           # 生成 assets/bgm.wav（不入库）
-npx hyperframes render --quality high --fps 30 --output renders/video.mp4
+/usr/bin/python3 scripts/make_vo.py  # 生成 assets/vo.wav（TTS 旁白，不入库）
+bash scripts/make_vo_master.sh       # 母带压缩 → assets/vo-master.wav（不入库）
+python3 scripts/make_duck_bgm.py     # 包络 ducking → assets/bgm-ducked.wav（不入库）
+npx hyperframes render --quality high --fps 30 --output renders/video-vo.mp4
 ```
 
-> `scripts/make_bgm.py` 需要 `numpy`；`scripts/make_font_subset.py` 需要 `fonttools`。
-> 音频与成片不入库：`bgm.wav` 由脚本本地生成，MP4 是渲染产物。
+> `scripts/make_bgm.py` / `make_duck_bgm.py` 需要 `numpy`；`make_font_subset.py` 需要 `fonttools`；`make_vo.py` 需要 `edge-tts`（用系统 `/usr/bin/python3`）。
+> 音频与成片不入库：`bgm.wav` / `vo.wav` / `vo-master.wav` / `bgm-ducked.wav` 均由脚本本地生成，MP4 是渲染产物。
 
 ## 项目状态卡（v3 · 2026-11-05 渲染后）
 
@@ -35,11 +38,11 @@ npx hyperframes render --quality high --fps 30 --output renders/video.mp4
 | `run_id` | `2026-11-05-planning` → `2026-11-05-build` → `2026-11-05-render` |
 | `brief` | `BRIEF.md` 存在；`workflow: product-launch-video` / `flow: automation`（建议值，未确认）/ 60s / 1920×1080 |
 | `shots` | 17 个 Frame，已全部落为 `index.html` 中的 `class="clip"` |
-| `assets` | 11 张产品图 + 本地源码渲染的 `ui-home.png` / `ui-full.png` + `gsap.min.js` + **`SanjiSerif-subset.ttf`（285 KB 字体子集，替代 26 MB 完整 ttc）** + 程序化 `bgm.wav`（本地生成，不入库） |
+| `assets` | 11 张产品图 + 本地源码渲染的 `ui-home.png` / `ui-full.png` + `gsap.min.js` + **`SanjiSerif-subset.ttf`（285 KB 字体子集，替代 26 MB 完整 ttc）** + 程序化 `bgm.wav` + **TTS 旁白 `vo.wav` / 母带 `vo-master.wav` / 已 duck 的 `bgm-ducked.wav`（均本地生成，不入库）** |
 | `steps` | 规划文档 ✅ → `init` ✅ → 设计系统 `frame.md` ✅ → 逐帧搭建 ✅ → `check` ✅ → `snapshot` ✅ → `preview` ✅ → **`render` ✅（用户批准后执行）** → **成片校验 ✅** |
-| `outputs` | 6 份 Markdown + `frame.md` + `index.html` + `scripts/make_bgm.py` + `assets/` + 25 张静帧 / 3 张 contact sheet + **`renders/video.mp4`（16.6 MB，60.000s，1920×1080@30fps，h264+aac；已按源码顺序修订并重渲）** + `renders/contact-sheet.jpg` + 3 张原分辨率关键帧 |
-| `blockers` | 无阻塞项阻断成片。待用户裁定项仍开放：学习顺序 A/B、画幅与投放渠道、是否补中文旁白 VO（HeyGen 未登录 + Kokoro 未装） |
-| `next_action` | 用户审阅 `renders/video.mp4`；如需改动，指定帧号即可定位重渲 |
+| `outputs` | 6 份 Markdown + `frame.md` + `index.html` + `scripts/`（BGM / VO / 母带 / ducking / 混音预演 / 字体子集 共 6 个脚本）+ `assets/` + 25 张静帧 / 3 张 contact sheet + **`renders/video.mp4`（16.6 MB，纯字幕 + BGM 版）** + **`renders/video-vo.mp4`（16.6 MB，**含中文旁白版**，60.000s，1920×1080@30fps，h264+aac，-16.1 LUFS）** + `renders/contact-sheet.jpg` + 3 张原分辨率关键帧 |
+| `blockers` | 无阻塞项阻断成片。待用户裁定项仍开放：画幅与投放渠道、真实产品 UI 动态录屏（当前静态截图降级）。**中文旁白 VO 已解决**（改走 edge-tts 免登录接口 + ffmpeg 母带压缩 + numpy 包络 ducking） |
+| `next_action` | 用户审阅 **`renders/video-vo.mp4`（含旁白版）**；如需改动，指定帧号即可定位重渲 |
 
 状态机：`planned → checked → previewed → rendered → verified`。当前为 **`verified`**（`render` 成功、`check` 0 错误、静帧与成片抽帧均已目视复核、音频电平与时长已实测）。
 
@@ -95,10 +98,13 @@ npx hyperframes render --quality high --fps 30 --output renders/video.mp4
 - CLI 实测 `hyperframes v0.9.14` 可用；`doctor`：Node 22.13.1 / FFmpeg / FFprobe / 系统 Chrome / Docker ✓；whisper-cpp 与 Kokoro TTS 缺失（可选）。
 - **宿主适配说明（重要）**：本包以 `.codebuddy-plugin/plugin.json`（`name: hyperframes-director`）安装，而 `plugin-cli.mjs` 启动器只认 `name === "hyperframes"` 的 manifest，实测报 `No HyperFrames plugin manifest found`。因此按 `workbuddy-v2-adapter.md` 允许的**离线工程路径**，改用随包同版本 CLI 的 standalone 调用 `npx hyperframes`；**未运行** `skills update` / `skills check` / `npx skills add`（插件规则禁止，且 workflow 与领域 Skill 已随包内置）。
 - **未调用的上游自动化脚本（未测路径，如实记录）**：`build-frame.mjs`、`audio.mjs`、`captions.mjs`、`stage-assets.mjs`、`frame-packets.mjs`、`transitions.mjs`、`assemble-index.mjs`。原因：本工程 `STORYBOARD.md` 是规划层自定义格式，与这些脚本的解析契约不耦合；改用手写 `frame.md` + 单文件 `index.html`，并以 CLI 的 `lint` / `check` / `snapshot` / `preview` 验证。脚本文件随包存在，但**未假装执行**。
-- **登录态**：`hyperframes auth status` → `Not signed in to HeyGen (non-interactive)`。VO/BGM 不走 HeyGen；BGM 用本地程序化合成，VO 未生成。
+- **登录态**：`hyperframes auth status` → `Not signed in to HeyGen (non-interactive)`。VO/BGM 不走 HeyGen；BGM 用本地程序化合成，VO 走 **edge-tts 免登录接口**（微软 TTS 端点，无需账号），实测网络可达、合成成功。
 - **已执行命令证据**：`init`（`--example blank --resolution landscape --non-interactive --skip-skills`）→ `lint`（0 错误）→ `check`（**Layout 0 错误 / Contrast 66→66 通过 WCAG AA / Motion 0 / Runtime 0 / Audio 0**）→ `snapshot --at` 17 个帧中点 + 6 个字幕切点 → `preview --background` + `preview --status`（PID 24249）。
 - **静帧目视复核**：25 张静帧、3 张 contact sheet；中文字体、素材、字幕均正常，无空白字幕条、无图片加载失败、无黑帧。F13 两个面板重叠、F17 免责小字被字幕带遮挡，均在 `check` 通过前修复并复验。字幕切换点（2.99/3.01、10.99/11.01、57.99/58.01s）7 格全部有文字、切换连贯。
 - **BGM 实测**：`assets/bgm.wav` 60.000s / 48kHz / stereo / 峰值 -3.00 dBFS / 零削波；`scripts/make_bgm.py` 可复现（固定种子、纯 numpy 离线合成）。
+- **中文旁白 VO（2026-11-05 补做）**：`scripts/make_vo.py` 用 edge-tts `zh-CN-YunyangNeural`（中文男声·新闻播报，`rate=+10%`）合成 14 段语义合并旁白，两段超出时间窗用 atempo 压缩（1.052 / 1.181），语音总占比 38.2%。
+- **母带压缩（关键修正）**：TTS 原始语音波峰因数过大（峰值 -0.7 dBFS 但整体仅 -17.3 LUFS），直接提增益必然削波（实测 ×1.2 即破 0 dBFS）。故新增 `scripts/make_vo_master.sh`：`acompressor(threshold=-26dB, ratio=3.5)` 压动态（LRA 7.1 → 4.9 LU）+ `alimiter(limit=-2 dBFS)` 兜峰值，得 **-16.0 LUFS / LRA 4.9 LU / Peak -1.9 dBFS**。同时把 `make_vo.py` 的段落峰值目标从 -4.4 dBFS 下调到 -9.5 dBFS 以留 headroom。
+- **Ducking（关键修正）**：**实测 `ffmpeg sidechaincompress(threshold=0.02, ratio=8)` 只把语音段 BGM 压低约 1.5 dB**，远达不到 `BGM.md` §5 要求的 12–15 dB——原因是压缩量取决于输入超出 threshold 的部分，对已接近满幅的母带 VO 反而只在峰值处起作用。改为自建 `scripts/make_duck_bgm.py`：10 ms 窗 / 5 ms 跳步算 VO 短时 RMS → 门限 -45 dBFS 二值化 → 目标增益 -14 dB → attack 15 ms 快降 / release 250 ms 慢升 → 线性插值回采样点与 BGM 相乘。**实测：说话瞬间人声领先 BGM 14.3 dB，间隙 BGM 自然回升，符合规范。**
 - **字体子集化（入库前处理）**：HyperFrames 的 lint 要求 `@font-face` 必须带 `url()` 源（只写 `local()` 报 `font_face_local_only`；写系统字体名报 `font_family_without_font_face`），即字体文件必须随工程走，才能保证任何机器渲染出同样字形。完整 `NotoSerifCJK.ttc` 26 MB 会让 clone 变慢，故用 `scripts/make_font_subset.py` 扫 `index.html` 实际用到的 502 个字符（含 ASCII 与中文标点）抽成 `assets/SanjiSerif-subset.ttf`（285 KB，压缩 90%）。**像素验证**：与完整 ttc 渲染对比，同帧最大差异 82/255、平均 1.72/255，差异全部是 1–2 px 宽的笔画边缘抗锯齿微差，放大比对字形完整无缺字；`check` 由 1 error（`font_family_without_font_face`）变为 **0 error / Check passed**。脚本固定 `head.created/modified` 时间戳，**字节级可复现**（两次生成 md5 一致）。
 - **文档层机械校验已通过（24 项 / 0 失败）**：帧时长合计 60.0s、时间码 0→60 连续、18 句口播最长 15 字、STORYBOARD/SCRIPT 逐句文案一致、FRAME-SPEC 的 17 组 `data-start`/`data-duration` 与分镜一致、BGM 切点覆盖全部帧起点。
 - **保留的 warning（已 review，非错误）**：lint 24 条（19 条「建议拆子合成」、2 条同图多 img 的媒体探测提示、2 条轨道过密、1 条文件偏大）；craft 14 条（装饰碎片文字停留时间短、小字角标低于 28px 阅读下限）。均为可读性 / 风格建议，不影响渲染正确性；片尾免责声明按源码原意在 60s 结构下只停留 4s，属已记录的取舍。
@@ -171,12 +177,45 @@ npx --yes hyperframes@0.9.14 render --skill=product-launch-video --quality high 
 
 **修订重渲**：首轮成片渲染后用户指出人纪顺序有误（针灸之后应为黄帝内经），按源码 v1.15 修正全部相关画面与文案后重新渲染，耗时 1m 45.4s，规格与首轮完全一致。抽帧确认 21s / 25s / 44s / 48s 四帧的节点顺序与字幕均已改正。
 
-**未生成 / 未执行**：中文旁白 VO（HeyGen 未登录、Kokoro 未装）、真实产品 UI 动态录屏（用静态 `ui-home.png` / `ui-full.png` 降级）、发布或上传。
+**未生成 / 未执行**：真实产品 UI 动态录屏（用静态 `ui-home.png` / `ui-full.png` 降级）、发布或上传。
+
+---
+
+## 补做：中文旁白音轨（2026-11-05，用户反馈「只有背景音乐没有人说话？？？」后）
+
+### 成片实测（`renders/video-vo.mp4`）
+
+| 项 | 实测值 | 判定 |
+|---|---|---|
+| 分辨率 / 帧率 / 时长 | 1920×1080 / 30/1 / 60.000000s（1800 帧） | ✅ 与 60s 结构一致 |
+| 视频 / 音频编码 | h264 / aac 48000 Hz 2ch | ✅ |
+| 整体响度 | **-16.1 LUFS**（LRA 2.6 LU） | ✅ 落入流媒体 -16 ~ -14 区间 |
+| 真峰值 | **-1.5 dBFS** | ✅ 零削波 |
+| 整片 RMS / 峰值 | -19.6 dB / -1.73 dBFS | ✅ |
+| 静音扫描 | 静音(<-55 dB)仅占 1.8%；≥0.2s 的静音段 2 段（最长 0.46s） | ✅ 无异常断音 |
+| 各语音段峰值 | 14 段全部在 -9.6 ~ -11.8 dB | ✅ 语音贯穿全片 |
+| **人声存在性** | 自相关基频检测：9 个采样段 F0 = 78–193 Hz | ✅ **确认为真人声中文男声**（非 BGM 误判） |
+| 人声优先度 | 说话瞬间 VO 领先 BGM **14.3 dB** | ✅ 符合 `BGM.md` §5 的 12–15 dB 规范 |
+| 画面抽帧复核 | 20s 路径轴顺序 = 针灸 → 黄帝内经 → 神农本草经 → 伤寒论 → 金匮要略；右上角标注「路径图为信息图 · 顺序按源码「如何开始」」 | ✅ 顺序正确、无黑帧、无空白字幕条 |
+
+### 音频链路（全部可复现）
+
+```
+edge-tts (zh-CN-YunyangNeural, rate=+10%)
+  └─ scripts/make_vo.py            → assets/vo.wav          （TTS 拼接，峰值限 -9.5 dBFS）
+       └─ scripts/make_vo_master.sh → assets/vo-master.wav  （acompressor + alimiter，-16.0 LUFS / -1.9 dBFS）
+            ├─ scripts/make_duck_bgm.py → assets/bgm-ducked.wav（VO 包络驱动 -14 dB duck，60.000s）
+            └─ index.html 双轨：VO data-volume=1.0 / BGM data-volume=0.75
+                 └─ npx hyperframes render → renders/video-vo.mp4（-16.1 LUFS / -1.5 dBFS）
+```
+
+> 旁白与字幕的关系：字幕是 **18 句**完整信息层（`SCRIPT.md` Line 1–18），旁白按语义合并为 **14 段**，逐段映射表见 `SCRIPT.md` 末章。在 60s 内逐句朗读 18 句会因语速过快而失真，合并后每段都落在它所覆盖的字幕时间窗内。
+> 四个音频产物（`bgm.wav` / `vo.wav` / `vo-master.wav` / `bgm-ducked.wav`）**均已写入 `.gitignore`，不入库**。
 
 ## 下一步（需你审阅 / 授权）
 
 1. **审阅成片**：`renders/video.mp4`（1920×1080 / 30fps / 60.000s / 16.6 MB）；`renders/contact-sheet.jpg` 是 17 帧一览。Studio 预览仍在 `http://localhost:3002/#project/sanji-hyperframes` 运行，可直接在画布上改文字、拖动剪辑。
 2. **改稿方式**：给我帧号与时间码即可定位重渲（帧号 → 时间码对照见 `STORYBOARD.md`；字幕句序见 `SCRIPT.md`）。
-3. 裁定仍开放的两项：画幅与投放渠道、**是否补中文旁白音轨**（当前为纯字幕 + BGM）。
-4. 若要补配音：先解决本地 TTS 引擎（安装 Kokoro，或授权走外部 TTS 接口），再按 `SCRIPT.md` 的 18 句词级时间戳对齐，并把 BGM 做 ducking（`BGM.md` §5 已给参数）。
+3. 裁定仍开放的两项：**画幅与投放渠道**、是否用真实产品 UI 动态录屏替换静态截图。
+4. 旁白已按你的反馈补齐；若要改配音（换音色 / 改文案 / 改语速），改 `scripts/make_vo.py` 的 `VO` 列表或 `VOICE` / `RATE` 后重跑三步脚本即可，无需动画面。
 5. 发布 / 上传 / 提交 PR 等对外动作**均未执行**，需要时另行授权。

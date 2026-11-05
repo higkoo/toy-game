@@ -4,8 +4,12 @@ capture/
 .hyperframes/
 chrome-headless-shell/
 
-# 音频：由 scripts/make_bgm.py 本地生成，不入库
+# 音频：由脚本本地生成，不入库
 assets/bgm.wav
+assets/bgm-ducked.wav
+assets/vo.wav
+assets/vo-master.wav
+scripts/_vo_tmp/
 
 # 完整 CJK 字体：26 MB，用 scripts/make_font_subset.py 抽子集后入库
 assets/NotoSerifCJK.ttc

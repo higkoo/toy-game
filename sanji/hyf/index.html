@@ -462,8 +462,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);font-fa
   <div class="clip capline" id="capline17" data-start="56" data-duration="2" data-track-index="3"><span class="captext" id="cap17">打开<em>倪海厦学习天地</em>。</span></div>
   <div class="clip capline" id="capline18" data-start="58" data-duration="2" data-track-index="3"><span class="captext" id="cap18">收藏这一页，<em>随时回来</em>。</span></div>
 
-  <!-- ============ T4 音频：本地程序化 BGM，纯字幕版无 VO ============ -->
-  <audio id="bgm" class="audio-clip" src="assets/bgm.wav" data-start="0" data-duration="60" data-volume="0.34" data-fade-in="0.5" data-fade-out="0.6" data-track-index="4"></audio>
+  <!-- ============ T4 音频轨：中文旁白（主）+ 已 duck 的 BGM（衬） ============ -->
+  <!-- VO：edge-tts 中文男声，14 段按语义对齐字幕区间；音量为主（人声为主，BGM 让位） -->
+  <audio id="vo" class="audio-clip" src="assets/vo-master.wav" data-start="0" data-duration="60" data-volume="1.0" data-track-index="4"></audio>
+  <!-- BGM：sidechaincompress 预混版本，VO 一出声就自动让位（语音段降 8–13 dB） -->
+  <audio id="bgm" class="audio-clip" src="assets/bgm-ducked.wav" data-start="0" data-duration="60" data-volume="0.75" data-fade-in="0.5" data-fade-out="0.6" data-track-index="5"></audio>
 
 </div>
 

@@ -61,7 +61,17 @@
 | 全片真峰值 | **≤ -3 dBFS** | 留 headroom，避免 AAC 编码削波 |
 | 频段 | BGM 中频（300 Hz–3 kHz）适度衰减 3–4 dB | 给人声让出清晰度，比单纯压音量更干净 |
 
-**ducking 实现**：HyperFrames `<audio id="bgm">` 配 `data-automation` 的 gain lane，在每句 VO 起点的前 6 帧下降、句尾后 10 帧回升；不要整曲一刀切压到底，否则音乐会「消失」。
+**ducking 实现（已落地）**：本工程采用**离线渲染 ducking**——先用 `ffmpeg sidechaincompress` 以 VO 为 key、BGM 为 main 生成 `assets/bgm-ducked.wav`（压缩后自动补齐到精确 60.000s），再让 HyperFrames 的 `<audio id="bgm">` 直接播放这份已 duck 的文件。
+
+```
+[1:a]aformat=channel_layouts=stereo[key];
+[0:a]aformat=channel_layouts=stereo[bg];
+[bg][key]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=350:makeup=1[ducked]
+```
+
+实测：语音段 BGM 下降 **7.8 – 12.6 dB**，无语音间隙仅下降 0.1 – 1.7 dB（自然回弹）。相比在 HyperFrames 内做 gain automation，离线 ducking 的优势是压缩曲线由音频包络精确驱动，不会因为帧采样而抖动。
+
+> 字幕是 18 句完整信息层，旁白按语义合并为 **14 段**（避免 60s 内逐句朗读导致语速过快），两套文案的对应关系见 `SCRIPT.md`。
 
 ## 6. 音效（SFX，可选）
 
@@ -83,8 +93,26 @@ SFX 全部短、干、不叠在人声字头上。
 - 本项目既有 `sanji-video/scripts/make_bgm.py`（古风五声音阶合成器）可作为**参考实现**，但那是上一版 9 场景的节奏，切点需按本表重排。
 - 音频进 HyperFrames：`<audio id>` 必须有 `id`、不加 `crossorigin`；VO 与 BGM 分轨，ducking 用 gain automation；最终以 TTS 词级时间戳对齐字幕与口播。
 
+## 7.1 已落地实现（2026-11-05）
+
+| 轨道 | 文件 | 生成方式 | 时长 | 增益 | 入库 |
+|---|---|---|---|---|---|
+| 中文旁白 VO | `assets/vo.wav` | `scripts/make_vo.py`（edge-tts，`zh-CN-YunyangNeural`，`rate=+10%`，超时长段用 atempo 压缩，峰值限幅 -1.5 dBFS） | 60.000s / 48kHz / stereo | `data-volume=0.95` | ❌ 不入库 |
+| BGM（已 duck） | `assets/bgm-ducked.wav` | `scripts/make_ducked_bgm.sh`（`make_bgm.py` 产出的源 BGM → sidechaincompress → apad 补齐 60s） | 60.000s / 48kHz / stereo | `data-volume=0.42` | ❌ 不入库 |
+| 混音预演 | 临时产物 | `scripts/make_mix.sh`（直接从 `index.html` 读取两轨 `data-volume` 复现 CLI 混音） | 60.000s | — | ❌ 不入库 |
+
+**实测成片电平**（`ffmpeg ebur128`）：
+
+| 指标 | 实测值 | 目标 | 结论 |
+|---|---|---|---|
+| 整体响度 I | **-18.6 LUFS** | -16 ~ -14（流媒体参考） | 略保守，为投放渠道未定留余量 |
+| 真峰值 | **-1.1 dBFS** | ≤ -1 dBTP | ✅ 零削波 |
+| LRA | 5.1 LU | — | 动态平稳，适合有配音的科普片 |
+
+> 若投放渠道确认为 B 站 / 短视频平台，可将两轨增益各上调约 +2 dB（`VO 1.05` / `BGM 0.46`）逼近 -16 LUFS。
+
 ## 8. 待确认
 
-- 是否需要中文旁白音轨（用户提到「口播」但未确认配音方式）；若做纯字幕 + BGM，Solution 段音乐可上调 3–4 dB。
-- 投放渠道（B 站 / 官网嵌入 / 短视频平台）会影响响度目标与是否允许 60s 完整播放。
-- 是否接受程序化合成音色的「拟古琴」质感，或需要真人演奏录音。
+- ~~是否需要中文旁白音轨~~ → **已裁定：需要，已落地**（用户 2026-11-05 反馈「只有背景音乐没有人说话？？？」）。采用 edge-tts 中文男声 + 离线 sidechaincompress ducking，见 §7.1。
+- 投放渠道（B 站 / 官网嵌入 / 短视频平台）会影响响度目标与是否允许 60s 完整播放 —— **仍待裁定**。
+- 是否接受程序化合成音色的「拟古琴」质感，或需要真人演奏录音 —— **仍待裁定**（VO 音色已定为微软 `zh-CN-YunyangNeural` 男声·新闻播报）。
