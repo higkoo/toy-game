@@ -170,9 +170,20 @@ main{padding:18px 18px calc(118px + var(--bottom-inset))}
 .coll-body{padding:15px 16px 18px}
 .coll-name{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
 .coll-intro{margin:8px 0 0;font-size:12.5px;line-height:1.7;color:var(--dim)}
+.coll-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px}
+.coll-docs{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 14px;border-radius:11px;
+  font-size:12.5px;font-weight:600;letter-spacing:.02em;color:#1b0d06;
+  background:var(--accent);border:1px solid transparent;
+  box-shadow:0 8px 22px rgba(232,100,43,.24);
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+.coll-docs:active{transform:scale(.97);box-shadow:0 4px 14px rgba(232,100,43,.2)}
+.coll-docs svg{width:11px;height:11px}
 .coll-link{
   display:none;align-items:center;gap:5px;
-  margin-top:14px;padding-bottom:2px;
+  padding-bottom:2px;
   font-size:11.5px;letter-spacing:.04em;color:var(--accent-soft);
   border-bottom:1px solid rgba(232,100,43,.42);
 }
@@ -280,6 +291,8 @@ main{padding:18px 18px calc(118px + var(--bottom-inset))}
   pointer-events:none;
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+/* 展示长地址时允许选中/长按复制 */
+.toast.sel{pointer-events:auto;user-select:text;-webkit-user-select:text;line-height:1.5}
 
 /* ---------- 小屏 / 矮屏 ---------- */
 @media (max-width:360px){
