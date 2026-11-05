@@ -1,0 +1,5 @@
+node_modules/
+out/
+scripts/_vo_tmp/
+*.log
+.DS_Store
