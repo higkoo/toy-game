@@ -273,7 +273,7 @@ canvas#board{
   <button type="button" class="dkey right" id="dpRight">→</button>
 </div>
 
-<div class="ver" id="verTag">v5</div>
+<div class="ver" id="verTag">v6</div>
 
 <script>
 (function () {
@@ -511,6 +511,8 @@ canvas#board{
       }
       if (linesEl) linesEl.textContent = String(lines);
       setStatus(n === 4 ? '太厉害啦！四行一起消' : ('消掉 ' + n + ' 行，继续保持'));
+      /* 榜单：一次消 n 行 → +n，跨局累计；只加不减 */
+      try { if (window.ToyRank) window.ToyRank.settle(n); } catch (e) {}
     } else {
       setStatus('方块落好啦，继续堆');
     }
@@ -752,6 +754,8 @@ canvas#board{
     hideMask();
     setStatus('加油，别堆到顶');
     draw();
+    /* 榜单：开局即保底 1 分，玩过就上榜；分数只加不减 */
+    try { if (window.ToyRank) window.ToyRank.settle(0); } catch (e) {}
   }
 
   function finishGame() {
@@ -1139,6 +1143,326 @@ canvas#board{
   if (document.body) setTimeout(watch, 400);
   else document.addEventListener('DOMContentLoaded', function () { setTimeout(watch, 400); });
 })();
+</script>
+<script>
+/* ===== TOY 原生榜单：成绩上报 + 页面内排行榜面板 =====
+ * 平台约束（官方 SDK 类型声明，见 README）：
+ *   - submitScore 传绝对分，服务端只保留该榜位的历史最高分，本次更低不覆盖
+ *     → 分数只增不减，且必须传绝对值。
+ *   - getRankList 游客可读，返回 [{ rank, score, nickname, avatar }]。
+ *   - getMyRank 需登录，是否上榜必须用 ranked 判断（score 允许 0 / 负）。
+ * 俄罗斯方块口径：累计阶梯分，只加不减。
+ *   - 一次消 1/2/3/4 行 → +1/2/3/4，跨局一直累计。
+ *   - 开局即保底 1 分，玩过就上榜。
+ *   - 「累计积分」与 HUD 里的单局「得分 / 最高分」是两个数。
+ * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
+ */
+(function () {
+  'use strict';
+  var BOARD = 1, LIMIT = 20, WAIT_MAX = 40;
+  var MIN = -16777216, MAX = 16777215;
+  var lastSent = null;  /* 只记住最后一次提交值：连续同分不重复发，本地重置后仍能重发 */
+  var cache = {};       /* period -> { list, my } */
+  var CFG = null;
+  var period = 'all';
+
+  function sdk() {
+    var w = window;
+    var list = [w.toy, w.Toy, w.toy && w.toy.toy, w.Toy && w.Toy.toy];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    }
+    return null;
+  }
+  function num(k, d) {
+    try {
+      var v = window.localStorage.getItem(k);
+      return v === null ? d : (parseInt(v, 10) || 0);
+    } catch (e) { return d; }
+  }
+  function put(k, v) {
+    try { window.localStorage.setItem(k, String(v)); } catch (e) {}
+    return v;
+  }
+  function clamp(v) { return v < MIN ? MIN : (v > MAX ? MAX : v); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  /* 只提交单调不减的绝对值；限流(307044)等失败按指数退避重试 */
+  function send(score, wait, retry) {
+    var t = sdk();
+    if (!t) {
+      if (wait < WAIT_MAX) window.setTimeout(function () { send(score, wait + 1, retry); }, 150);
+      return;
+    }
+    if (lastSent === score) return;
+    lastSent = score;
+    var fail = function () {
+      if (lastSent === score) lastSent = null;   /* 允许退避后重发 */
+      if (retry < 2) {
+        window.setTimeout(function () { send(score, 0, retry + 1); }, 1200 * Math.pow(2, retry));
+      }
+    };
+    try {
+      var r = t.submitScore({ score: score, board: BOARD });
+      if (r && typeof r.catch === 'function') r.catch(fail);
+    } catch (e) { fail(); }
+  }
+
+  /* 棋牌结算：赢加阶梯分，输/平加 0（不扣分）；玩过一局至少 1 分 */
+  function settle(delta) {
+    if (!CFG) return 0;
+    var v = num(CFG.key, 0) + (delta || 0);
+    if (v < 1) v = 1;
+    v = put(CFG.key, clamp(v));
+    send(v, 0, 0);
+    return v;
+  }
+
+  /* 内容类：每看一集 +1；用已看 id 集合去重，同一集不重复计分 */
+  function watch(id) {
+    if (!CFG || !id) return 0;
+    var sk = CFG.key + '.seen', list = [];
+    try { list = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    if (list.indexOf(id) !== -1) return num(CFG.key, 0);
+    list.push(id);
+    try { window.localStorage.setItem(sk, JSON.stringify(list)); } catch (e) {}
+    var v = put(CFG.key, clamp(num(CFG.key, 0) + 1));
+    send(v, 0, 0);
+    return v;
+  }
+
+  /* ---------------- 面板 ---------------- */
+  var CSS = [
+    '.tyrank-entry{cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}',
+    '.tyrank-fab{position:fixed;z-index:60;right:calc(60px + env(safe-area-inset-right));bottom:calc(6px + var(--toy-bottom-inset, env(safe-area-inset-bottom,0px)));display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(120,140,170,.55);background:rgba(255,255,255,.9);color:#33405c;font-size:11px;font-weight:700;line-height:1;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(20,30,50,.16)}',
+    '.tyrank-link{border:0;background:none;padding:3px 2px;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:inherit;opacity:.85}',
+    '.tyrank-footlink{color:#4d7bb0;font-weight:800;opacity:1}',
+    '.tyrank-footlink::before{content:"·";margin-right:5px;color:#cbd7e6;text-decoration:none;font-weight:400}',
+    '.tyrank-pill{font-size:10.5px;letter-spacing:.08em;color:rgba(255,255,255,.9);padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(12,11,10,.28);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);white-space:nowrap;text-decoration:none}',
+    '.tyrank-mask{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,12,20,.62)}',
+    '.tyrank-card{width:min(420px,100%);max-height:min(78vh,620px);display:flex;flex-direction:column;background:#fffdf9;color:#25304a;border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.3);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}',
+    '.tyrank-dark .tyrank-card{background:#1b1917;color:#f3ece1}',
+    '.tyrank-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}',
+    '.tyrank-title{font-size:16px;font-weight:800;letter-spacing:.5px}',
+    '.tyrank-x{border:0;background:none;color:inherit;font-size:22px;line-height:1;cursor:pointer;opacity:.6;padding:0 4px}',
+    '.tyrank-tabs{display:flex;gap:6px;padding:0 16px 10px}',
+    '.tyrank-tab{border:1px solid rgba(120,140,170,.4);background:transparent;color:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;opacity:.65}',
+    '.tyrank-tab.on{background:#33405c;color:#fff;border-color:#33405c;opacity:1}',
+    '.tyrank-dark .tyrank-tab.on{background:#c9a227;color:#1b1917;border-color:#c9a227}',
+    '.tyrank-me{display:flex;gap:8px;padding:0 16px 12px}',
+    '.tyrank-me > div{flex:1;min-width:0;background:rgba(120,140,170,.12);border-radius:10px;padding:9px 8px;text-align:center}',
+    '.tyrank-me b{display:block;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-me span{display:block;font-size:10px;opacity:.65;margin-top:3px}',
+    '.tyrank-list{flex:1;min-height:80px;overflow-y:auto;padding:0 10px 10px;-webkit-overflow-scrolling:touch}',
+    '.tyrank-row{display:flex;align-items:center;gap:9px;padding:7px 6px;border-bottom:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-row:last-child{border-bottom:0}',
+    '.tyrank-no{width:24px;flex:0 0 24px;text-align:center;font-size:12px;font-weight:800;opacity:.6}',
+    '.tyrank-no.top{color:#c8871a;opacity:1}',
+    '.tyrank-av{width:30px;height:30px;flex:0 0 30px;border-radius:50%;object-fit:cover;background:rgba(120,140,170,.2)}',
+    '.tyrank-name{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-score{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}',
+    '.tyrank-tip{padding:22px 16px;text-align:center;font-size:13px;line-height:1.7;opacity:.75}',
+    '.tyrank-foot{padding:9px 16px 12px;font-size:10px;line-height:1.6;opacity:.6;border-top:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-retry{border:1px solid rgba(120,140,170,.5);background:transparent;color:inherit;font-size:12px;padding:5px 12px;border-radius:999px;cursor:pointer;margin-top:8px}'
+  ].join('');
+
+  function injectStyle() {
+    if (document.getElementById('tyrank-style')) return;
+    var s = document.createElement('style');
+    s.id = 'tyrank-style';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function normalizeList(raw) {
+    if (!raw) return null;
+    var arr = Array.isArray(raw) ? raw
+      : (raw.items || raw.list || raw.rankList || raw.rank_list || raw.data);
+    if (!Array.isArray(arr)) return null;
+    return arr.map(function (it, i) {
+      if (!it || typeof it !== 'object') return null;
+      return {
+        rank: Number(it.rank) || (i + 1),
+        score: Number(it.score) || 0,
+        nickname: it.nickname || it.name || it.uname || it.nick || '玩家',
+        avatar: it.avatar || it.face || it.avatar_url || ''
+      };
+    }).filter(Boolean);
+  }
+
+  function meMarkup(my) {
+    var rankTxt = (my && my.ranked && my.rank) ? ('第 ' + my.rank + ' 名') : '未上榜';
+    var label = CFG.meLabel || (CFG.kind === 'board' ? '榜单积分' : '已看集数');
+    return '<div><b>' + esc(rankTxt) + '</b><span>我的名次</span></div>' +
+           '<div><b>' + esc(String(num(CFG.key, 0))) + '</b><span>' + label + '</span></div>';
+  }
+
+  function listMarkup(list) {
+    return list.map(function (it) {
+      var av = it.avatar
+        ? '<img class="tyrank-av" src="' + esc(it.avatar) + '" alt="" loading="lazy" />'
+        : '<span class="tyrank-av"></span>';
+      return '<div class="tyrank-row">' +
+        '<span class="tyrank-no' + (it.rank <= 3 ? ' top' : '') + '">' + it.rank + '</span>' +
+        av +
+        '<span class="tyrank-name">' + esc(it.nickname) + '</span>' +
+        '<span class="tyrank-score">' + it.score + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function paint(data) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask || !CFG) return;
+    var listEl = mask.querySelector('.tyrank-list');
+    var meEl = mask.querySelector('.tyrank-me');
+    var tabs = mask.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-period') === period);
+    }
+    meEl.innerHTML = meMarkup(data && data.my);
+    if (data && data.error) {
+      listEl.innerHTML = '<div class="tyrank-tip">榜单没加载出来。<br>' +
+        '如果是在电脑浏览器里预览，请到 B站 App 内打开本 Toy。<br>' +
+        '<button type="button" class="tyrank-retry">重新加载</button></div>';
+      var btn = listEl.querySelector('.tyrank-retry');
+      if (btn) btn.addEventListener('click', function () { load(period, true); });
+    } else if (!data || !data.list || !data.list.length) {
+      listEl.innerHTML = '<div class="tyrank-tip">' +
+        (CFG.empty || (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。看一集，就会记 1 分。')) +
+        '</div>';
+    } else {
+      listEl.innerHTML = listMarkup(data.list);
+    }
+  }
+
+  function setLoading(on) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask) return;
+    if (on) mask.querySelector('.tyrank-list').innerHTML =
+      '<div class="tyrank-tip">榜单加载中…</div>';
+  }
+
+  /* 不在 Toy 宿主时 SDK 握手会一直挂着，加超时让面板给出明确下一步而不是永远「加载中」 */
+  function withTimeout(p, ms) {
+    return new window.Promise(function (resolve) {
+      var done = false;
+      window.setTimeout(function () { if (!done) { done = true; resolve(null); } }, ms);
+      window.Promise.resolve(p).then(function (v) {
+        if (!done) { done = true; resolve(v); }
+      }, function () { if (!done) { done = true; resolve(null); } });
+    });
+  }
+
+  function load(p, force) {
+    period = p;
+    if (cache[p] && !force) { paint(cache[p]); return; }
+    var t = sdk();
+    if (!t) { paint({ error: 'unavailable' }); return; }
+    setLoading(true);
+    var lp = t.getRankList
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getRankList({ board: BOARD, period: p, limit: LIMIT });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    var mp = t.getMyRank
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getMyRank({ board: BOARD, period: p });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    window.Promise.all([lp, mp]).then(function (res) {
+      var list = normalizeList(res[0]), my = res[1];
+      if (list === null) { paint({ error: 'unavailable' }); return; }
+      /* 平台返回的是历史最高分：换设备 / 清过缓存时用它校准本地显示 */
+      if (my && my.ranked && typeof my.score === 'number' && my.score > num(CFG.key, 0)) {
+        put(CFG.key, clamp(my.score));
+      }
+      cache[p] = { list: list, my: my || null };
+      paint(cache[p]);
+    });
+  }
+
+  function openPanel() {
+    injectStyle();
+    var mask = document.getElementById('tyrank-mask');
+    if (mask) { mask.hidden = false; load(period); return; }
+    mask = el('div', 'tyrank-mask' + (CFG.dark ? ' tyrank-dark' : ''));
+    mask.id = 'tyrank-mask';
+    mask.addEventListener('click', function (e) { if (e.target === mask) mask.hidden = true; });
+    var card = el('div', 'tyrank-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', '排行榜');
+    card.innerHTML =
+      '<div class="tyrank-head"><span class="tyrank-title">排行榜</span>' +
+        '<button type="button" class="tyrank-x" aria-label="关闭">×</button></div>' +
+      '<div class="tyrank-tabs">' +
+        '<button type="button" class="tyrank-tab on" data-period="all">总榜</button>' +
+        '<button type="button" class="tyrank-tab" data-period="week">本周</button>' +
+      '</div>' +
+      '<div class="tyrank-me"></div>' +
+      '<div class="tyrank-list"></div>' +
+      '<div class="tyrank-foot">' +
+        (CFG.foot || ('分数只加不减，取历史最好成绩；' +
+          (CFG.kind === 'board' ? '赢按难度加 1/2/3/4 分，输和平局不加分。' : '每看一集加 1 分，同一集不重复计，一直累计。'))) +
+        '</div>';
+    mask.appendChild(card);
+    document.body.appendChild(mask);
+    card.querySelector('.tyrank-x').addEventListener('click', function () { mask.hidden = true; });
+    var tabs = card.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function () { load(this.getAttribute('data-period')); });
+    }
+    paint(null);   /* 先填好「我的」区，避免加载榜单时这块空白 */
+    load('all');
+  }
+
+  function mountEntry() {
+    var e = CFG.entry || {};
+    var anchor = e.selector ? document.querySelector(e.selector) : null;
+    var tag = e.tag || 'button';
+    var btn = document.createElement(tag);
+    if (tag === 'button') btn.type = 'button';
+    if (tag === 'a') { btn.setAttribute('href', '#'); btn.setAttribute('role', 'button'); }
+    btn.className = e.className || 'tyrank-entry';
+    btn.textContent = e.label || '排行榜';
+    btn.setAttribute('aria-label', '打开排行榜');
+    btn.addEventListener('click', function (ev) { ev.preventDefault(); openPanel(); });
+    if (e.fab) document.body.appendChild(btn);
+    else if (anchor) anchor.appendChild(btn);
+    else document.body.appendChild(btn);
+  }
+
+  window.ToyRank = {
+    init: function (cfg) {
+      CFG = cfg;
+      injectStyle();
+      mountEntry();
+    },
+    settle: settle,
+    watch: watch,
+    open: openPanel,
+    value: function () { return CFG ? num(CFG.key, 0) : 0; }
+  };
+})();
+window.ToyRank.init({
+  key: 'tetris.rank.v1',
+  kind: 'board',
+  meLabel: '累计积分',
+  foot: '分数只加不减，取历史最好成绩；每消 1/2/3/4 行加 1/2/3/4 分，一直累计。',
+  entry: { selector: '.foot', tag: 'button', className: 'tyrank-entry tyrank-link tyrank-footlink', label: '排行榜' }
+});
 </script>
 
 </body>
