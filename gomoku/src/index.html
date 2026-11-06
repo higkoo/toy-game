@@ -960,7 +960,7 @@ canvas{
   </div>
 </div>
 
-<div class="ver" id="verTag">v32</div>
+<div class="ver" id="verTag">v33</div>
 
 <script>
 (function () {
@@ -5381,34 +5381,35 @@ canvas{
   }
 
   /* ===== 榜单计分 =====
-   * 阶梯：简单 1 / 普通 2 / 困难 3 / 大师 4；赢加分、输扣同样分值、平局 0。
-   * 每局结算都上报一次累计分，所以「只要玩过一局」就会出现在榜单上。
-   * 教学关与联机观战不计分；双人同屏只记参与（0 分，仍上报）。
-   * 联机沿用当前难度档位作为分值阶梯。
+   * 平台榜只保留历史最高分，所以写进平台的「榜单积分」只增不减：
+   * 赢按难度阶梯 +1/2/3/4，输/平不加，首局保底 1 分（玩过就上榜）。
+   * 「输一局扣对应分值」改由页面内的「净胜分」呈现，可负、一直累计。
+   * 教学关与联机观战不计；双人同屏只记参与。联机沿用当前难度档位。
    */
   var RANK_STEP = { easy: 1, normal: 2, hard: 3, master: 4 };
-  var RANK_KEY = 'gomoku.rank.v1';
 
-  function rankDelta() {
-    var step = RANK_STEP[diff] || 1;
+  function rankOutcome() {
     if (mode === 'teach') return null;
     if (mode === 'online') {
       if (online.role === 'spec') return null;
-      if (!winner) return 0;
-      return winner === myColor() ? step : -step;
+      if (!winner) return 'draw';
+      return winner === myColor() ? 'win' : 'lose';
     }
     if (mode === 'ai') {
-      if (winner === BLACK) return step;   /* 人机模式玩家执黑 */
-      if (winner === WHITE) return -step;  /* 电脑执白 */
-      return 0;
+      if (winner === BLACK) return 'win';   /* 人机模式玩家执黑 */
+      if (winner === WHITE) return 'lose';  /* 电脑执白 */
+      return 'draw';
     }
-    return 0;                              /* 双人同屏：只记参与 */
+    return 'draw';                          /* 双人同屏：只记参与 */
   }
 
   function rankReport() {
-    var d = rankDelta();
-    if (d === null) return;
-    if (window.ToyRank) window.ToyRank.add(RANK_KEY, d);
+    var o = rankOutcome();
+    if (o === null) return;
+    var step = RANK_STEP[diff] || 1;
+    var boardDelta = (o === 'win') ? step : 0;
+    var netDelta = (o === 'win') ? step : ((o === 'lose') ? -step : 0);
+    if (window.ToyRank) window.ToyRank.settle(boardDelta, netDelta);
   }
 
   function recordNow() {
@@ -6090,20 +6091,23 @@ qrCloseBtn.addEventListener('click', function () { qrStop(); });
 })();
 </script>
 <script>
-/* ===== TOY 原生榜单积分 =====
- * 用 SDK 的 submitScore 上报「累计绝对值」，而不是增量：
- *   - 棋牌：按难度阶梯胜负加减，每结算一局上报一次；
- *   - 内容：打开一次 +1，一直累计。
- * SDK 在部分容器里异步就绪（benneng 用 defer 加载），这里统一做就绪重试；
- * 非 TOY 容器（本地预览 / 普通浏览器）静默跳过，不报错、不刷请求。
- * 详见各 README 的「榜单」一节。
+/* ===== TOY 原生榜单：成绩上报 + 页面内排行榜面板 =====
+ * 平台约束（官方 SDK 类型声明，见 README）：
+ *   - submitScore 传绝对分，服务端只保留该榜位的历史最高分，本次更低不覆盖
+ *     → 写进平台榜的分数必须单调不减；下降的分值不会被记录。
+ *   - getRankList 游客可读，返回 [{ rank, score, nickname, avatar }]。
+ *   - getMyRank 需登录，是否上榜必须用 ranked 判断（score 允许 0 / 负）。
+ * 因此：平台榜单分只涨不跌；「输一把 -1」这类净值留在页面内展示。
+ * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
  */
 (function () {
   'use strict';
-  var BOARD = 1;        /* 每个 Toy 有独立榜单，统一用 1 号榜 */
-  var WAIT_MAX = 40;    /* 40 × 150ms ≈ 6s 等 SDK 就绪 */
-  var MIN = -16777216, MAX = 16777215;   /* SDK 允许的 score 范围 ±2^24 */
-  var sent = {};        /* 本次页面已发起过的分值，避免重复提交占 QPS */
+  var BOARD = 1, LIMIT = 20, WAIT_MAX = 40;
+  var MIN = -16777216, MAX = 16777215;
+  var lastSent = null;  /* 只记住最后一次提交值：连续同分不重复发，本地重置后仍能重发 */
+  var cache = {};       /* period -> { list, my } */
+  var CFG = null;
+  var period = 'all';
 
   function sdk() {
     var w = window;
@@ -6124,18 +6128,32 @@ qrCloseBtn.addEventListener('click', function () { qrStop(); });
     return v;
   }
   function clamp(v) { return v < MIN ? MIN : (v > MAX ? MAX : v); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
 
+  /* 只提交单调不减的绝对值；限流(307044)等失败按指数退避重试 */
   function send(score, wait, retry) {
     var t = sdk();
     if (!t) {
       if (wait < WAIT_MAX) window.setTimeout(function () { send(score, wait + 1, retry); }, 150);
       return;
     }
-    if (sent[score]) return;
-    sent[score] = 1;
+    if (lastSent === score) return;
+    lastSent = score;
     var fail = function () {
-      delete sent[score];
-      if (retry < 2) window.setTimeout(function () { send(score, 0, retry + 1); }, 1500);
+      if (lastSent === score) lastSent = null;   /* 允许退避后重发 */
+      if (retry < 2) {
+        window.setTimeout(function () { send(score, 0, retry + 1); }, 1200 * Math.pow(2, retry));
+      }
     };
     try {
       var r = t.submitScore({ score: score, board: BOARD });
@@ -6143,30 +6161,251 @@ qrCloseBtn.addEventListener('click', function () { qrStop(); });
     } catch (e) { fail(); }
   }
 
+  /* 棋牌结算：平台分只涨（赢按阶梯加分，输/平不加，首局保底 1 分）；净值可负 */
+  function settle(boardDelta, netDelta) {
+    if (!CFG) return 0;
+    var v = num(CFG.key, 0) + boardDelta;
+    if (v < 1) v = 1;
+    v = put(CFG.key, clamp(v));
+    if (CFG.netKey) put(CFG.netKey, clamp(num(CFG.netKey, 0) + netDelta));
+    send(v, 0, 0);
+    return v;
+  }
+  /* 内容类：打开一次 +1，一直累计；短时间内重复打开不重复计分 */
+  function visit(gapMs) {
+    if (!CFG) return 0;
+    var now = Date.now(), gap = gapMs || 15000, at = CFG.key + '.at';
+    if (now - num(at, 0) < gap) return num(CFG.key, 0);
+    put(at, now);
+    var v = put(CFG.key, clamp(num(CFG.key, 0) + 1));
+    send(v, 0, 0);
+    return v;
+  }
+
+  /* ---------------- 面板 ---------------- */
+  var CSS = [
+    '.tyrank-entry{cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}',
+    '.tyrank-fab{position:fixed;z-index:60;right:calc(60px + env(safe-area-inset-right));bottom:calc(6px + var(--toy-bottom-inset, env(safe-area-inset-bottom,0px)));display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(120,140,170,.55);background:rgba(255,255,255,.9);color:#33405c;font-size:11px;font-weight:700;line-height:1;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(20,30,50,.16)}',
+    '.tyrank-link{border:0;background:none;padding:0;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:inherit;opacity:.85}',
+    '.tyrank-pill{font-size:10.5px;letter-spacing:.08em;color:rgba(255,255,255,.9);padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(12,11,10,.28);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);white-space:nowrap;text-decoration:none}',
+    '.tyrank-mask{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,12,20,.62)}',
+    '.tyrank-card{width:min(420px,100%);max-height:min(78vh,620px);display:flex;flex-direction:column;background:#fffdf9;color:#25304a;border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.3);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}',
+    '.tyrank-dark .tyrank-card{background:#1b1917;color:#f3ece1}',
+    '.tyrank-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}',
+    '.tyrank-title{font-size:16px;font-weight:800;letter-spacing:.5px}',
+    '.tyrank-x{border:0;background:none;color:inherit;font-size:22px;line-height:1;cursor:pointer;opacity:.6;padding:0 4px}',
+    '.tyrank-tabs{display:flex;gap:6px;padding:0 16px 10px}',
+    '.tyrank-tab{border:1px solid rgba(120,140,170,.4);background:transparent;color:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;opacity:.65}',
+    '.tyrank-tab.on{background:#33405c;color:#fff;border-color:#33405c;opacity:1}',
+    '.tyrank-dark .tyrank-tab.on{background:#c9a227;color:#1b1917;border-color:#c9a227}',
+    '.tyrank-me{display:flex;gap:8px;padding:0 16px 12px}',
+    '.tyrank-me > div{flex:1;min-width:0;background:rgba(120,140,170,.12);border-radius:10px;padding:9px 8px;text-align:center}',
+    '.tyrank-me b{display:block;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-me span{display:block;font-size:10px;opacity:.65;margin-top:3px}',
+    '.tyrank-list{flex:1;min-height:80px;overflow-y:auto;padding:0 10px 10px;-webkit-overflow-scrolling:touch}',
+    '.tyrank-row{display:flex;align-items:center;gap:9px;padding:7px 6px;border-bottom:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-row:last-child{border-bottom:0}',
+    '.tyrank-no{width:24px;flex:0 0 24px;text-align:center;font-size:12px;font-weight:800;opacity:.6}',
+    '.tyrank-no.top{color:#c8871a;opacity:1}',
+    '.tyrank-av{width:30px;height:30px;flex:0 0 30px;border-radius:50%;object-fit:cover;background:rgba(120,140,170,.2)}',
+    '.tyrank-name{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-score{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}',
+    '.tyrank-tip{padding:22px 16px;text-align:center;font-size:13px;line-height:1.7;opacity:.75}',
+    '.tyrank-foot{padding:9px 16px 12px;font-size:10px;line-height:1.6;opacity:.6;border-top:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-retry{border:1px solid rgba(120,140,170,.5);background:transparent;color:inherit;font-size:12px;padding:5px 12px;border-radius:999px;cursor:pointer;margin-top:8px}'
+  ].join('');
+
+  function injectStyle() {
+    if (document.getElementById('tyrank-style')) return;
+    var s = document.createElement('style');
+    s.id = 'tyrank-style';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function normalizeList(raw) {
+    if (!raw) return null;
+    var arr = Array.isArray(raw) ? raw
+      : (raw.items || raw.list || raw.rankList || raw.rank_list || raw.data);
+    if (!Array.isArray(arr)) return null;
+    return arr.map(function (it, i) {
+      if (!it || typeof it !== 'object') return null;
+      return {
+        rank: Number(it.rank) || (i + 1),
+        score: Number(it.score) || 0,
+        nickname: it.nickname || it.name || it.uname || it.nick || '玩家',
+        avatar: it.avatar || it.face || it.avatar_url || ''
+      };
+    }).filter(Boolean);
+  }
+
+  function meMarkup(my) {
+    var rankTxt = (my && my.ranked && my.rank) ? ('第 ' + my.rank + ' 名') : '未上榜';
+    var score = num(CFG.key, 0);
+    var third = CFG.kind === 'board'
+      ? { v: signed(num(CFG.netKey, 0)), t: '净胜分' }
+      : { v: String(score), t: '累计观看' };
+    return '<div><b>' + esc(rankTxt) + '</b><span>我的名次</span></div>' +
+           '<div><b>' + esc(String(score)) + '</b><span>榜单积分</span></div>' +
+           '<div><b>' + esc(third.v) + '</b><span>' + third.t + '</span></div>';
+  }
+  function signed(n) { return n > 0 ? '+' + n : String(n); }
+
+  function listMarkup(list) {
+    return list.map(function (it) {
+      var av = it.avatar
+        ? '<img class="tyrank-av" src="' + esc(it.avatar) + '" alt="" loading="lazy" />'
+        : '<span class="tyrank-av"></span>';
+      return '<div class="tyrank-row">' +
+        '<span class="tyrank-no' + (it.rank <= 3 ? ' top' : '') + '">' + it.rank + '</span>' +
+        av +
+        '<span class="tyrank-name">' + esc(it.nickname) + '</span>' +
+        '<span class="tyrank-score">' + it.score + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function paint(data) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask || !CFG) return;
+    var listEl = mask.querySelector('.tyrank-list');
+    var meEl = mask.querySelector('.tyrank-me');
+    var tabs = mask.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-period') === period);
+    }
+    meEl.innerHTML = meMarkup(data && data.my);
+    if (data && data.error) {
+      listEl.innerHTML = '<div class="tyrank-tip">榜单没加载出来。<br>' +
+        '如果是在电脑浏览器里预览，请到 B站 App 内打开本 Toy。<br>' +
+        '<button type="button" class="tyrank-retry">重新加载</button></div>';
+      var btn = listEl.querySelector('.tyrank-retry');
+      if (btn) btn.addEventListener('click', function () { load(period, true); });
+    } else if (!data || !data.list || !data.list.length) {
+      listEl.innerHTML = '<div class="tyrank-tip">' +
+        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。打开看过一次，就会记 1 分。') +
+        '</div>';
+    } else {
+      listEl.innerHTML = listMarkup(data.list);
+    }
+  }
+
+  function setLoading(on) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask) return;
+    if (on) mask.querySelector('.tyrank-list').innerHTML =
+      '<div class="tyrank-tip">榜单加载中…</div>';
+  }
+
+  /* 不在 Toy 宿主时 SDK 握手会一直挂着，加超时让面板给出明确下一步而不是永远「加载中」 */
+  function withTimeout(p, ms) {
+    return new window.Promise(function (resolve) {
+      var done = false;
+      window.setTimeout(function () { if (!done) { done = true; resolve(null); } }, ms);
+      window.Promise.resolve(p).then(function (v) {
+        if (!done) { done = true; resolve(v); }
+      }, function () { if (!done) { done = true; resolve(null); } });
+    });
+  }
+
+  function load(p, force) {
+    period = p;
+    if (cache[p] && !force) { paint(cache[p]); return; }
+    var t = sdk();
+    if (!t) { paint({ error: 'unavailable' }); return; }
+    setLoading(true);
+    var lp = t.getRankList
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getRankList({ board: BOARD, period: p, limit: LIMIT });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    var mp = t.getMyRank
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getMyRank({ board: BOARD, period: p });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    window.Promise.all([lp, mp]).then(function (res) {
+      var list = normalizeList(res[0]), my = res[1];
+      if (list === null) { paint({ error: 'unavailable' }); return; }
+      /* 平台返回的是历史最高分：换设备 / 清过缓存时用它校准本地显示 */
+      if (my && my.ranked && typeof my.score === 'number' && my.score > num(CFG.key, 0)) {
+        put(CFG.key, clamp(my.score));
+      }
+      cache[p] = { list: list, my: my || null };
+      paint(cache[p]);
+    });
+  }
+
+  function openPanel() {
+    injectStyle();
+    var mask = document.getElementById('tyrank-mask');
+    if (mask) { mask.hidden = false; load(period); return; }
+    mask = el('div', 'tyrank-mask' + (CFG.dark ? ' tyrank-dark' : ''));
+    mask.id = 'tyrank-mask';
+    mask.addEventListener('click', function (e) { if (e.target === mask) mask.hidden = true; });
+    var card = el('div', 'tyrank-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', '排行榜');
+    card.innerHTML =
+      '<div class="tyrank-head"><span class="tyrank-title">排行榜</span>' +
+        '<button type="button" class="tyrank-x" aria-label="关闭">×</button></div>' +
+      '<div class="tyrank-tabs">' +
+        '<button type="button" class="tyrank-tab on" data-period="all">总榜</button>' +
+        '<button type="button" class="tyrank-tab" data-period="week">本周</button>' +
+      '</div>' +
+      '<div class="tyrank-me"></div>' +
+      '<div class="tyrank-list"></div>' +
+      '<div class="tyrank-foot">榜单积分只增不减，取历史最好成绩；' +
+        (CFG.kind === 'board' ? '净胜分按难度阶梯加减，输一局会扣，只在本页显示。' : '每打开一次记 1 分，一直累计。') +
+        '</div>';
+    mask.appendChild(card);
+    document.body.appendChild(mask);
+    card.querySelector('.tyrank-x').addEventListener('click', function () { mask.hidden = true; });
+    var tabs = card.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function () { load(this.getAttribute('data-period')); });
+    }
+    paint(null);   /* 先填好「我的」区，避免加载榜单时这块空白 */
+    load('all');
+  }
+
+  function mountEntry() {
+    var e = CFG.entry || {};
+    var anchor = e.selector ? document.querySelector(e.selector) : null;
+    var tag = e.tag || 'button';
+    var btn = document.createElement(tag);
+    if (tag === 'button') btn.type = 'button';
+    if (tag === 'a') { btn.setAttribute('href', '#'); btn.setAttribute('role', 'button'); }
+    btn.className = e.className || 'tyrank-entry';
+    btn.textContent = e.label || '排行榜';
+    btn.setAttribute('aria-label', '打开排行榜');
+    btn.addEventListener('click', function (ev) { ev.preventDefault(); openPanel(); });
+    if (e.fab) document.body.appendChild(btn);
+    else if (anchor) anchor.appendChild(btn);
+    else document.body.appendChild(btn);
+  }
+
   window.ToyRank = {
-    /* 累加 delta 后上报累计绝对值；delta 为 0 也会上报（保证「玩过/看过」有记录） */
-    add: function (key, delta) {
-      var v = put(key, clamp(num(key, 0) + delta));
-      send(v, 0, 0);
-      return v;
+    init: function (cfg) {
+      CFG = cfg;
+      injectStyle();
+      mountEntry();
+      if (cfg.kind === 'content') visit(cfg.gapMs || 15000);
     },
-    /* 内容类：打开一次 +1；gapMs 内重复打开不重复计分，防止刷新刷分 */
-    visit: function (key, gapMs) {
-      var now = Date.now(), gap = gapMs || 15000, at = key + '.at';
-      if (now - num(at, 0) < gap) return num(key, 0);
-      put(at, now);
-      return window.ToyRank.add(key, 1);
-    },
-    /* 只上报当前累计值、不增减：棋牌页打开时调一次，保证「来过」就有一次提交 */
-    touch: function (key) {
-      var v = num(key, 0);
-      send(v, 0, 0);
-      return v;
-    },
-    value: function (key) { return num(key, 0); }
+    settle: settle,
+    visit: visit,
+    open: openPanel,
+    value: function () { return CFG ? num(CFG.key, 0) : 0; },
+    net: function () { return CFG && CFG.netKey ? num(CFG.netKey, 0) : 0; }
   };
 })();
-window.ToyRank.touch('gomoku.rank.v1');
+window.ToyRank.init({
+  key: 'gomoku.rank.v1',
+  netKey: 'gomoku.net.v1',
+  kind: 'board',
+  entry: { fab: true, className: 'tyrank-entry tyrank-fab', label: '榜单' }
+});
 </script>
 <script>
 /* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
