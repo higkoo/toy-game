@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0C0B0A" />
+<meta name="toy-version" content="v1.0" />
 <title>郭生白 · 视频全集｜大医传承 · 本能系统医学</title>
 <link rel="icon" href="img/icon.jpg" />
 <link rel="stylesheet" href="css/app.css" />
@@ -107,5 +108,84 @@
 
 <script src="data/videos.js"></script>
 <script src="js/app.js"></script>
+<script>
+/* ===== TOY 原生榜单积分 =====
+ * 用 SDK 的 submitScore 上报「累计绝对值」，而不是增量：
+ *   - 棋牌：按难度阶梯胜负加减，每结算一局上报一次；
+ *   - 内容：打开一次 +1，一直累计。
+ * SDK 在部分容器里异步就绪（benneng 用 defer 加载），这里统一做就绪重试；
+ * 非 TOY 容器（本地预览 / 普通浏览器）静默跳过，不报错、不刷请求。
+ * 详见各 README 的「榜单」一节。
+ */
+(function () {
+  'use strict';
+  var BOARD = 1;        /* 每个 Toy 有独立榜单，统一用 1 号榜 */
+  var WAIT_MAX = 40;    /* 40 × 150ms ≈ 6s 等 SDK 就绪 */
+  var MIN = -16777216, MAX = 16777215;   /* SDK 允许的 score 范围 ±2^24 */
+  var sent = {};        /* 本次页面已发起过的分值，避免重复提交占 QPS */
+
+  function sdk() {
+    var w = window;
+    var list = [w.toy, w.Toy, w.toy && w.toy.toy, w.Toy && w.Toy.toy];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    }
+    return null;
+  }
+  function num(k, d) {
+    try {
+      var v = window.localStorage.getItem(k);
+      return v === null ? d : (parseInt(v, 10) || 0);
+    } catch (e) { return d; }
+  }
+  function put(k, v) {
+    try { window.localStorage.setItem(k, String(v)); } catch (e) {}
+    return v;
+  }
+  function clamp(v) { return v < MIN ? MIN : (v > MAX ? MAX : v); }
+
+  function send(score, wait, retry) {
+    var t = sdk();
+    if (!t) {
+      if (wait < WAIT_MAX) window.setTimeout(function () { send(score, wait + 1, retry); }, 150);
+      return;
+    }
+    if (sent[score]) return;
+    sent[score] = 1;
+    var fail = function () {
+      delete sent[score];
+      if (retry < 2) window.setTimeout(function () { send(score, 0, retry + 1); }, 1500);
+    };
+    try {
+      var r = t.submitScore({ score: score, board: BOARD });
+      if (r && typeof r.catch === 'function') r.catch(fail);
+    } catch (e) { fail(); }
+  }
+
+  window.ToyRank = {
+    /* 累加 delta 后上报累计绝对值；delta 为 0 也会上报（保证「玩过/看过」有记录） */
+    add: function (key, delta) {
+      var v = put(key, clamp(num(key, 0) + delta));
+      send(v, 0, 0);
+      return v;
+    },
+    /* 内容类：打开一次 +1；gapMs 内重复打开不重复计分，防止刷新刷分 */
+    visit: function (key, gapMs) {
+      var now = Date.now(), gap = gapMs || 15000, at = key + '.at';
+      if (now - num(at, 0) < gap) return num(key, 0);
+      put(at, now);
+      return window.ToyRank.add(key, 1);
+    },
+    /* 只上报当前累计值、不增减：棋牌页打开时调一次，保证「来过」就有一次提交 */
+    touch: function (key) {
+      var v = num(key, 0);
+      send(v, 0, 0);
+      return v;
+    },
+    value: function (key) { return num(key, 0); }
+  };
+})();
+window.ToyRank.visit('benneng.rank.v1', 15000);
+</script>
 </body>
 </html>
