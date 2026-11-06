@@ -13,9 +13,14 @@
 <div class="app">
 
   <header class="hero">
-    <div class="hero-media">
-      <img class="hero-img" src="img/hero-portrait.jpg" alt="郭生白先生" fetchpriority="high" />
+    <div class="hero-media" id="heroMedia" data-interval="5000">
+      <div class="hero-slide is-on">
+        <img class="hero-img" src="img/hero-portrait.jpg" alt="郭生白先生" fetchpriority="high" style="object-position:center 42%" />
+      </div>
+      <div class="hero-slide" data-src="img/cover-shanghan.jpg" data-pos="center 40%"></div>
+      <div class="hero-slide" data-src="img/cover-tcm1.jpg" data-pos="24% 50%"></div>
       <div class="hero-shade"></div>
+      <div class="hero-dots" id="heroDots" role="tablist" aria-label="首图切换"></div>
     </div>
     <div class="hero-glow"></div>
     <div class="topbar">

@@ -371,3 +371,102 @@
     window.addEventListener('orientationchange', function () { setTimeout(refresh, 260); });
   })();
 })();
+
+/* ---------- 首图轮播（纯静态，无第三方库） ---------- */
+(function () {
+  'use strict';
+
+  var media = document.getElementById('heroMedia');
+  if (!media) return;
+  var slides = Array.prototype.slice.call(media.querySelectorAll('.hero-slide'));
+  if (slides.length < 2) return;
+
+  var dotsBox = document.getElementById('heroDots');
+  var reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var interval = parseInt(media.getAttribute('data-interval'), 10) || 5000;
+  var idx = 0;
+  var timer = null;
+
+  function load(i) {
+    var s = slides[i];
+    if (!s || !s.getAttribute('data-src')) return;
+    if (s.querySelector('img')) return;
+    var img = new Image();
+    img.className = 'hero-img';
+    img.alt = '郭生白先生';
+    var pos = s.getAttribute('data-pos');
+    if (pos) img.style.objectPosition = pos;
+    img.onload = function () { s.removeAttribute('data-src'); };
+    img.src = s.getAttribute('data-src');
+    s.appendChild(img);
+  }
+
+  function show(i) {
+    load(i);
+    for (var k = 0; k < slides.length; k++) {
+      if (k === i) slides[k].classList.add('is-on');
+      else slides[k].classList.remove('is-on');
+      var d = dotsBox && dotsBox.children[k];
+      if (d) {
+        if (k === i) { d.classList.add('is-on'); d.setAttribute('aria-selected', 'true'); }
+        else { d.classList.remove('is-on'); d.setAttribute('aria-selected', 'false'); }
+      }
+    }
+    idx = i;
+  }
+
+  function next() { show((idx + 1) % slides.length); }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function start() {
+    if (reduce && reduce.matches) return;
+    stop();
+    load((idx + 1) % slides.length);
+    timer = setInterval(next, interval);
+  }
+
+  if (dotsBox) {
+    slides.forEach(function (s, i) {
+      var d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'hero-dot' + (i === 0 ? ' is-on' : '');
+      d.setAttribute('role', 'tab');
+      d.setAttribute('aria-label', '第 ' + (i + 1) + ' 张');
+      d.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      d.addEventListener('click', function () {
+        show(i);
+        start();
+      });
+      dotsBox.appendChild(d);
+    });
+  }
+
+  /* 首图之外的图在首屏 load 后再预载，避免一次拉满 */
+  function preload() {
+    for (var i = 1; i < slides.length; i++) load(i);
+  }
+  function schedulePreload() {
+    if (window.requestIdleCallback) window.requestIdleCallback(preload, { timeout: 2500 });
+    else setTimeout(preload, 1200);
+  }
+  if (document.readyState === 'complete') schedulePreload();
+  else window.addEventListener('load', schedulePreload);
+
+  media.addEventListener('mouseenter', stop);
+  media.addEventListener('mouseleave', start);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop();
+    else start();
+  });
+  if (reduce && reduce.addEventListener) {
+    reduce.addEventListener('change', function () {
+      if (reduce.matches) stop();
+      else start();
+    });
+  }
+
+  start();
+})();
