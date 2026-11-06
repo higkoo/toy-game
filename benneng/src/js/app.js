@@ -151,6 +151,7 @@
     if (seen.has(bv)) { updateDock(); return; }
     seen.add(bv);
     write(SEEN_KEY, JSON.stringify(Array.from(seen)));
+    if (window.ToyRank) window.ToyRank.watch(bv);   /* 每看一集 +1 */
 
     var row = listEl.querySelector('[data-bv="' + bv + '"]');
     if (row) {

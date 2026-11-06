@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0C0B0A" />
-<meta name="toy-version" content="v1.1" />
+<meta name="toy-version" content="v1.2" />
 <title>郭生白 · 视频全集｜大医传承 · 本能系统医学</title>
 <link rel="icon" href="img/icon.jpg" />
 <link rel="stylesheet" href="css/app.css" />
@@ -112,10 +112,12 @@
 /* ===== TOY 原生榜单：成绩上报 + 页面内排行榜面板 =====
  * 平台约束（官方 SDK 类型声明，见 README）：
  *   - submitScore 传绝对分，服务端只保留该榜位的历史最高分，本次更低不覆盖
- *     → 写进平台榜的分数必须单调不减；下降的分值不会被记录。
+ *     → 分数只增不减，且必须传绝对值。
  *   - getRankList 游客可读，返回 [{ rank, score, nickname, avatar }]。
  *   - getMyRank 需登录，是否上榜必须用 ranked 判断（score 允许 0 / 负）。
- * 因此：平台榜单分只涨不跌；「输一把 -1」这类净值留在页面内展示。
+ * 计分口径：只加分、不扣分。
+ *   - 棋牌：赢按难度阶梯 +1/2/3/4，输/平 +0；玩过一局保底 1 分。
+ *   - 内容：每看一集 +1，同一集只计一次，一直累计。
  * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
  */
 (function () {
@@ -179,22 +181,25 @@
     } catch (e) { fail(); }
   }
 
-  /* 棋牌结算：平台分只涨（赢按阶梯加分，输/平不加，首局保底 1 分）；净值可负 */
-  function settle(boardDelta, netDelta) {
+  /* 棋牌结算：赢加阶梯分，输/平加 0（不扣分）；玩过一局至少 1 分 */
+  function settle(delta) {
     if (!CFG) return 0;
-    var v = num(CFG.key, 0) + boardDelta;
+    var v = num(CFG.key, 0) + (delta || 0);
     if (v < 1) v = 1;
     v = put(CFG.key, clamp(v));
-    if (CFG.netKey) put(CFG.netKey, clamp(num(CFG.netKey, 0) + netDelta));
     send(v, 0, 0);
     return v;
   }
-  /* 内容类：打开一次 +1，一直累计；短时间内重复打开不重复计分 */
-  function visit(gapMs) {
-    if (!CFG) return 0;
-    var now = Date.now(), gap = gapMs || 15000, at = CFG.key + '.at';
-    if (now - num(at, 0) < gap) return num(CFG.key, 0);
-    put(at, now);
+
+  /* 内容类：每看一集 +1；用已看 id 集合去重，同一集不重复计分 */
+  function watch(id) {
+    if (!CFG || !id) return 0;
+    var sk = CFG.key + '.seen', list = [];
+    try { list = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    if (list.indexOf(id) !== -1) return num(CFG.key, 0);
+    list.push(id);
+    try { window.localStorage.setItem(sk, JSON.stringify(list)); } catch (e) {}
     var v = put(CFG.key, clamp(num(CFG.key, 0) + 1));
     send(v, 0, 0);
     return v;
@@ -259,15 +264,10 @@
 
   function meMarkup(my) {
     var rankTxt = (my && my.ranked && my.rank) ? ('第 ' + my.rank + ' 名') : '未上榜';
-    var score = num(CFG.key, 0);
-    var third = CFG.kind === 'board'
-      ? { v: signed(num(CFG.netKey, 0)), t: '净胜分' }
-      : { v: String(score), t: '累计观看' };
+    var label = CFG.kind === 'board' ? '榜单积分' : '已看集数';
     return '<div><b>' + esc(rankTxt) + '</b><span>我的名次</span></div>' +
-           '<div><b>' + esc(String(score)) + '</b><span>榜单积分</span></div>' +
-           '<div><b>' + esc(third.v) + '</b><span>' + third.t + '</span></div>';
+           '<div><b>' + esc(String(num(CFG.key, 0))) + '</b><span>' + label + '</span></div>';
   }
-  function signed(n) { return n > 0 ? '+' + n : String(n); }
 
   function listMarkup(list) {
     return list.map(function (it) {
@@ -301,7 +301,7 @@
       if (btn) btn.addEventListener('click', function () { load(period, true); });
     } else if (!data || !data.list || !data.list.length) {
       listEl.innerHTML = '<div class="tyrank-tip">' +
-        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。打开看过一次，就会记 1 分。') +
+        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。看一集，就会记 1 分。') +
         '</div>';
     } else {
       listEl.innerHTML = listMarkup(data.list);
@@ -374,8 +374,8 @@
       '</div>' +
       '<div class="tyrank-me"></div>' +
       '<div class="tyrank-list"></div>' +
-      '<div class="tyrank-foot">榜单积分只增不减，取历史最好成绩；' +
-        (CFG.kind === 'board' ? '净胜分按难度阶梯加减，输一局会扣，只在本页显示。' : '每打开一次记 1 分，一直累计。') +
+      '<div class="tyrank-foot">分数只加不减，取历史最好成绩；' +
+        (CFG.kind === 'board' ? '赢按难度加 1/2/3/4 分，输和平局不加分。' : '每看一集加 1 分，同一集不重复计，一直累计。') +
         '</div>';
     mask.appendChild(card);
     document.body.appendChild(mask);
@@ -409,19 +409,16 @@
       CFG = cfg;
       injectStyle();
       mountEntry();
-      if (cfg.kind === 'content') visit(cfg.gapMs || 15000);
     },
     settle: settle,
-    visit: visit,
+    watch: watch,
     open: openPanel,
-    value: function () { return CFG ? num(CFG.key, 0) : 0; },
-    net: function () { return CFG && CFG.netKey ? num(CFG.netKey, 0) : 0; }
+    value: function () { return CFG ? num(CFG.key, 0) : 0; }
   };
 })();
 window.ToyRank.init({
   key: 'benneng.rank.v1',
   kind: 'content',
-  gapMs: 15000,
   dark: true,
   entry: { selector: '.topbar', className: 'tyrank-entry tyrank-pill', label: '排行榜' }
 });
