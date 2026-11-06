@@ -323,11 +323,16 @@ body::before{
 .foot .copy{margin-top:14px;font-size:10px;letter-spacing:.12em;color:#9a8f7d}
 .version{
   position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
-  z-index:80;pointer-events:none;user-select:none;
-  font-size:10px;font-weight:600;letter-spacing:.1em;color:#6f5a2e;
+  z-index:80;user-select:none;
+  font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.1em;color:#6f5a2e;
   background:rgba(255,251,241,.82);border:1px solid rgba(163,128,63,.34);
-  border-radius:999px;padding:2px 8px;line-height:1.6;
+  border-radius:999px;padding:4px 10px;line-height:1.6;
+  cursor:pointer;-webkit-appearance:none;appearance:none;
+  transition:background .15s,border-color .15s,transform .1s;
 }
+.version:hover{background:rgba(255,248,230,.96);border-color:rgba(163,128,63,.62)}
+.version:active{transform:scale(.95)}
+.version:focus-visible{outline:2px solid #b8862f;outline-offset:2px}
 
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
 .reveal.in{opacity:1;transform:none}
@@ -728,7 +733,7 @@ body.lock{overflow:hidden}
   </div>
 </footer>
 
-<span class="version" title="页面版本">v1.18</span>
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.19</button>
 
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-mask" data-close></div>
@@ -1093,6 +1098,7 @@ body.lock{overflow:hidden}
  *   - 棋牌：赢按难度阶梯 +1/2/3/4，输/平 +0；玩过一局保底 1 分。
  *   - 内容：每看一集 +1，同一集只计一次，一直累计。
  * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
+ * init 不传 entry 时不自动创建入口，由页面自行绑定触发点（三纪：点右下角版本号）。
  */
 (function () {
   'use strict';
@@ -1363,7 +1369,8 @@ body.lock{overflow:hidden}
   }
 
   function mountEntry() {
-    var e = CFG.entry || {};
+    var e = CFG.entry;
+    if (!e) return;   /* 入口由页面自管（三纪点版本号）时不创建 */
     var anchor = e.selector ? document.querySelector(e.selector) : null;
     var tag = e.tag || 'button';
     var btn = document.createElement(tag);
@@ -1392,9 +1399,13 @@ body.lock{overflow:hidden}
 })();
 window.ToyRank.init({
   key: 'sanji.rank.v1',
-  kind: 'content',
-  entry: { selector: '.foot .links', tag: 'a', className: 'tyrank-entry tyrank-link', label: '排行榜' }
+  kind: 'content'
 });
+/* 榜单入口：直接点右下角版本号，页脚不再单独显示「排行榜」 */
+(function () {
+  var v = document.getElementById('verTag');
+  if (v) v.addEventListener('click', function () { window.ToyRank.open(); });
+})();
 </script>
 <script>
 /* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
