@@ -4,7 +4,7 @@
 
 - 内容来源：[腾讯文档 · 我的健康减脂方法](https://docs.qq.com/doc/DQ09KZ1BuaGpaT0Fh)（真实 `file_id` 为 `COJgPnhjZOAa`）
 - 作者原站：[我的开源减脂方案](https://higkoo.github.io/healthy/jz/100.html)
-- 当前版本：`v1.1`（v1.0 首次创建；v1.1 随包体修正 Toy 外层展示主题为 `light`）
+- 当前版本：`v1.2`（v1.0 首次创建；v1.1 随包体修正 Toy 外层展示主题为 `light`；v1.2 移除页脚的排行榜提示行，入口收为隐藏彩蛋）
 - 数据周期：2024.4.3 — 5.16，共 44 天、两期
 
 ---
@@ -77,7 +77,7 @@ jianzhi/
 
 - **SDK**：`defer` 引入 `toy-sdk.js`（与 `benneng` 一致）；`ToyRank` 有就绪重试，面板读取带 3500ms 超时兜底。
 - **底栏适配**：与 `sanji` / `benneng` 同一套 `--toy-bottom-inset` 探测逻辑，避开 TOY 原生互动栏遮挡；页脚、右下角版本号都用它。
-- **榜单入口**：右下角版本号 `v1.1` 是原生 `<button>`（沿用三纪做法），键盘 Enter / Space 可打开，`:focus-visible` 有焦点圈。
+- **榜单入口**：右下角版本号 `v1.2` 是原生 `<button>`（沿用三纪做法），键盘 Enter / Space 可打开，`:focus-visible` 有焦点圈。页面不主动提示这个入口，属于隐藏彩蛋。
 - **计分**：`board: 1`，`kind: content`。`ToyRank.watch(id)` 按章节 id 去重，章节进入视口 72% 高度即记 1 分，首屏算一章 → 打开即 +1，全站最多 7 分。只加分、传绝对值、平台取历史最高分；面板点开拉一次并缓存，不轮询。
 - **无障碍**：语义标签、`scope="col"` 表格、`aria-label` 曲线、`<noscript>` 提示、`prefers-reduced-motion`、375px 一栏布局、表格横向滚动。
 

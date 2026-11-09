@@ -12,7 +12,7 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [tetris](tetris/README.md) | [小偶像方块](https://www.bilibili.com/toy/idol-tetris/index.html) | 触屏方向键和键盘都能玩的俄罗斯方块 |
 | [sanji](sanji/README.md) | [倪海厦学习天地](https://www.bilibili.com/toy/sanji/index.html) | 天纪、人纪、地纪课程视频与讲义导航 |
 | [benneng](benneng/README.md) | [郭生白 · 视频全集](https://www.bilibili.com/toy/benneng/index.html) | 本能系统医学视频合集与已看进度 |
-| [jianzhi](jianzhi/README.md) | 我的健康减脂方法 | 44 天减脂记录、五三二饮食与 45 条问答 |
+| [jianzhi](jianzhi/README.md) | [我的健康减脂方法](https://www.bilibili.com/toy/jianzhi/index.html) | 44 天减脂记录、五三二饮食与 45 条问答 |
 
 游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
