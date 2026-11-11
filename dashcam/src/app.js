@@ -11,14 +11,19 @@ const MOBILE = (function () {
     var q = (location.search || '') + (location.hash || '');
     if (/[?&]mobile=1/.test(q)) return true;
     if (/([?&])mobile=0/.test(q)) return false;
-    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    // 与《海风竞速》同款三分判定（真机已验证）：部分浏览器 pointer:coarse 为真
+    // 却上报 ontouchstart 不存在、maxTouchPoints=0，只查后两者会漏判。
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    return coarse || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   } catch (e) { return false; }
 })();
 
-// 触屏自愈：判定成了桌面却收到触摸（WebView 媒体查询误报的兜底），
+// 触屏自愈：判定成了桌面却收到触摸输入（媒体查询与触摸 API 全误报的兜底），
 // 带 ?mobile=1 重载切换到移动端构建。判定正确时不会触发。
+// 注意：maxTouchPoints=0 的浏览器不发 touchstart，只发 pointer(pointerType='touch')，
+// 所以两条通道都要监听。
 if (!MOBILE) {
-  window.addEventListener('touchstart', function () {
+  var goMobile = function () {
     try {
       var u = new URL(location.href);
       if (!/[?&]mobile=/.test(u.search)) {
@@ -26,6 +31,10 @@ if (!MOBILE) {
         if (u.href !== location.href) location.replace(u.href);
       }
     } catch (e) { /* file:// 等环境可能不支持 URL，忽略 */ }
+  };
+  window.addEventListener('touchstart', goMobile, { once: true, passive: true });
+  window.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' || e.pointerType === 'coarse') goMobile();
   }, { once: true, passive: true });
 }
 
@@ -17896,7 +17905,11 @@ class Mobile {
     const w = document.createElement('div'); w.innerHTML = MOB_HTML; while (w.firstChild) document.body.appendChild(w.firstChild);
     this.root = document.getElementById('mctl');
     this.build(this.root, false);
-    for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) this.root.addEventListener(ev, (e) => this.onTouch(e), { passive: false });
+    // 触摸 API 被隐藏的浏览器（部分 WebView：maxTouchPoints=0、不发 touch 事件，
+    // 只发 pointer 事件）走 pointer 通道；正常设备维持 touch 通道，行为零变化。
+    this.pointerOnly = !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    if (this.pointerOnly) for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) this.root.addEventListener(ev, (e) => this.onPointer(e), { passive: false });
+    else for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) this.root.addEventListener(ev, (e) => this.onTouch(e), { passive: false });
     window.addEventListener('resize', () => { this.place(this.root); if (this.edit) this.place(this.edit.area); });
     window.addEventListener('devicemotion', (e) => this.onMotion(e));
     // first tap: go fullscreen + lock landscape where the browser allows it (Android); iOS just shows the rotate hint in portrait
@@ -17905,6 +17918,7 @@ class Mobile {
       if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { });
     };
     window.addEventListener('touchend', fs, { once: true, capture: true });
+    if (this.pointerOnly) window.addEventListener('pointerup', fs, { once: true, capture: true });
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     setInterval(() => this.tick(), 100);
     this.initEditor();
@@ -17962,6 +17976,20 @@ class Mobile {
       }
     }
     this.sync();
+  }
+  // pointer → 伪 touch 适配：仅供触摸 API 被隐藏的浏览器（pointerOnly）使用。
+  // 复用 onTouch 全部逻辑；鼠标/触控笔之外的 pointerType（如 mouse）不进控件，
+  // 防止桌面误触。多指用 pointerId 作 identifier。
+  onPointer(e) {
+    if (!this.pointerOnly) return;
+    if (e.pointerType === 'mouse') return;
+    const ty = e.type === 'pointerdown' ? 'touchstart' : e.type === 'pointermove' ? 'touchmove'
+      : e.type === 'pointerup' ? 'touchend' : 'touchcancel';
+    this.onTouch({
+      type: ty,
+      changedTouches: [{ identifier: e.pointerId, clientX: e.clientX, clientY: e.clientY }],
+      preventDefault() { },
+    });
   }
   sync() {
     const K = this.g.keys, now = new Set();
