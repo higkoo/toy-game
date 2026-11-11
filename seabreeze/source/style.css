@@ -160,6 +160,11 @@ kbd {
 }
 .bc.on { background: var(--sea); border-color: var(--sea); box-shadow: 0 0 12px rgba(63, 208, 201, 0.62); }
 
+/* 触屏时底部 HUD 抬到按钮上方，避让触屏按钮 */
+body.touch .hud-bottom {
+  bottom: calc(var(--bar) + 92px + env(safe-area-inset-bottom, 0px));
+}
+
 #toast {
   position: absolute; top: calc(var(--bar) + 96px); left: 50%; transform: translateX(-50%) translateY(-8px);
   font-size: 22px; font-weight: 800; letter-spacing: 0.06em; color: var(--sun);
@@ -245,9 +250,13 @@ body.boosting #speedlines { opacity: .30; }
 /* ---------- 触屏控件 ---------- */
 #touch { position: fixed; inset: 0; z-index: 22; display: none; pointer-events: none; }
 body.touch #touch { display: block; }
-.tpad { position: absolute; bottom: calc(var(--bar) + 16px); display: flex; gap: 10px; pointer-events: auto; }
-.tpad.left { left: 16px; }
-.tpad.right { right: 16px; }
+.tpad {
+  position: absolute;
+  bottom: calc(var(--bar) + 16px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 10px; pointer-events: auto;
+}
+.tpad.left { left: calc(16px + env(safe-area-inset-left, 0px)); }
+.tpad.right { right: calc(16px + env(safe-area-inset-right, 0px)); }
 .tbtn {
   width: 62px; height: 62px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -288,6 +297,12 @@ body.touch #touch { display: block; }
   .chips { margin-top: 14px; }
   .btn-row { margin-top: 18px; }
   .foot-note { margin-top: 14px; }
+  /* 手机横屏：按钮与 HUD 收紧 */
+  .tbtn { width: 54px; height: 54px; font-size: 11px; }
+  .tbtn.wide { width: 68px; }
+  .tpad { gap: 8px; bottom: calc(var(--bar) + 10px + env(safe-area-inset-bottom, 0px)); }
+  body.touch .hud-bottom { bottom: calc(var(--bar) + 72px + env(safe-area-inset-bottom, 0px)); }
+  body.touch .speed-num { font-size: 34px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }

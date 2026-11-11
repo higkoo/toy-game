@@ -3,6 +3,16 @@
 //  键鼠与触屏
 // ============================================================================
 
+// 触屏判定：任一触摸能力命中即显示触屏控件。
+// 真机事故：检测逻辑一度缺失，body.touch 类永不生效，手机上按钮全部消失。
+// 兜底：判定失败但收到 touchstart 时强制开启（WebView 媒体查询误报的自愈）。
+const IS_TOUCH = (window.matchMedia && matchMedia('(pointer: coarse)').matches)
+  || 'ontouchstart' in window
+  || (navigator.maxTouchPoints || 0) > 0;
+document.body.classList.toggle('touch', IS_TOUCH);
+addEventListener('touchstart', () => document.body.classList.add('touch'),
+  { once: true, passive: true });
+
 const Keys = { up: false, down: false, left: false, right: false, drift: false, boost: false };
 const Touch = { up: false, down: false, left: false, right: false, drift: false, boost: false, active: false };
 
@@ -672,7 +682,7 @@ function boot() {
   const rot = $('rotate');
   const check = () => {
     const portrait = innerHeight > innerWidth;
-    rot.classList.toggle('show', portrait && matchMedia('(pointer: coarse)').matches);
+    rot.classList.toggle('show', portrait && IS_TOUCH);
   };
   addEventListener('resize', check);
   addEventListener('orientationchange', check);
