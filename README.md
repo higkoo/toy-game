@@ -13,6 +13,7 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [sanji](sanji/README.md) | [倪海厦学习天地](https://www.bilibili.com/toy/sanji/index.html) | 天纪、人纪、地纪课程视频与讲义导航 |
 | [benneng](benneng/README.md) | [郭生白 · 视频全集](https://www.bilibili.com/toy/benneng/index.html) | 本能系统医学视频合集与已看进度 |
 | [jianzhi](jianzhi/README.md) | [我的健康减脂方法](https://www.bilibili.com/toy/jianzhi/index.html) | 44 天减脂记录、五三二饮食与 45 条问答 |
+| [berth4](berth4/README.md) | [四号泊位](https://www.bilibili.com/toy/berth4/index.html) | 港口题材第一人称射击，切断三处中继后登船撤离 |
 
 游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
@@ -51,6 +52,8 @@ gomoku/
 ## 发布到 Toy
 
 每个游戏以各自的 `src` 目录作为 Toy 页面根目录上传，`assets` 目录中的图标和海报用于 Toy 的外层素材。
+
+《四号泊位》是例外：内联 three.js 的单文件约 1.4 MB，超过入口 `index.html` 解压后 ≤ 1 MB 的预检，所以拆成 `src/index.html` + `src/game.bundle.js` 两个文件一起作为页面根目录上传，两者必须同目录。
 
 ## 联机说明
 
