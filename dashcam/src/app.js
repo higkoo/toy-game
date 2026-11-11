@@ -1,17 +1,33 @@
 
 'use strict';
 const MOBILE = (function () {
-  // 运行时判定：有触摸且主指针不是精细指针（鼠标）时走移动端构建。
+  // 运行时判定：有触摸能力即走移动端构建。
+  // 真机事故：部分手机 WebView 会把 pointer: fine 误报成 true 且不报 coarse，
+  // 原先 touch && !fine 的判定在这些设备上失败，触屏按钮全部消失。
+  // 代价评估：触屏笔记本在旧判定下本来就走移动端（coarse 亦为真），无新增回归；
+  // 外接触摸屏的台式机可加 ?mobile=0 强制回桌面端。
   // URL 加 ?mobile=1 / ?mobile=0 可强制切换，方便两端分别调试。
   try {
     var q = (location.search || '') + (location.hash || '');
     if (/[?&]mobile=1/.test(q)) return true;
-    if (/[?&]mobile=0/.test(q)) return false;
-    var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    var fine = !!(window.matchMedia && window.matchMedia('(pointer: fine)').matches);
-    return touch && !fine;
+    if (/([?&])mobile=0/.test(q)) return false;
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   } catch (e) { return false; }
 })();
+
+// 触屏自愈：判定成了桌面却收到触摸（WebView 媒体查询误报的兜底），
+// 带 ?mobile=1 重载切换到移动端构建。判定正确时不会触发。
+if (!MOBILE) {
+  window.addEventListener('touchstart', function () {
+    try {
+      var u = new URL(location.href);
+      if (!/[?&]mobile=/.test(u.search)) {
+        u.searchParams.set('mobile', '1');
+        if (u.href !== location.href) location.replace(u.href);
+      }
+    } catch (e) { /* file:// 等环境可能不支持 URL，忽略 */ }
+  }, { once: true, passive: true });
+}
 
 // ---- 00_util.js ----
 // ============================================================================
@@ -17912,10 +17928,20 @@ class Mobile {
   }
   place(root, mode = root.dataset.m) {
     const H = window.innerHeight, L = (this.edit && root === this.edit.area ? this.edit.lay : this.lay)[mode];
+    // 刘海 / 圆角安全区：横屏时把按键中心限制在安全区内（只影响显示，不改布局存档）
+    let sal = 0, sar = 0, sat = 0;
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      sal = parseFloat(cs.getPropertyValue('--sal')) || 0;
+      sar = parseFloat(cs.getPropertyValue('--sar')) || 0;
+      sat = parseFloat(cs.getPropertyValue('--sat')) || 0;
+    } catch (e) { }
+    const AW = Math.max(1, window.innerWidth - sal - sar), AH = Math.max(1, H - sat);
     for (const b of root.children) {
       const p = L[b.dataset.id]; if (!p) continue;
       const h = p[2] * H, w = h * (MOB_PEDAL[b.dataset.id] || 1);
-      Object.assign(b.style, { left: (p[0] * 100) + '%', top: (p[1] * 100) + '%', width: w + 'px', height: h + 'px', fontSize: Math.max(11, Math.min(w, h) * (MOB_BTNS[b.dataset.id][2] === 'tap' ? 0.3 : 0.24)) + 'px' });
+      const x = sal + p[0] * AW, y = sat + p[1] * AH;
+      Object.assign(b.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', fontSize: Math.max(11, Math.min(w, h) * (MOB_BTNS[b.dataset.id][2] === 'tap' ? 0.3 : 0.24)) + 'px' });
     }
   }
   resetLayout() { this.lay = JSON.parse(JSON.stringify(MOB_LAYOUT0)); this.saveLayout(); this.build(this.root, false); }
@@ -18039,6 +18065,7 @@ const MOB_HTML = `
 </div></div>
 <div id="mrot"><div class="mrBox"><div class="mrPh"></div><b>请将手机横过来</b><small>夜行记录仪需要横屏游玩</small></div></div>`;
 const MOB_CSS = `
+:root{--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
 html,body{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #mctl{position:fixed;inset:0;z-index:15;pointer-events:none;display:none;touch-action:none}
 body.mplay #mctl{display:block}
