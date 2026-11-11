@@ -15,6 +15,7 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [jianzhi](jianzhi/README.md) | [我的健康减脂方法](https://www.bilibili.com/toy/jianzhi/index.html) | 44 天减脂记录、五三二饮食与 45 条问答 |
 | [berth4](berth4/README.md) | [四号泊位](https://www.bilibili.com/toy/berth4/index.html) | 港口题材第一人称射击，切断三处中继后登船撤离 |
 | [dashcam](dashcam/README.md) | [夜行记录仪](https://www.bilibili.com/toy/dashcam/index.html) | 第一人称深夜货运模拟，43 个模块的自研 WebGL2 引擎 |
+| [seabreeze](seabreeze/README.md) | [海风竞速](https://www.bilibili.com/toy/seabreeze/index.html) | 落日海岸低多边形 3D 竞速，三圈计时赛，漂移攒氮气 |
 
 游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
@@ -55,6 +56,8 @@ gomoku/
 每个游戏以各自的 `src` 目录作为 Toy 页面根目录上传，`assets` 目录中的图标和海报用于 Toy 的外层素材。
 
 《四号泊位》是例外：内联 three.js 的单文件约 1.4 MB，超过入口 `index.html` 解压后 ≤ 1 MB 的预检，所以拆成 `src/index.html` + `src/game.bundle.js` 两个文件一起作为页面根目录上传，两者必须同目录。
+
+《海风竞速》同样把 three.js 拆成独立文件：`src/index.html` + `src/three.global.js` + `src/game.js` 三者同目录上传。
 
 ## 联机说明
 
