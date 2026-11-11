@@ -18,6 +18,10 @@ const MOBILE = (function () {
   } catch (e) { return false; }
 })();
 
+// 激活移动端布局层（MOB_CSS 全部以 body.mob 为前缀，但此前没有任何代码添加该类，
+// 导致手机横屏一直渲染桌面布局、"开始直播"按钮被挤出视口）。
+document.body.classList.toggle('mob', !!MOBILE);
+
 // 触屏自愈：判定成了桌面却收到触摸输入（媒体查询与触摸 API 全误报的兜底），
 // 带 ?mobile=1 重载切换到移动端构建。判定正确时不会触发。
 // 注意：maxTouchPoints=0 的浏览器不发 touchstart，只发 pointer(pointerType='touch')，
@@ -18168,6 +18172,7 @@ body.mob .cCard{flex:0 0 10.8em;width:10.8em;height:7.2em}
 body.mob .cTx b{font-size:1.4em}
 body.mob .cCls{transform:scale(.72);transform-origin:0 0}
 body.mob #gBuy .primary{height:2.9em;font-size:1.2em!important}
+@media (max-height:340px){ body.mob .carName{font-size:3.4em} body.mob .sb:nth-child(n+4){display:none} body.mob .goBtn{height:3em} }
 `;
 
 // ---- 14c_perf.js ----
