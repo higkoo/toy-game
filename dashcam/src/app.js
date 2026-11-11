@@ -1,17 +1,46 @@
 
 'use strict';
 const MOBILE = (function () {
-  // 运行时判定：有触摸且主指针不是精细指针（鼠标）时走移动端构建。
+  // 运行时判定：有触摸能力即走移动端构建。
+  // 真机事故：部分手机 WebView 会把 pointer: fine 误报成 true 且不报 coarse，
+  // 原先 touch && !fine 的判定在这些设备上失败，触屏按钮全部消失。
+  // 代价评估：触屏笔记本在旧判定下本来就走移动端（coarse 亦为真），无新增回归；
+  // 外接触摸屏的台式机可加 ?mobile=0 强制回桌面端。
   // URL 加 ?mobile=1 / ?mobile=0 可强制切换，方便两端分别调试。
   try {
     var q = (location.search || '') + (location.hash || '');
     if (/[?&]mobile=1/.test(q)) return true;
-    if (/[?&]mobile=0/.test(q)) return false;
-    var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    var fine = !!(window.matchMedia && window.matchMedia('(pointer: fine)').matches);
-    return touch && !fine;
+    if (/([?&])mobile=0/.test(q)) return false;
+    // 与《海风竞速》同款三分判定（真机已验证）：部分浏览器 pointer:coarse 为真
+    // 却上报 ontouchstart 不存在、maxTouchPoints=0，只查后两者会漏判。
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    return coarse || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   } catch (e) { return false; }
 })();
+
+// 激活移动端布局层（MOB_CSS 全部以 body.mob 为前缀，但此前没有任何代码添加该类，
+// 导致手机横屏一直渲染桌面布局、"开始直播"按钮被挤出视口）。
+document.body.classList.toggle('mob', !!MOBILE);
+
+// 触屏自愈：判定成了桌面却收到触摸输入（媒体查询与触摸 API 全误报的兜底），
+// 带 ?mobile=1 重载切换到移动端构建。判定正确时不会触发。
+// 注意：maxTouchPoints=0 的浏览器不发 touchstart，只发 pointer(pointerType='touch')，
+// 所以两条通道都要监听。
+if (!MOBILE) {
+  var goMobile = function () {
+    try {
+      var u = new URL(location.href);
+      if (!/[?&]mobile=/.test(u.search)) {
+        u.searchParams.set('mobile', '1');
+        if (u.href !== location.href) location.replace(u.href);
+      }
+    } catch (e) { /* file:// 等环境可能不支持 URL，忽略 */ }
+  };
+  window.addEventListener('touchstart', goMobile, { once: true, passive: true });
+  window.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' || e.pointerType === 'coarse') goMobile();
+  }, { once: true, passive: true });
+}
 
 // ---- 00_util.js ----
 // ============================================================================
@@ -17880,7 +17909,11 @@ class Mobile {
     const w = document.createElement('div'); w.innerHTML = MOB_HTML; while (w.firstChild) document.body.appendChild(w.firstChild);
     this.root = document.getElementById('mctl');
     this.build(this.root, false);
-    for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) this.root.addEventListener(ev, (e) => this.onTouch(e), { passive: false });
+    // 触摸 API 被隐藏的浏览器（部分 WebView：maxTouchPoints=0、不发 touch 事件，
+    // 只发 pointer 事件）走 pointer 通道；正常设备维持 touch 通道，行为零变化。
+    this.pointerOnly = !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    if (this.pointerOnly) for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) this.root.addEventListener(ev, (e) => this.onPointer(e), { passive: false });
+    else for (const ev of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) this.root.addEventListener(ev, (e) => this.onTouch(e), { passive: false });
     window.addEventListener('resize', () => { this.place(this.root); if (this.edit) this.place(this.edit.area); });
     window.addEventListener('devicemotion', (e) => this.onMotion(e));
     // first tap: go fullscreen + lock landscape where the browser allows it (Android); iOS just shows the rotate hint in portrait
@@ -17889,6 +17922,7 @@ class Mobile {
       if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { });
     };
     window.addEventListener('touchend', fs, { once: true, capture: true });
+    if (this.pointerOnly) window.addEventListener('pointerup', fs, { once: true, capture: true });
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     setInterval(() => this.tick(), 100);
     this.initEditor();
@@ -17912,10 +17946,20 @@ class Mobile {
   }
   place(root, mode = root.dataset.m) {
     const H = window.innerHeight, L = (this.edit && root === this.edit.area ? this.edit.lay : this.lay)[mode];
+    // 刘海 / 圆角安全区：横屏时把按键中心限制在安全区内（只影响显示，不改布局存档）
+    let sal = 0, sar = 0, sat = 0;
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      sal = parseFloat(cs.getPropertyValue('--sal')) || 0;
+      sar = parseFloat(cs.getPropertyValue('--sar')) || 0;
+      sat = parseFloat(cs.getPropertyValue('--sat')) || 0;
+    } catch (e) { }
+    const AW = Math.max(1, window.innerWidth - sal - sar), AH = Math.max(1, H - sat);
     for (const b of root.children) {
       const p = L[b.dataset.id]; if (!p) continue;
       const h = p[2] * H, w = h * (MOB_PEDAL[b.dataset.id] || 1);
-      Object.assign(b.style, { left: (p[0] * 100) + '%', top: (p[1] * 100) + '%', width: w + 'px', height: h + 'px', fontSize: Math.max(11, Math.min(w, h) * (MOB_BTNS[b.dataset.id][2] === 'tap' ? 0.3 : 0.24)) + 'px' });
+      const x = sal + p[0] * AW, y = sat + p[1] * AH;
+      Object.assign(b.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', fontSize: Math.max(11, Math.min(w, h) * (MOB_BTNS[b.dataset.id][2] === 'tap' ? 0.3 : 0.24)) + 'px' });
     }
   }
   resetLayout() { this.lay = JSON.parse(JSON.stringify(MOB_LAYOUT0)); this.saveLayout(); this.build(this.root, false); }
@@ -17936,6 +17980,20 @@ class Mobile {
       }
     }
     this.sync();
+  }
+  // pointer → 伪 touch 适配：仅供触摸 API 被隐藏的浏览器（pointerOnly）使用。
+  // 复用 onTouch 全部逻辑；鼠标/触控笔之外的 pointerType（如 mouse）不进控件，
+  // 防止桌面误触。多指用 pointerId 作 identifier。
+  onPointer(e) {
+    if (!this.pointerOnly) return;
+    if (e.pointerType === 'mouse') return;
+    const ty = e.type === 'pointerdown' ? 'touchstart' : e.type === 'pointermove' ? 'touchmove'
+      : e.type === 'pointerup' ? 'touchend' : 'touchcancel';
+    this.onTouch({
+      type: ty,
+      changedTouches: [{ identifier: e.pointerId, clientX: e.clientX, clientY: e.clientY }],
+      preventDefault() { },
+    });
   }
   sync() {
     const K = this.g.keys, now = new Set();
@@ -18039,6 +18097,7 @@ const MOB_HTML = `
 </div></div>
 <div id="mrot"><div class="mrBox"><div class="mrPh"></div><b>请将手机横过来</b><small>夜行记录仪需要横屏游玩</small></div></div>`;
 const MOB_CSS = `
+:root{--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
 html,body{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #mctl{position:fixed;inset:0;z-index:15;pointer-events:none;display:none;touch-action:none}
 body.mplay #mctl{display:block}
@@ -18113,6 +18172,7 @@ body.mob .cCard{flex:0 0 10.8em;width:10.8em;height:7.2em}
 body.mob .cTx b{font-size:1.4em}
 body.mob .cCls{transform:scale(.72);transform-origin:0 0}
 body.mob #gBuy .primary{height:2.9em;font-size:1.2em!important}
+@media (max-height:340px){ body.mob .carName{font-size:3.4em} body.mob .sb:nth-child(n+4){display:none} body.mob .goBtn{height:3em} }
 `;
 
 // ---- 14c_perf.js ----
