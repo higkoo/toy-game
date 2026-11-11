@@ -14,6 +14,7 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [benneng](benneng/README.md) | [郭生白 · 视频全集](https://www.bilibili.com/toy/benneng/index.html) | 本能系统医学视频合集与已看进度 |
 | [jianzhi](jianzhi/README.md) | [我的健康减脂方法](https://www.bilibili.com/toy/jianzhi/index.html) | 44 天减脂记录、五三二饮食与 45 条问答 |
 | [berth4](berth4/README.md) | [四号泊位](https://www.bilibili.com/toy/berth4/index.html) | 港口题材第一人称射击，切断三处中继后登船撤离 |
+| [dashcam](dashcam/README.md) | [夜行记录仪](https://www.bilibili.com/toy/dashcam/index.html) | 第一人称深夜货运模拟，43 个模块的自研 WebGL2 引擎 |
 
 游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
