@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>海风竞速 · Sea Breeze GP</title>
+<meta name="description" content="黄昏海岸线上的低多边形竞速：环形赛道、漂移过弯、氮气加速，与七台 AI 车抢一个名次。全部实时生成，无一张外部贴图。" />
+<meta name="theme-color" content="#16233d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233d'/%3E%3Ccircle cx='32' cy='26' r='13' fill='%23ffb547'/%3E%3Cpath d='M6 44h52v4H6z' fill='%233fd0c9'/%3E%3C/svg%3E" />
+<style>/*__CSS__*/</style>
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+<div id="speedlines"></div>
+
+<!-- ================= HUD ================= -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-item"><span class="k">圈 LAP</span><span class="v sun" id="hudLap">1/3</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">时间</span><span class="v" id="hudTime">0.00</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">名次</span><span class="v sea" id="hudPos">8</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">单圈最快</span><span class="v" id="hudBest">--:--</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">名次</span><span class="v sun" id="hudRank">—</span></div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="verTag" aria-hidden="true">v1.0.0</div>
+
+  <div class="hud-bottom">
+    <div class="speed-box">
+      <span class="speed-num" id="hudSpeed">0</span>
+      <span class="speed-unit" id="hudSpeedUnit">km/h</span>
+    </div>
+    <div class="boost-box">
+      <span class="boost-label">氮气 NITRO</span>
+      <div id="boostCells">
+        <span class="bc"></span><span class="bc"></span><span class="bc"></span>
+        <span class="bc"></span><span class="bc"></span><span class="bc"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 触屏控件 ================= -->
+<div id="touch">
+  <div class="tpad left">
+    <button class="tbtn" data-k="left" aria-label="左转">◀</button>
+    <button class="tbtn" data-k="right" aria-label="右转">▶</button>
+    <button class="tbtn" data-k="down" aria-label="刹车">刹</button>
+  </div>
+  <div class="tpad right">
+    <button class="tbtn" data-k="drift" aria-label="漂移">漂</button>
+    <button class="tbtn boost" data-k="boost" aria-label="氮气">N₂</button>
+    <button class="tbtn wide gas" data-k="up" aria-label="油门">油门</button>
+  </div>
+</div>
+
+<!-- ================= 标题页 ================= -->
+<div id="title" class="show">
+  <svg class="title-mark" viewBox="0 0 120 120" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#16233d"/><stop offset="1" stop-color="#ffb547"/>
+      </linearGradient>
+    </defs>
+    <circle cx="60" cy="52" r="30" fill="url(#sky)"/>
+    <circle cx="60" cy="52" r="30" fill="none" stroke="#ffd79a" stroke-width="1" opacity=".5"/>
+    <path d="M8 92h104" stroke="#f0d9b5" stroke-width="2" opacity=".55"/>
+    <path d="M8 100h104" stroke="#3fd0c9" stroke-width="2" opacity=".7"/>
+    <g fill="#16233d">
+      <path d="M30 88l7-14h20l6 14z"/><rect x="40" y="66" width="12" height="8" rx="3"/>
+      <circle cx="40" cy="88" r="4" fill="#0d1626"/><circle cx="54" cy="88" r="4" fill="#0d1626"/>
+    </g>
+    <g fill="#ffb547">
+      <path d="M62 88l7-14h20l6 14z"/><rect x="72" y="66" width="12" height="8" rx="3"/>
+      <circle cx="72" cy="88" r="4" fill="#0d1626"/><circle cx="86" cy="88" r="4" fill="#0d1626"/>
+    </g>
+  </svg>
+
+  <div class="title-rule"></div>
+  <h1>海风竞速</h1>
+  <p class="title-en">SEA BREEZE GP</p>
+  <p class="title-sub">
+    落日把海面烧成橙金，你压着海风绕过防风林与灯塔。<br />
+    三圈，漂移攒氮气，别在弯里松开手。
+  </p>
+
+  <div class="chips">
+    <span class="chip">程序化生成</span>
+    <span class="chip">低多边形</span>
+    <span class="chip">漂移过弯</span>
+    <span class="chip">氮气加速</span>
+    <span class="chip">七台对手</span>
+    <span class="chip">实时名次</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnStart">开始比赛 ▶</button>
+    <button class="btn btn-ghost" id="btnMute">声音 关</button>
+    <button class="btn btn-ghost btn-sm" id="btnHelp">帮助</button>
+  </div>
+
+  <div class="keytable">
+    <span><kbd>W</kbd><kbd>S</kbd> 油门 / 刹车</span>
+    <span><kbd>A</kbd><kbd>D</kbd> 转向</span>
+    <span><kbd>空格</kbd> 漂移</span>
+    <span><kbd>Shift</kbd> 氮气</span>
+    <span><kbd>R</kbd> 重置</span>
+    <span><kbd>C</kbd> 视角</span>
+    <span><kbd>Esc</kbd> 暂停</span>
+  </div>
+
+  <p class="foot-note">三个场景全部实时生成 · 零外部贴图 · 断网可玩</p>
+</div>
+
+<!-- ================= 暂停 ================= -->
+<div id="pause" class="overlay">
+  <div class="panel">
+    <h2>已暂停</h2>
+    <p class="sub">PAUSED</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnResume">继续比赛</button>
+      <button class="btn btn-ghost" id="btnRestart">重新开始</button>
+      <button class="btn btn-ghost" id="btnQuit">回到标题</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 结算 ================= -->
+<div id="finish" class="overlay">
+  <div class="panel">
+    <div id="finPos">冠军</div>
+    <div id="finPosNum">#1</div>
+    <div id="finRecord">新纪录</div>
+    <div id="finRecordBest"></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="k">总用时</div><div class="v sun" id="finTime">0.00</div></div>
+      <div class="stat"><div class="k">单圈最快</div><div class="v sea" id="finBest">--</div></div>
+      <div class="stat"><div class="k">漂移里程</div><div class="v" id="finDrift">0 m</div></div>
+      <div class="stat"><div class="k">最高时速</div><div class="v" id="finTop">0 km/h</div></div>
+    </div>
+    <div class="lap-list" id="finLaps"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnAgain">再来一局</button>
+      <button class="btn btn-ghost" id="btnHome">回到标题</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 帮助 ================= -->
+<div id="help" class="overlay">
+  <div class="panel" id="helpPanel">
+    <h2>怎么玩</h2>
+    <p class="sub">HOW TO PLAY</p>
+    <div class="help-list">
+      <div><b>W / S</b> 油门与刹车　<b>A / D</b> 左右转向</div>
+      <div><b>空格</b> 按住漂移：转向更灵，但抓地力下降，松开有短暂加速</div>
+      <div><b>Shift</b> 消耗氮气推进，漂移可以攒氮气</div>
+      <div><b>C</b> 切换视角（跟随 / 车内 / 环绕）　<b>R</b> 重置　<b>Esc</b> 暂停</div>
+      <div>手机横屏游玩，左侧转向刹车，右侧油门、漂移与氮气</div>
+      <div>弯道里松开油门能保住速度；出界会掉速并被推回赛道</div>
+    </div>
+    <div class="btn-row"><button class="btn btn-ghost" id="helpClose">知道了</button></div>
+  </div>
+</div>
+
+<!-- ================= 竖屏提示 ================= -->
+<div id="rotate">
+  <div class="ph"></div>
+  <b>请把手机横过来</b>
+  <small>海风竞速需要横屏游玩</small>
+</div>
+
+<script>/*__THREE__*/</script>
+<script>/*__GAME__*/</script>
+</body>
+</html>

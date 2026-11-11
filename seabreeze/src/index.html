@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>海风竞速 · Sea Breeze GP</title>
+<meta name="description" content="黄昏海岸线上的低多边形竞速：环形赛道、漂移过弯、氮气加速，与七台 AI 车抢一个名次。全部实时生成，无一张外部贴图。" />
+<meta name="theme-color" content="#16233d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316233d'/%3E%3Ccircle cx='32' cy='26' r='13' fill='%23ffb547'/%3E%3Cpath d='M6 44h52v4H6z' fill='%233fd0c9'/%3E%3C/svg%3E" />
+<style>:root {
+  --sun: #ffb547;
+  --sun-soft: #ffd79a;
+  --sea: #3fd0c9;
+  --deep: #16233d;
+  --deep-2: #0d1626;
+  --sand: #f0d9b5;
+  --ink: #f4f6fb;
+  --muted: rgba(236, 240, 250, 0.66);
+  --danger: #ff5a6e;
+  --glass: rgba(14, 20, 34, 0.52);
+  --glass-strong: rgba(10, 14, 26, 0.78);
+  --stroke: rgba(255, 255, 255, 0.14);
+  --radius: 16px;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  --font: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, monospace;
+  --bar: 8vh;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  background: var(--deep-2); color: var(--ink);
+  font-family: var(--font);
+  overscroll-behavior: none; touch-action: none;
+  user-select: none; -webkit-user-select: none;
+}
+
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* 电影黑边 */
+body::before, body::after {
+  content: ''; position: fixed; left: 0; right: 0; height: var(--bar);
+  background: #05070d; z-index: 40; pointer-events: none;
+}
+body::before { top: 0; }
+body::after { bottom: 0; }
+
+/* ---------- 标题页 ---------- */
+#title {
+  position: fixed; inset: 0; z-index: 30;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px;
+  background: radial-gradient(ellipse at 50% 42%, rgba(5, 8, 16, 0.20) 0%, rgba(5, 8, 16, 0.72) 72%);
+}
+#title.show { display: flex; }
+
+.title-mark {
+  width: 116px; height: 116px; margin-bottom: 22px;
+  animation: floaty 4.5s ease-in-out infinite;
+}
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+.title-rule {
+  width: 46px; height: 2px; background: var(--sun); margin: 0 0 18px;
+  box-shadow: 0 0 18px rgba(255, 181, 71, 0.6);
+}
+
+#title h1 {
+  margin: 0; font-size: clamp(40px, 7.4vw, 74px); font-weight: 800;
+  letter-spacing: -0.02em; line-height: 1.05;
+  color: #fff;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.55);
+}
+.title-en {
+  margin: 12px 0 0; font-size: clamp(12px, 1.5vw, 17px); font-weight: 700;
+  letter-spacing: 0.42em; text-indent: 0.42em; color: var(--sea);
+}
+.title-sub {
+  margin: 20px 0 0; max-width: 30em; padding: 0 8px;
+  font-size: clamp(13px, 1.5vw, 15px); line-height: 1.85; color: var(--muted);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 22px; max-width: 620px; }
+.chip {
+  font-size: 12px; letter-spacing: 0.06em; color: var(--sand);
+  border: 1px solid var(--stroke); border-radius: 999px;
+  padding: 6px 13px; background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+
+.btn-row { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+.btn {
+  font-family: var(--font); font-size: 15px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 13px 30px; border-radius: 999px; cursor: pointer;
+  border: 1px solid transparent; transition: transform .16s cubic-bezier(.22,1,.36,1), background .16s, box-shadow .16s;
+}
+.btn:active { transform: translateY(1px) scale(0.985); }
+.btn:focus-visible { outline: 2px solid var(--sea); outline-offset: 3px; }
+.btn-primary {
+  background: var(--sun); color: #221503;
+  box-shadow: 0 8px 26px rgba(255, 181, 71, 0.34);
+}
+.btn-primary:hover { background: #ffc468; box-shadow: 0 10px 32px rgba(255, 181, 71, 0.46); }
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.05); color: var(--ink);
+  border-color: var(--stroke); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.12); }
+.btn-sm { font-size: 12px; padding: 8px 16px; }
+
+.keytable {
+  margin-top: 30px; display: flex; flex-wrap: wrap; gap: 7px 16px; justify-content: center;
+  font-size: 12px; color: var(--muted); max-width: 640px;
+}
+.keytable span { display: inline-flex; align-items: center; gap: 6px; }
+kbd {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  min-width: 20px; padding: 3px 6px; text-align: center;
+  border: 1px solid var(--stroke); border-bottom-width: 2px; border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07); color: var(--ink);
+}
+
+.foot-note { margin-top: 26px; font-size: 11px; color: rgba(236, 240, 250, 0.34); letter-spacing: 0.06em; }
+.foot-note a { color: rgba(236, 240, 250, 0.5); text-decoration: none; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed; inset: 0; z-index: 20; display: none; pointer-events: none;
+}
+#hud.show { display: block; }
+
+.hud-top {
+  position: absolute; top: calc(var(--bar) + 12px); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 22px;
+  padding: 9px 22px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--stroke);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 46px; }
+.hud-item .k { font-size: 9px; letter-spacing: 0.18em; color: rgba(236, 240, 250, 0.5); }
+.hud-item .v { font-family: var(--mono); font-size: 17px; font-weight: 700; line-height: 1; color: var(--ink); }
+.hud-item .v.sun { color: var(--sun); }
+.hud-item .v.sea { color: var(--sea); }
+.hud-sep { width: 1px; height: 26px; background: var(--stroke); }
+
+.hud-bottom {
+  position: absolute; bottom: calc(var(--bar) + 14px); left: 0; right: 0;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 clamp(16px, 3vw, 40px);
+}
+.speed-box { display: flex; align-items: baseline; gap: 8px; }
+.speed-num {
+  font-family: var(--mono); font-size: clamp(38px, 5.4vw, 58px); font-weight: 700;
+  line-height: 0.9; color: var(--ink); text-shadow: 0 3px 22px rgba(0,0,0,.6);
+  font-variant-numeric: tabular-nums;
+}
+.speed-unit { font-size: 13px; letter-spacing: 0.16em; color: var(--muted); }
+
+.boost-box { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.boost-label { font-size: 9px; letter-spacing: 0.22em; color: rgba(236, 240, 250, 0.5); }
+#boostCells { display: flex; gap: 4px; }
+.bc {
+  width: 26px; height: 11px; border-radius: 2px;
+  border: 1px solid rgba(63, 208, 201, 0.42); background: rgba(63, 208, 201, 0.06);
+  transition: background .12s, box-shadow .12s, border-color .12s;
+}
+.bc.on { background: var(--sea); border-color: var(--sea); box-shadow: 0 0 12px rgba(63, 208, 201, 0.62); }
+
+#toast {
+  position: absolute; top: calc(var(--bar) + 96px); left: 50%; transform: translateX(-50%) translateY(-8px);
+  font-size: 22px; font-weight: 800; letter-spacing: 0.06em; color: var(--sun);
+  text-shadow: 0 3px 20px rgba(0,0,0,.7);
+  opacity: 0; transition: opacity .28s, transform .28s cubic-bezier(.22,1,.36,1);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 版本号（右下角，不抢戏） */
+#verTag {
+  position: fixed; right: 14px; bottom: 8px; z-index: 60;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  color: rgba(244, 246, 251, 0.42); user-select: none; pointer-events: none;
+}
+
+/* 氮气时的屏幕边缘泛光 */
+#hud::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  box-shadow: inset 0 0 130px rgba(63, 208, 201, 0.55);
+  transition: opacity .16s;
+}
+body.boosting #hud::after { opacity: 1; }
+
+/* 速度线 */
+#speedlines {
+  position: fixed; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
+  transition: opacity .2s;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255,255,255,.30) 0deg 0.35deg, transparent 0.35deg 3.2deg);
+  mask-image: radial-gradient(ellipse at 50% 50%, transparent 34%, #000 76%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, transparent 34%, #000 76%);
+}
+body.boosting #speedlines { opacity: .30; }
+
+/* ---------- 覆盖层（暂停 / 结算） ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 35; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(5, 8, 16, 0.74);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: 24px;
+}
+.overlay.show { display: flex; }
+.panel {
+  width: min(460px, 92vw); padding: 30px 28px;
+  background: var(--glass-strong); border: 1px solid var(--stroke);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  text-align: center;
+}
+.panel h2 { margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+.panel .sub { margin: 0 0 22px; font-size: 12px; letter-spacing: 0.2em; color: var(--sea); }
+.panel .btn-row { margin-top: 22px; }
+
+/* 结算表 */
+.stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--stroke); border: 1px solid var(--stroke);
+  border-radius: 12px; overflow: hidden; margin-top: 18px;
+}
+.stat { background: rgba(10, 14, 26, 0.9); padding: 13px 10px; }
+.stat .k { font-size: 10px; letter-spacing: 0.14em; color: rgba(236,240,250,.5); }
+.stat .v { font-family: var(--mono); font-size: 19px; font-weight: 700; margin-top: 5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat .v.sun { color: var(--sun); }
+.stat .v.sea { color: var(--sea); }
+.lap-list { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 14px; letter-spacing: .04em; }
+#finPos { font-size: 42px; font-weight: 800; color: var(--sun); line-height: 1; }
+#finPosNum { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 6px; letter-spacing: .18em; }
+#finRecord {
+  display: none; margin-top: 14px; font-size: 12px; font-weight: 700; letter-spacing: .12em;
+  color: var(--sea); border: 1px solid rgba(63,208,201,.4); border-radius: 999px; padding: 5px 14px;
+  display: none; width: fit-content; margin-left: auto; margin-right: auto;
+}
+#finRecord.show { display: block; }
+#finRecordBest { font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+/* ---------- 帮助 ---------- */
+#help { z-index: 40; }
+#help .panel { text-align: left; }
+.help-list { margin: 16px 0 0; font-size: 13px; line-height: 2.1; color: var(--muted); }
+.help-list b { color: var(--ink); font-weight: 700; }
+
+/* ---------- 触屏控件 ---------- */
+#touch { position: fixed; inset: 0; z-index: 22; display: none; pointer-events: none; }
+body.touch #touch { display: block; }
+.tpad { position: absolute; bottom: calc(var(--bar) + 16px); display: flex; gap: 10px; pointer-events: auto; }
+.tpad.left { left: 16px; }
+.tpad.right { right: 16px; }
+.tbtn {
+  width: 62px; height: 62px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--ink);
+  background: rgba(14, 20, 34, 0.55); border: 1px solid var(--stroke);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background .1s, transform .1s;
+}
+.tbtn.wide { width: 76px; }
+.tbtn.gas { background: rgba(255, 181, 71, 0.24); border-color: rgba(255, 181, 71, 0.5); color: var(--sun-soft); }
+.tbtn.boost { background: rgba(63, 208, 201, 0.22); border-color: rgba(63, 208, 201, 0.5); color: #9ff0eb; }
+.tbtn.on { background: rgba(255, 255, 255, 0.3); transform: scale(0.93); }
+
+/* 竖屏提示 */
+#rotate {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: #05070d; color: var(--ink); text-align: center; gap: 16px;
+}
+#rotate.show { display: flex; }
+#rotate .ph {
+  width: 56px; height: 92px; border: 3px solid var(--sun); border-radius: 10px;
+  animation: rot 2.2s ease-in-out infinite;
+}
+@keyframes rot { 0%,40% { transform: rotate(0); } 60%,100% { transform: rotate(-90deg); } }
+#rotate b { font-size: 17px; }
+#rotate small { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 560px) {
+  .keytable { display: none; }
+  .hud-top { gap: 14px; padding: 7px 16px; }
+  .hud-item { min-width: 38px; }
+  .hud-item .v { font-size: 15px; }
+  .bc { width: 18px; height: 9px; }
+}
+@media (max-height: 480px) {
+  .title-mark { width: 74px; height: 74px; margin-bottom: 12px; }
+  .chips { margin-top: 14px; }
+  .btn-row { margin-top: 18px; }
+  .foot-note { margin-top: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+<div id="speedlines"></div>
+
+<!-- ================= HUD ================= -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-item"><span class="k">圈 LAP</span><span class="v sun" id="hudLap">1/3</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">时间</span><span class="v" id="hudTime">0.00</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">名次</span><span class="v sea" id="hudPos">8</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">单圈最快</span><span class="v" id="hudBest">--:--</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-item"><span class="k">名次</span><span class="v sun" id="hudRank">—</span></div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="verTag" aria-hidden="true">v1.0.0</div>
+
+  <div class="hud-bottom">
+    <div class="speed-box">
+      <span class="speed-num" id="hudSpeed">0</span>
+      <span class="speed-unit" id="hudSpeedUnit">km/h</span>
+    </div>
+    <div class="boost-box">
+      <span class="boost-label">氮气 NITRO</span>
+      <div id="boostCells">
+        <span class="bc"></span><span class="bc"></span><span class="bc"></span>
+        <span class="bc"></span><span class="bc"></span><span class="bc"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 触屏控件 ================= -->
+<div id="touch">
+  <div class="tpad left">
+    <button class="tbtn" data-k="left" aria-label="左转">◀</button>
+    <button class="tbtn" data-k="right" aria-label="右转">▶</button>
+    <button class="tbtn" data-k="down" aria-label="刹车">刹</button>
+  </div>
+  <div class="tpad right">
+    <button class="tbtn" data-k="drift" aria-label="漂移">漂</button>
+    <button class="tbtn boost" data-k="boost" aria-label="氮气">N₂</button>
+    <button class="tbtn wide gas" data-k="up" aria-label="油门">油门</button>
+  </div>
+</div>
+
+<!-- ================= 标题页 ================= -->
+<div id="title" class="show">
+  <svg class="title-mark" viewBox="0 0 120 120" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#16233d"/><stop offset="1" stop-color="#ffb547"/>
+      </linearGradient>
+    </defs>
+    <circle cx="60" cy="52" r="30" fill="url(#sky)"/>
+    <circle cx="60" cy="52" r="30" fill="none" stroke="#ffd79a" stroke-width="1" opacity=".5"/>
+    <path d="M8 92h104" stroke="#f0d9b5" stroke-width="2" opacity=".55"/>
+    <path d="M8 100h104" stroke="#3fd0c9" stroke-width="2" opacity=".7"/>
+    <g fill="#16233d">
+      <path d="M30 88l7-14h20l6 14z"/><rect x="40" y="66" width="12" height="8" rx="3"/>
+      <circle cx="40" cy="88" r="4" fill="#0d1626"/><circle cx="54" cy="88" r="4" fill="#0d1626"/>
+    </g>
+    <g fill="#ffb547">
+      <path d="M62 88l7-14h20l6 14z"/><rect x="72" y="66" width="12" height="8" rx="3"/>
+      <circle cx="72" cy="88" r="4" fill="#0d1626"/><circle cx="86" cy="88" r="4" fill="#0d1626"/>
+    </g>
+  </svg>
+
+  <div class="title-rule"></div>
+  <h1>海风竞速</h1>
+  <p class="title-en">SEA BREEZE GP</p>
+  <p class="title-sub">
+    落日把海面烧成橙金，你压着海风绕过防风林与灯塔。<br />
+    三圈，漂移攒氮气，别在弯里松开手。
+  </p>
+
+  <div class="chips">
+    <span class="chip">程序化生成</span>
+    <span class="chip">低多边形</span>
+    <span class="chip">漂移过弯</span>
+    <span class="chip">氮气加速</span>
+    <span class="chip">七台对手</span>
+    <span class="chip">实时名次</span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnStart">开始比赛 ▶</button>
+    <button class="btn btn-ghost" id="btnMute">声音 关</button>
+    <button class="btn btn-ghost btn-sm" id="btnHelp">帮助</button>
+  </div>
+
+  <div class="keytable">
+    <span><kbd>W</kbd><kbd>S</kbd> 油门 / 刹车</span>
+    <span><kbd>A</kbd><kbd>D</kbd> 转向</span>
+    <span><kbd>空格</kbd> 漂移</span>
+    <span><kbd>Shift</kbd> 氮气</span>
+    <span><kbd>R</kbd> 重置</span>
+    <span><kbd>C</kbd> 视角</span>
+    <span><kbd>Esc</kbd> 暂停</span>
+  </div>
+
+  <p class="foot-note">三个场景全部实时生成 · 零外部贴图 · 断网可玩</p>
+</div>
+
+<!-- ================= 暂停 ================= -->
+<div id="pause" class="overlay">
+  <div class="panel">
+    <h2>已暂停</h2>
+    <p class="sub">PAUSED</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnResume">继续比赛</button>
+      <button class="btn btn-ghost" id="btnRestart">重新开始</button>
+      <button class="btn btn-ghost" id="btnQuit">回到标题</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 结算 ================= -->
+<div id="finish" class="overlay">
+  <div class="panel">
+    <div id="finPos">冠军</div>
+    <div id="finPosNum">#1</div>
+    <div id="finRecord">新纪录</div>
+    <div id="finRecordBest"></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="k">总用时</div><div class="v sun" id="finTime">0.00</div></div>
+      <div class="stat"><div class="k">单圈最快</div><div class="v sea" id="finBest">--</div></div>
+      <div class="stat"><div class="k">漂移里程</div><div class="v" id="finDrift">0 m</div></div>
+      <div class="stat"><div class="k">最高时速</div><div class="v" id="finTop">0 km/h</div></div>
+    </div>
+    <div class="lap-list" id="finLaps"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnAgain">再来一局</button>
+      <button class="btn btn-ghost" id="btnHome">回到标题</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 帮助 ================= -->
+<div id="help" class="overlay">
+  <div class="panel" id="helpPanel">
+    <h2>怎么玩</h2>
+    <p class="sub">HOW TO PLAY</p>
+    <div class="help-list">
+      <div><b>W / S</b> 油门与刹车　<b>A / D</b> 左右转向</div>
+      <div><b>空格</b> 按住漂移：转向更灵，但抓地力下降，松开有短暂加速</div>
+      <div><b>Shift</b> 消耗氮气推进，漂移可以攒氮气</div>
+      <div><b>C</b> 切换视角（跟随 / 车内 / 环绕）　<b>R</b> 重置　<b>Esc</b> 暂停</div>
+      <div>手机横屏游玩，左侧转向刹车，右侧油门、漂移与氮气</div>
+      <div>弯道里松开油门能保住速度；出界会掉速并被推回赛道</div>
+    </div>
+    <div class="btn-row"><button class="btn btn-ghost" id="helpClose">知道了</button></div>
+  </div>
+</div>
+
+<!-- ================= 竖屏提示 ================= -->
+<div id="rotate">
+  <div class="ph"></div>
+  <b>请把手机横过来</b>
+  <small>海风竞速需要横屏游玩</small>
+</div>
+
+<script src="three.global.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
