@@ -372,7 +372,16 @@ kbd { display: inline-block; font: 500 10px/1 var(--f-mono); color: var(--bone);
 @media (min-width: 701px) and (min-height: 521px) {
   .menu[data-screen="title"] .m-word { font-size: min(10vw, 112px) !important; white-space: nowrap; }
 }
+
+/* 隐藏彩蛋：外观与页脚说明文字完全一致，仅悬停与键盘焦点给线索 */
+.m-ver { display: inline; margin: 0; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit;
+  cursor: pointer; border-radius: 0; -webkit-appearance: none; appearance: none; }
+.m-ver:hover { color: var(--signal); }
+.m-ver:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
 </style>
+<script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js" defer></script>
+<script src="rank.js" defer></script>
 </head>
 <body>
 <div id="app">

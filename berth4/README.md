@@ -15,7 +15,8 @@
 berth4/
 ├── src/
 │   ├── index.html        # 页面入口：HTML + CSS + three.js MIT 声明（约 33 KB）
-│   └── game.bundle.js    # 内联的 three.js r180 + 游戏逻辑（约 1.39 MB）
+│   ├── game.bundle.js    # 内联的 three.js r180 + 游戏逻辑（约 1.39 MB）
+│   └── rank.js           # 排行榜：面板自绘、分数上报（约 13 KB）
 ├── assets/
 │   ├── icon.png          # Toy 图标 512×512 RGB PNG
 │   └── poster.jpg        # Toy 封面 1280×720 JPEG
@@ -30,11 +31,19 @@ berth4/
 
 不按「three.js / 游戏代码」边界硬拆，是因为游戏代码直接引用了压缩后的库内部符号（如 `new Ae`、`new Qe`），拆分会断引用。两个文件必须放在同一目录，用相对路径 `./game.bundle.js` 加载。
 
+## 排行榜
+
+标题页那行「知度出品 · 第一人称射击 · 开发体验版」里的最后四个字是原生 `<button>`，点它会打开排行榜。沿用三纪 / 减脂的做法：页面不主动提示，属于隐藏彩蛋；键盘 Tab / Enter / Space 可用，Esc 关闭，`:focus-visible` 有焦点圈，关闭后焦点回到入口。
+
+榜单用 `BOARD = 1`（每个 Toy 有自己独立的 5 个榜位，不会和其它游戏串）。计分口径与项目其余游戏一致：**成功登船撤离一次 +1，阵亡不加分，跨局累计，只加不减**；`submitScore` 传绝对分，服务端只保留历史最高分。面板由页面自绘，用游戏自己的暗色 HUD 配色，分总榜 / 本周两个榜期，点开才拉一次并缓存，不轮询。
+
 ## 依赖
 
-零第三方网络依赖，断网可玩。唯一的 `http://` 字符串是 SVG 命名空间 `http://www.w3.org/1999/xhtml`，不产生请求。
+游戏本体零第三方网络依赖，断网可玩。唯一的 `http://` 字符串是 SVG 命名空间 `http://www.w3.org/1999/xhtml`，不产生请求。
 
 浏览器能力：WebGL2（three.js r180 的 `WebGLRenderer`）、Pointer Lock、Fullscreen、Gamepad、`AudioContext` / `OfflineAudioContext`、Canvas 2D（运行时生成贴图）、`AbortSignal.any`、系统字体。没有可创建的 WebGL 上下文时，页面会显示中文「启动失败」兜底提示，不会白屏。
+
+排行榜是唯一用到平台能力的地方：`index.html` 用 `defer` 加载 Toy 平台 SDK（`s1.hdslb.com`），加载失败只影响榜单面板，不影响游戏本体；非 Toy 宿主里打开面板会提示「到 B站 App 内打开本 Toy 再试」并可重试。
 
 内联的 three.js r180 采用 MIT 许可，`Copyright © 2010-2025 three.js authors`。许可全文放在 `index.html` 的 `<head>` 注释与 `game.bundle.js` 顶部。
 

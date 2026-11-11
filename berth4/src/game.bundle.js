@@ -5787,7 +5787,7 @@ vObjP = position; vONrm = normal; vWNrm = normalize(mat3(modelMatrix) * normal);
           <button class="btn" data-act="about">项目介绍</button>
           <button class="btn m-only-narrow" data-act="controls">操作说明</button>
         </div>
-        <p class="m-note">知度出品 · 第一人称射击 · 开发体验版</p>
+        <p class="m-note">知度出品 · 第一人称射击 · <button type="button" class="m-ver" id="rankTag" aria-label="打开排行榜">开发体验版</button></p>
       </div>
       <aside class="m-legend" aria-label="操作速览">
         <div><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>鼠标</kbd> 视角</span><span><kbd>左键</kbd> 开火</span><span><kbd>右键</kbd> 瞄准</span><span><kbd>R</kbd> 换弹</span></div>
