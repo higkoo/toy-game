@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05121f">
+<title>深蓝信标 · Abyss Beacon</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<canvas id="gl" aria-label="深蓝信标游戏画面"></canvas>
+
+<!-- 标题页 -->
+<div id="title" class="screen">
+  <div class="title-inner">
+    <div class="brand-block">
+      <div class="eyebrow">深海探索 · 收集与点亮</div>
+      <h1 class="brand">ABYSS<br>BEACON</h1>
+      <div class="brand-cn">深 蓝 信 标</div>
+      <div class="rule"></div>
+      <p class="lede">深海的灯灭了。<br>驾驶深潜器，收集散落的光囊，<br>送回三座熄灭的远古灯塔。</p>
+      <button id="btnStart" class="cta">下 潜 <span aria-hidden="true">→</span></button>
+      <div class="controls-note">
+        <span><b>WASD</b> 推进 · 转向</span>
+        <span><b>空格 / Shift</b> 上浮 · 下潜</span>
+        <span><b>C</b> 切换视角 · <b>E</b> 投放光囊</span>
+      </div>
+    </div>
+    <div class="title-stats">
+      <div class="stat"><i class="dot cyan"></i><span>光囊</span><b id="titlePods">0 / 18</b></div>
+      <div class="stat"><i class="dot amber"></i><span>灯塔</span><b id="titleBeacons">0 / 3</b></div>
+    </div>
+  </div>
+  <div id="verTag" class="ver-tag" aria-hidden="true">v1.0.0</div>
+</div>
+
+<!-- 游戏 HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="inst">
+      <div class="inst-row"><span class="lab">DEPTH</span><b id="hudDepth">000</b><span class="unit">m</span></div>
+      <div class="inst-row"><span class="lab">HDG</span><b id="hudHeading">N</b></div>
+    </div>
+    <div class="inst right">
+      <div class="inst-row"><span class="lab">光囊</span><b id="hudPods">0 / 18</b></div>
+      <div class="inst-row"><span class="lab">灯塔</span><b id="hudBeacons">0 / 3</b></div>
+    </div>
+  </div>
+  <div id="hint" class="hint">靠近灯塔 · 按 <b>E</b> 投放光囊</div>
+  <button id="viewBtn" class="view-btn" aria-label="切换视角">视角</button>
+</div>
+
+<!-- 触屏控件 -->
+<div id="touch" aria-label="触屏操作">
+  <div class="pad left">
+    <button data-k="up" aria-label="前进">▲</button>
+    <div class="pad-mid">
+      <button data-k="left" aria-label="左转">◀</button>
+      <button data-k="down" aria-label="后退">▼</button>
+      <button data-k="right" aria-label="右转">▶</button>
+    </div>
+  </div>
+  <div class="pad right">
+    <button data-k="ascend" aria-label="上浮">上浮</button>
+    <button data-k="descend" aria-label="下潜">下潜</button>
+  </div>
+  <button id="touchView" class="pad-view" aria-label="切换视角">视角</button>
+  <button id="touchDeliver" class="pad-deliver" aria-label="投放光囊">投放</button>
+</div>
+
+<!-- 竖屏保护 -->
+<div id="portrait" aria-hidden="true"><div class="rotate-icon">↻</div><p>横过手机，继续下潜</p></div>
+
+<!-- 结算 -->
+<div id="end" class="screen">
+  <div class="end-inner">
+    <div class="eyebrow">潜航记录</div>
+    <h2 id="endTitle">三座灯塔已亮</h2>
+    <p id="endSub"></p>
+    <button id="btnAgain" class="cta">再次下潜 <span aria-hidden="true">→</span></button>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>/*__THREE__*/</script>
+<script>/*__GAME__*/</script>
+</body>
+</html>

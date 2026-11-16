@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05121f">
+<title>深蓝信标 · Abyss Beacon</title>
+<style>/* ==========================================================================
+   深蓝信标 · 样式
+   原则：UI 悬浮不贴框；中心 60% 留给画面；三色荧光承载语义
+   ========================================================================== */
+:root{
+  --abyss:#05121f; --mid:#0b2b3d; --cyan:#4ff5d8; --magenta:#ff5c8a;
+  --amber:#ffc66b; --foam:#dff5f0;
+  --fd:ui-monospace,"SF Mono",Consolas,"Liberation Mono",monospace;
+  --fb:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--abyss);color:var(--foam);font-family:var(--fb);touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+
+/* ---------- 通用屏幕层 ---------- */
+.screen{position:fixed;inset:0;z-index:30;display:none;align-items:center;
+  padding:calc(var(--sat) + 4vh) calc(var(--sar) + 8vw) calc(var(--sab) + 4vh) calc(var(--sal) + 8vw);
+  background:linear-gradient(100deg,rgba(5,18,31,.92) 0%,rgba(5,18,31,.72) 44%,rgba(5,18,31,.12) 78%,transparent 100%)}
+.screen.show{display:flex}
+.eyebrow{font-size:11px;letter-spacing:.34em;color:var(--cyan);text-transform:uppercase;margin-bottom:18px}
+
+/* ---------- 标题页 ---------- */
+.title-inner{width:100%;max-width:1120px;display:flex;align-items:flex-end;justify-content:space-between;gap:5vw}
+.brand-block{max-width:520px}
+.brand{font-family:var(--fd);font-weight:800;font-size:clamp(34px,6.4vh,58px);line-height:.96;letter-spacing:.16em;color:var(--foam);text-shadow:0 0 26px rgba(79,245,216,.22)}
+.brand-cn{font-size:clamp(13px,2vh,17px);letter-spacing:.55em;color:var(--foam);opacity:.82;margin-top:12px}
+.rule{width:52px;height:2px;background:var(--cyan);margin:24px 0 22px;box-shadow:0 0 12px var(--cyan)}
+.lede{font-size:clamp(12px,1.65vh,15px);line-height:1.85;color:rgba(223,245,240,.78);max-width:42ch}
+.cta{margin-top:32px;display:inline-flex;align-items:center;gap:20px;padding:14px 30px;border:1px solid var(--cyan);
+  background:rgba(79,245,216,.07);color:var(--foam);font-family:var(--fb);font-size:15px;font-weight:600;letter-spacing:.28em;
+  cursor:pointer;transition:background .25s,box-shadow .25s,transform .25s;min-height:48px}
+.cta span{font-family:var(--fd);font-size:18px;color:var(--cyan)}
+.cta:hover,.cta:focus-visible{background:rgba(79,245,216,.16);box-shadow:0 0 28px rgba(79,245,216,.28);transform:translateX(3px);outline:none}
+.title-stats{display:flex;flex-direction:column;gap:18px;padding-bottom:8px;min-width:170px}
+.stat{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.12em;color:rgba(223,245,240,.62)}
+.stat b{margin-left:auto;font-family:var(--fd);font-size:17px;font-weight:500;color:var(--foam);font-variant-numeric:tabular-nums}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+.dot.cyan{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.dot.amber{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.ver-tag{position:absolute;right:calc(var(--sar) + 16px);bottom:calc(var(--sab) + 14px);
+  font-family:var(--fd);font-size:10px;letter-spacing:.2em;color:rgba(223,245,240,.4)}
+
+/* ---------- 操作说明 ---------- */
+.controls-note{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;font-size:11px;color:rgba(223,245,240,.5)}
+.controls-note b{font-family:var(--fd);font-weight:500;color:var(--cyan);letter-spacing:.06em}
+
+/* ---------- 游戏 HUD ---------- */
+#hud{position:fixed;inset:0;z-index:20;display:none;pointer-events:none}
+#hud.show{display:block}
+.hud-top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;
+  padding:calc(var(--sat) + 18px) calc(var(--sar) + 22px) 0 calc(var(--sal) + 22px)}
+.inst{display:flex;flex-direction:column;gap:8px;min-width:120px}
+.inst.right{align-items:flex-end}
+.inst-row{display:flex;align-items:baseline;gap:8px;font-family:var(--fd)}
+.inst.right .inst-row{flex-direction:row-reverse}
+.lab{font-size:10px;letter-spacing:.22em;color:rgba(223,245,240,.5)}
+.inst b{font-size:22px;font-weight:500;color:var(--foam);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.unit{font-size:11px;color:rgba(223,245,240,.55)}
+.hint{position:absolute;left:50%;bottom:calc(var(--sab) + 15vh);transform:translateX(-50%) translateY(8px);
+  padding:9px 20px;font-size:13px;letter-spacing:.12em;color:var(--foam);
+  background:rgba(11,43,61,.5);border:1px solid rgba(255,198,107,.35);
+  opacity:0;transition:opacity .4s,transform .4s;white-space:nowrap}
+.hint.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.hint b{font-family:var(--fd);color:var(--amber)}
+.view-btn{position:absolute;right:calc(var(--sar) + 22px);bottom:calc(var(--sab) + 22px);
+  padding:8px 16px;font:500 12px var(--fb);letter-spacing:.16em;color:var(--foam);
+  background:transparent;border:1px solid rgba(223,245,240,.28);cursor:pointer;pointer-events:auto;min-height:36px}
+body.touch .view-btn{display:none}
+
+/* ---------- 触屏控件 ---------- */
+#touch{display:none;position:fixed;inset:0;z-index:22;pointer-events:none}
+body.touch #touch{display:block}
+.pad{position:absolute;bottom:calc(var(--sab) + 18px);display:flex;align-items:flex-end;gap:8px;pointer-events:auto}
+.pad.left{left:calc(var(--sal) + 18px)}
+.pad.right{right:calc(var(--sar) + 108px);gap:10px}
+.pad button{width:54px;height:54px;display:flex;align-items:center;justify-content:center;
+  font:600 15px var(--fd);color:var(--foam);background:rgba(11,43,61,.42);
+  border:1px solid rgba(79,245,216,.32);border-radius:50%;touch-action:none;
+  transition:background .12s,transform .12s}
+.pad button.on{background:rgba(79,245,216,.32);transform:scale(.94)}
+.pad-mid{display:flex;gap:8px}
+.pad-view,.pad-deliver{position:absolute;right:calc(var(--sar) + 18px);bottom:calc(var(--sab) + 78px);
+  width:64px;height:64px;border-radius:50%;font:600 12px var(--fb);letter-spacing:.06em;
+  color:var(--foam);background:rgba(11,43,61,.42);border:1px solid rgba(255,198,107,.4);
+  pointer-events:auto;touch-action:none}
+.pad-deliver{bottom:calc(var(--sab) + 152px);border-color:rgba(255,198,107,.7);color:var(--amber)}
+
+/* ---------- 竖屏保护 ---------- */
+#portrait{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;background:rgba(5,18,31,.96);text-align:center;padding:24px}
+#portrait.show{display:flex}
+.rotate-icon{font-size:56px;color:var(--cyan);animation:rot 2s ease-in-out infinite}
+#portrait p{font-size:15px;letter-spacing:.2em;color:var(--foam)}
+@keyframes rot{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(70deg)}}
+
+/* ---------- 结算 ---------- */
+#end{background:rgba(5,18,31,.86)}
+.end-inner{text-align:center;max-width:560px}
+.end-inner h2{font-family:var(--fd);font-size:clamp(24px,4vh,38px);font-weight:700;letter-spacing:.12em;color:var(--amber);margin-bottom:20px}
+.end-inner p{font-size:14px;line-height:1.9;color:rgba(223,245,240,.8);margin-bottom:12px}
+.end-inner .cta{margin-top:28px}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;top:calc(var(--sat) + 12vh);transform:translateX(-50%) translateY(-8px);z-index:50;
+  padding:10px 22px;font-size:13px;letter-spacing:.12em;color:var(--foam);
+  background:rgba(11,43,61,.72);border-left:2px solid var(--cyan);
+  opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- 矮视口 / 手机横屏 ---------- */
+@media (max-height:480px){
+  .screen{align-items:center;padding-top:calc(var(--sat) + 2vh);padding-bottom:calc(var(--sab) + 2vh)}
+  .brand{font-size:clamp(28px,7vh,40px)}
+  .brand-cn{letter-spacing:.4em;margin-top:8px}
+  .rule{margin:14px 0 12px}
+  .lede{font-size:12px;line-height:1.65}
+  .cta{margin-top:18px;padding:10px 24px;min-height:42px;font-size:13px}
+  .controls-note{margin-top:14px;font-size:10px;gap:4px 14px}
+  .title-stats{gap:12px}
+  .stat{font-size:11px}
+  .stat b{font-size:15px}
+  .pad button{width:46px;height:46px;font-size:13px}
+  .pad-mid{gap:6px}
+  .pad-view,.pad-deliver{width:52px;height:52px;font-size:11px}
+  .pad-deliver{bottom:calc(var(--sab) + 134px)}
+  .hud-top{padding-top:calc(var(--sat) + 12px)}
+  .inst b{font-size:18px}
+  .hint{bottom:calc(var(--sab) + 12vh);font-size:12px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="深蓝信标游戏画面"></canvas>
+
+<!-- 标题页 -->
+<div id="title" class="screen">
+  <div class="title-inner">
+    <div class="brand-block">
+      <div class="eyebrow">深海探索 · 收集与点亮</div>
+      <h1 class="brand">ABYSS<br>BEACON</h1>
+      <div class="brand-cn">深 蓝 信 标</div>
+      <div class="rule"></div>
+      <p class="lede">深海的灯灭了。<br>驾驶深潜器，收集散落的光囊，<br>送回三座熄灭的远古灯塔。</p>
+      <button id="btnStart" class="cta">下 潜 <span aria-hidden="true">→</span></button>
+      <div class="controls-note">
+        <span><b>WASD</b> 推进 · 转向</span>
+        <span><b>空格 / Shift</b> 上浮 · 下潜</span>
+        <span><b>C</b> 切换视角 · <b>E</b> 投放光囊</span>
+      </div>
+    </div>
+    <div class="title-stats">
+      <div class="stat"><i class="dot cyan"></i><span>光囊</span><b id="titlePods">0 / 18</b></div>
+      <div class="stat"><i class="dot amber"></i><span>灯塔</span><b id="titleBeacons">0 / 3</b></div>
+    </div>
+  </div>
+  <div id="verTag" class="ver-tag" aria-hidden="true">v1.0.0</div>
+</div>
+
+<!-- 游戏 HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="inst">
+      <div class="inst-row"><span class="lab">DEPTH</span><b id="hudDepth">000</b><span class="unit">m</span></div>
+      <div class="inst-row"><span class="lab">HDG</span><b id="hudHeading">N</b></div>
+    </div>
+    <div class="inst right">
+      <div class="inst-row"><span class="lab">光囊</span><b id="hudPods">0 / 18</b></div>
+      <div class="inst-row"><span class="lab">灯塔</span><b id="hudBeacons">0 / 3</b></div>
+    </div>
+  </div>
+  <div id="hint" class="hint">靠近灯塔 · 按 <b>E</b> 投放光囊</div>
+  <button id="viewBtn" class="view-btn" aria-label="切换视角">视角</button>
+</div>
+
+<!-- 触屏控件 -->
+<div id="touch" aria-label="触屏操作">
+  <div class="pad left">
+    <button data-k="up" aria-label="前进">▲</button>
+    <div class="pad-mid">
+      <button data-k="left" aria-label="左转">◀</button>
+      <button data-k="down" aria-label="后退">▼</button>
+      <button data-k="right" aria-label="右转">▶</button>
+    </div>
+  </div>
+  <div class="pad right">
+    <button data-k="ascend" aria-label="上浮">上浮</button>
+    <button data-k="descend" aria-label="下潜">下潜</button>
+  </div>
+  <button id="touchView" class="pad-view" aria-label="切换视角">视角</button>
+  <button id="touchDeliver" class="pad-deliver" aria-label="投放光囊">投放</button>
+</div>
+
+<!-- 竖屏保护 -->
+<div id="portrait" aria-hidden="true"><div class="rotate-icon">↻</div><p>横过手机，继续下潜</p></div>
+
+<!-- 结算 -->
+<div id="end" class="screen">
+  <div class="end-inner">
+    <div class="eyebrow">潜航记录</div>
+    <h2 id="endTitle">三座灯塔已亮</h2>
+    <p id="endSub"></p>
+    <button id="btnAgain" class="cta">再次下潜 <span aria-hidden="true">→</span></button>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="three.global.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
