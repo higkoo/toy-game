@@ -31,7 +31,7 @@
       <div class="stat"><i class="dot amber"></i><span>灯塔</span><b id="titleBeacons">0 / 3</b></div>
     </div>
   </div>
-  <div id="verTag" class="ver-tag" aria-hidden="true">v1.0.0</div>
+  <div id="verTag" class="ver-tag" aria-hidden="true">v1.0.1</div>
 </div>
 
 <!-- 游戏 HUD -->
@@ -52,13 +52,12 @@
 
 <!-- 触屏控件 -->
 <div id="touch" aria-label="触屏操作">
-  <div class="pad left">
-    <button data-k="up" aria-label="前进">▲</button>
-    <div class="pad-mid">
-      <button data-k="left" aria-label="左转">◀</button>
-      <button data-k="down" aria-label="后退">▼</button>
-      <button data-k="right" aria-label="右转">▶</button>
-    </div>
+  <div class="dpad" role="group" aria-label="推进与转向">
+    <button data-k="up" class="d-up" aria-label="前进">▲</button>
+    <button data-k="left" class="d-left" aria-label="左转">◀</button>
+    <span class="d-core" aria-hidden="true"></span>
+    <button data-k="right" class="d-right" aria-label="右转">▶</button>
+    <button data-k="down" class="d-down" aria-label="后退">▼</button>
   </div>
   <div class="pad right">
     <button data-k="ascend" aria-label="上浮">上浮</button>
