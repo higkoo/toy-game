@@ -58,6 +58,21 @@ gomoku/
 
 每个游戏以各自的 `src` 目录作为 Toy 页面根目录上传，`assets` 目录中的图标和海报用于 Toy 的外层素材。
 
+### 发布参数的三条硬要求
+
+- **`--visibility public` 必须同时给 `--poster`**，否则预览能出来、提交审核却返回 `307009 缺少必要文件`。这是本项目里两个作品（《星召群英》《铁翼破云》）卡住过的真实原因。
+- `--poster` 用 **4:3 横图**（建议 1200×900），PNG/JPG 均可，放各自项目的 `assets/`（或 `src/img/`）下，不要用远程热链。
+- 入口 `index.html` **解压后不得超过 1 MB**（超了报 `307000`），所以大项目一律把资源拆成同目录的独立文件。
+
+标准流程是「先预览、确认后再提交」，不要一步 `--yes`：
+
+```bash
+toy create <项目>/src --title "<标题>" --slug <slug> \
+  --category GAME --theme dark --visibility public \
+  --poster <项目>/assets/poster.jpg --json          # 只生成 preview_url
+# 人工看过预览页后，同参数再加 --yes 重新执行，才进入审核
+```
+
 《四号泊位》是例外：内联 three.js 的单文件约 1.4 MB，超过入口 `index.html` 解压后 ≤ 1 MB 的预检，所以拆成 `src/index.html` + `src/game.bundle.js` 两个文件一起作为页面根目录上传，两者必须同目录。
 
 《海风竞速》同样把 three.js 拆成独立文件：`src/index.html` + `src/three.global.js` + `src/game.js` 三者同目录上传。

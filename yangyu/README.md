@@ -24,3 +24,15 @@ cd src && python3 -m http.server 8000
 - 程序化建模 + 顶点着色的小太阳鹦鹉（金羽、绿翅尖、蓝尾梢）
 - WebAudio 程序化音效，无音频文件
 - 移动端触控与自适应分辨率缩放
+
+## 发布到 Toy
+
+封面在 `assets/poster.jpg`（1200×900，4:3）。`--visibility public` 必须带 `--poster`，否则提交审核报 `307009`：
+
+```bash
+toy create src --title "阳羽 · Aureate" --slug yangyu \
+  --category GAME --theme dark --visibility public \
+  --poster assets/poster.jpg --json
+```
+
+已发布：Toy id `56044302892032`，<https://www.bilibili.com/toy/yangyu/index.html>

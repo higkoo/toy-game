@@ -46,7 +46,13 @@ cd xingzhao/src && python3 -m http.server 8080
 以 `src/` 作为页面根目录（两个文件一起打包）：
 
 ```bash
-toy create xingzhao/src --title "星召群英" --slug xingzhao --category GAME --theme dark --yes
+# 先只出预览，确认后同参数加 --yes 提交审核
+toy create xingzhao/src \
+  --title "星召群英 · Astra" --slug xingzhao \
+  --category GAME --theme dark --visibility public \
+  --poster assets/poster.jpg --json
 ```
 
-发布后把 Toy id 与正式地址补进本文件与仓库根 README。
+`--visibility public` 的作品**必须带 `--poster`**：缺封面时预览能生成，但提交审核会返回 `307009 缺少必要文件`。
+
+已发布：Toy id `56125898882048`，<https://www.bilibili.com/toy/xingzhao/index.html>
