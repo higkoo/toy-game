@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>中医典籍文化故事 · 知识库总目录</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#fbfaf7;color:#2b2620;font-family:"PingFang SC","Songti SC",serif;line-height:1.65}
+.hd{padding:26px 30px 18px;border-bottom:1px solid #e6e1d6}
+.hd h1{font-size:23px;letter-spacing:1px;font-weight:700}
+.hd .sub{font-size:14px;color:#7a736a;margin-top:6px}
+.hd .tip{font-size:12.5px;color:#9a948a;margin-top:8px}
+.wrap{max-width:900px;margin:0 auto;padding:0 30px 60px}
+#q{width:100%;padding:13px 16px;margin:18px 0 6px;border:1px solid #d8d2c4;
+border-radius:6px;font-size:15px;background:#fff;font-family:inherit}
+#q:focus{outline:none;border-color:#4f6a52}
+.hint{font-size:13px;color:#8a837a;margin-bottom:18px}
+.vol{margin:0 0 30px}
+.vol-h{display:flex;align-items:baseline;gap:12px;padding:10px 0 8px;
+border-bottom:2px solid #4f6a52;margin-bottom:2px}
+.vol-h .nm{font-size:18px;font-weight:700;letter-spacing:1px}
+.vol-h .ct{font-size:13px;color:#8a837a}
+.vol-h .lk{margin-left:auto;font-size:13px;color:#996b4b;text-decoration:none}
+.tp{display:flex;align-items:baseline;gap:10px;padding:7px 4px;border-bottom:1px solid #f0ece2;
+text-decoration:none;color:inherit}
+.tp:hover{background:#f5f1e8}
+.tp .n{flex:1;font-size:14.5px}
+.tp .c{font-size:12.5px;color:#a09889;white-space:nowrap}
+footer{font-size:12.5px;color:#9a948a;text-align:center;padding:0 30px 40px;line-height:1.8}
+</style></head>
+<body>
+<div class="hd"><h1>中医典籍文化故事 · 知识库</h1>
+<span class="sub">7 册 · 典籍源流 / 名医典故 / 药名博物 / 天文历法 / 医德故事</span>
+<span class="tip">本知识库为文化阅读内容，介绍典籍、人物与典故，仅供文化学习，不构成医疗建议。</span></div>
+<div class="wrap">
+<input id="q" placeholder="搜索册名、主题……（如 本草、典故、节气、杏林）" autocomplete="off">
+<div class="hint">输入即筛选下面的分册目录；点分册进入条目列表。</div>
+<div id="box"></div>
+</div>
+<footer>中医典籍文化故事 · 仅供文化阅读，不构成医疗建议</footer>
+<script>
+const C = [{"name": "针砭源流", "file": "zhenjiu.html", "count": 11, "keys": "伏羲制九针：一个关于发明的传说 典故 「针砭」二字，怎么成了批评的代名词 典故 砭石：针具之前的石头 风物 马王堆帛书上的早期经脉 典籍 汉代墓葬里的金针与银针 风物 经络：古人画给身体的一张「地图」 典籍 子午流注：把时间画进身体 典籍 皇甫谧著《针灸甲乙经》 人物 宋代的针灸铜人 风物 从石到金：针具材质小史 风物 针灸东传：一门学问的旅行 典籍 针砭源流 从一块打磨的石头，到一套关于身体的古老地图。这里讲针具的考古发现、经络思想的形成，以及那些把针灸写进历史的人。", "topics": [{"n": "一、源起与传说", "c": 2}, {"n": "二、器具与考古", "c": 3}, {"n": "三、经络作为一种文化模型", "c": 2}, {"n": "四、人物与故事", "c": 4}]}, {"name": "内经与象数", "file": "neijing.html", "count": 13, "keys": "《黄帝内经》不是一个人写的 典籍 为什么要「托名黄帝」 典故 《素问》与《灵枢》：两个书名怎么讲 典籍 阴阳：从日照的向背到一对哲学范畴 典籍 五行：五种材料，还是五种德行 典籍 天人相应：把人看作一个小宇宙 典籍 二十四节气：写在历法里的自然观察 风物 五运六气：一套推演气候的术数 典籍 「恬淡虚无」：一种生活的理想 典籍 《内经》里的比喻艺术 典籍 「治未病」：把眼光放在事先 典故 医与巫：一次漫长的分离 典籍 《内经》的版本之旅 典籍 内经与象数 《黄帝内经》不只是一本书，更是一套理解世界的框架。这里讲它的成书之谜、书名的由来，以及阴阳五行、节气物候背后那种把人和天地连在一起的思想。", "topics": [{"n": "一、其书", "c": 3}, {"n": "二、阴阳五行", "c": 3}, {"n": "三、节气与物候", "c": 2}, {"n": "四、文字与思想", "c": 5}]}, {"name": "本草博物", "file": "bencao.html", "count": 13, "keys": "神农尝百草：一个关于探索的神话 典故 《神农本草经》为何托名神农 典故 上、中、下三品：古人的分类智慧 典籍 三百六十五味：一个象征性的数字 典籍 药名里的汉语趣味 典故 道地：古人也讲究「原产地」 风物 本草书里的博物学 典籍 从《尔雅》到本草：名物之学 典籍 陶弘景与《本草经集注》 人物 《新修本草》：一部官修的药典 典籍 《本草纲目》：李时珍的博物巨著 人物 药材市场与城市生活 风物 本草图谱：给万物画像 风物 本草博物 本草学是一门关于草木金石的传统博物之学。这里讲神农的传说、三品分类的智慧、药名背后的典故，以及一部部本草书怎样把天地间的物产编成知识体系。", "topics": [{"n": "一、神农传说", "c": 2}, {"n": "二、分类与体例", "c": 2}, {"n": "三、药名与博物", "c": 4}, {"n": "四、文献流传", "c": 5}]}, {"name": "伤寒与辨证", "file": "shanghan.html", "count": 12, "keys": "张仲景：一位把学问写成书的人 人物 「坐堂医生」与「堂」字的来历 典故 一本书，如何分成两部 典籍 「六经」：一种归纳的框架 典籍 「辨证」二字，说的是一种思维方式 典籍 方名里的文字学 典故 从竹简到刊本：版本的流转 典籍 注解传统：与古人对话 典籍 东渡日本：古方派的兴起 典籍 「医圣」称号是怎么来的 典故 南阳的仲景祠 风物 乱世著书：一种文化韧性 人物 伤寒与辨证 《伤寒论》把经验整理成体系，也把一位东汉学者的名字留在了历史里。这里讲张仲景的故事、这本书的成书与分合，以及「辨证」这种思维方式背后的文化意味。", "topics": [{"n": "一、其书与人", "c": 3}, {"n": "二、思想框架", "c": 3}, {"n": "三、流传与影响", "c": 6}]}, {"name": "金匮与珍藏", "file": "jingui.html", "count": 12, "keys": "「金匮」是什么意思 典故 「要略」二字，说的是一种编法 典籍 一部书在馆阁里被重新找到 典籍 从《伤寒杂病论》到《金匮要略》 典籍 校勘：给古书「看病」 典籍 宋代的校正医书局 典籍 藏书楼：经典的避风港 风物 清代考据学家的整理 人物 「金匮玉函」的意象 典故 医籍与士人的书房 人物 书名里的时代风气 典故 一部书的多次「重生」 典籍 金匮与珍藏 「金匮」是珍藏之意。这本书的流传史，本身就是一段关于藏书、发现与校勘的故事——一部险些散佚的书，怎样被重新找到，又怎样被一代代整理者保存下来。", "topics": [{"n": "一、书名释义", "c": 2}, {"n": "二、发现与流传", "c": 3}, {"n": "三、藏书与整理", "c": 3}, {"n": "四、文化侧面", "c": 4}]}, {"name": "杏林故事", "file": "zhuanti-yian.html", "count": 14, "keys": "杏林春暖：一个关于回报的故事 典故 悬壶济世：葫芦里的来历 典故 橘井泉香：另一则温暖传说 典故 大医精诚：一篇关于「心」的文字 典籍 扁鹊：一个名字，一种象征 人物 华佗与五禽戏：模仿动物的古老体操 典故 李时珍：走向田野的学者 人物 孙思邈：从隐士到「药王」 人物 「对症下药」：一句话的来历 典故 「望闻问切」：四种了解人的方式 典故 「妙手回春」与「起死回生」 典故 「讳疾忌医」：一则寓言的力量 典故 药王信仰与民间祭祀 风物 「不为良相，便为良医」 人物 杏林故事 中医的历史里，动人的往往不只是学问，还有那些关于医德、关于人的故事。这里讲「杏林」「悬壶」的来历，名医的传说，以及那些活进了汉语里的中医成语。", "topics": [{"n": "一、医德佳话", "c": 4}, {"n": "二、名医风流", "c": 4}, {"n": "三、活进汉语的中医", "c": 4}, {"n": "四、民俗与信仰", "c": 2}]}, {"name": "天纪与象数", "file": "tianji.html", "count": 13, "keys": "「天纪」二字怎么讲 典籍 圭表测影：用影子量出一年 风物 二十四节气与农耕文明 风物 伏羲画卦：《易经》的起点 典籍 河图洛书：两个神秘图案 典故 象数：中国传统的一种思维方式 典籍 《易经》里的变化哲学 典籍 二十八宿：给星空划分区域 风物 三垣：天上也有紫禁城 风物 干支：一套用了几千年的编号 风物 《禹贡》九州：最早的地理志 典籍 山川形势与传统环境观 风物 天、地、人：三才的思想 典籍 天纪与象数 「天纪」关乎古人如何观天、定时、理解世界。这里从《易经》的象数，到二十八宿的星空，再到历法与地理，讲传统宇宙观背后那种把天、地、人连成整体的思考。", "topics": [{"n": "一、观天与授时", "c": 3}, {"n": "二、易象与数", "c": 4}, {"n": "三、星空与历法", "c": 3}, {"n": "四、地理与山川", "c": 3}]}];
+const box=document.getElementById('box');
+function render(kw){
+  kw=(kw||'').trim();
+  let out='';
+  for(const v of C){
+    const topics=v.topics.filter(t=>!kw||t.n.indexOf(kw)>=0||v.name.indexOf(kw)>=0||v.keys.indexOf(kw)>=0);
+    if(!topics.length&&kw)continue;
+    out+='<div class="vol"><div class="vol-h"><span class="nm">'+v.name+'</span>'+
+      '<span class="ct">'+v.count+' 则</span><a class="lk" href="'+v.file+'">进入 →</a></div>';
+    for(const tp of topics)out+='<a class="tp" href="'+v.file+'"><span class="n">'+tp.n+'</span>'+
+      '<span class="c">'+tp.c+'</span></a>';
+    out+='</div>';
+  }
+  box.innerHTML=out||'<div style="color:#97504a;font-size:14px">没有匹配的分册</div>';
+}
+document.getElementById('q').addEventListener('input',e=>render(e.target.value));
+render();
+</script>
+</body></html>
