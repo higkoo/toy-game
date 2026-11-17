@@ -28,10 +28,11 @@ text-decoration:none;color:inherit}
 .tp .c{font-size:12.5px;color:#a09889;white-space:nowrap}
 .tj{border-bottom-color:#c9a86a}
 .tj .vol-h{border-bottom-color:#8a6a3b}
+.version{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:80;user-select:none;font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.1em;color:#4f6a52;background:rgba(255,255,255,.88);border:1px solid #e7e2d8;border-radius:999px;padding:4px 10px;line-height:1.6;cursor:pointer;-webkit-appearance:none;appearance:none;transition:background .15s,border-color .15s,transform .1s}.version:hover{background:#fff;border-color:#4f6a52}.version:focus-visible{outline:2px solid #4f6a52;outline-offset:2px}.version:active{transform:scale(.95)}
 </style></head>
 <body>
 <div class="hd"><h1>倪海厦全集 · 知识库</h1>
-<span class="sub">4254 条 · 人纪中医六册 + 天纪一册 · 点击册名进入检索页</span></div>
+<span class="sub">4254 条 · 人纪中医六册 + 天纪一册 · 点击册名进入检索页</span> <a class="back" href="../index.html">← 返回首页</a></div>
 <div class="wrap">
 <input id="q" placeholder="搜索主题、条目、方名、穴名、病名……（如 太阴、柴胡、瘿、真武汤）" autocomplete="off">
 <div class="hint">输入即筛选下面的主题目录；点主题进入该册。册内页有全文搜索与分级筛选。</div>
@@ -66,4 +67,4 @@ function render(kw){
 box.addEventListener('input', e => render(e.target.value));
 render('');
 </script>
-</body></html>
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.24</button> <script src="assets/rank.js"></script> </body></html>
