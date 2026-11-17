@@ -7,7 +7,7 @@
 <body>
 <header>
  <div class="hd"><h1>琴棋雅集</h1><span class="sub">琴 · 棋 · 书 · 画 · 雅趣 · 20 则</span>
-  <a class="back" href="index.html">← 返回目录</a></div>
+  <a class="back" href="../index.html">← 返回首页</a></div>
  <p class="intro">传统文人以琴棋书画修身养性。这里讲这些雅事如何与「调适身心」的观念相连，构成一种独特的生活美学。</p>
  <input id="q" placeholder="搜索：古琴、围棋、书法、文人雅集、兰亭、竹林七贤……" autocomplete="off">
  <div class="bar"><span class="chip on" data-f="all">全部</span><span class="chip" data-f="典籍">典籍</span><span class="chip" data-f="人物">人物</span><span class="chip" data-f="典故">典故</span><span class="chip" data-f="风物">风物</span><span class="cnt" id="cnt"></span></div>
@@ -16,7 +16,33 @@
 </header>
 <main id="list"></main>
 <button id="more" style="display:none">继续显示</button>
-<footer>《琴棋雅集》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="index.html" style="color:inherit">返回总目录</a></footer>
+<footer>《琴棋雅集》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="../index.html" style="color:inherit">返回首页</a></footer>
 <script>const D=[{"t": "一、琴", "h": "古琴与修身", "c": "**古人抚琴，重在调心，不在炫技。**琴声被当作安顿心神的方式。一种乐器，被赋予了修养的功能。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "一、琴", "h": "伯牙子期与知音", "c": "**「高山流水遇知音」的典故，让琴成了心灵相通的象征。**知音难觅，是中国人情感表达的重要母题。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "一、琴", "h": "琴曲与四季", "c": "**许多琴曲以自然为题，如《春晓吟》《秋塞吟》。**音乐与自然节律的对应，是传统审美的重要内容。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "一、琴", "h": "琴的形制与天地", "c": "**古琴的形制、尺寸常被赋予天地象征。**一件乐器的构造，被解释为宇宙秩序的缩影。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "二、棋", "h": "围棋与天地", "c": "**围棋棋盘象征天地，黑白二子象征阴阳。**一局棋，被看作宇宙运行的模型。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "二、棋", "h": "弈棋与静心", "c": "**古人认为弈棋可以凝神静气。**棋不仅是竞技，也是一种心性的修炼。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "二、棋", "h": "棋品与人品", "c": "**传统常以棋风论人品，讲究「棋品」。**一种游戏，被纳入道德评价的体系。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "二、棋", "h": "烂柯山的传说", "c": "**「烂柯」传说讲樵夫观仙人下棋，斧柄朽烂，世事已非。**一局棋，成了时间流逝的隐喻。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "三、书", "h": "书法与气", "c": "**传统书论讲究「气韵生动」，以气论文字。**写字被看作气息的流动与心性的流露。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "三、书", "h": "王羲之与兰亭", "c": "**《兰亭集序》既是书法名作，也是文学名篇。**一篇文字，成就了双重经典。", "o": "文化史话整理 · 琴棋雅集", "g": "人物"}, {"t": "三、书", "h": "临帖与修养", "c": "**练字讲求临帖、持之以恒，被当作磨炼心性的过程。**日复一日的临写，是一种静的修行。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "三、书", "h": "书法的身体性", "c": "**书法讲究执笔、运腕、身法，是身体的艺术。**写字时身体的舒展，本身就被认为有益身心。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "四、画", "h": "文人画与写意", "c": "**文人画重写意、轻形似，强调抒发胸臆。**画的是物，抒的是心。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "四、画", "h": "山水画与卧游", "c": "**古人看山水画，称为「卧游」，不必出门而游山水。**一幅画，提供了精神上的远行。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "四、画", "h": "梅兰竹菊四君子", "c": "**四君子题材，把人格理想寄托于草木。**画花画竹，其实是画自己的志向。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "四、画", "h": "绘画与养生", "c": "**作画、赏画被认为可以怡情养性。**艺术活动在传统里，被赋予了安顿心灵的功能。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}, {"t": "五、雅集文化", "h": "兰亭雅集", "c": "**王羲之等人在兰亭曲水流觞、诗文唱和，成为雅集的典范。**一次聚会，定义了文人交往的理想样式。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "五、雅集文化", "h": "竹林七贤", "c": "**竹林七贤以放达、清谈著称，象征一种精神自由。**他们的人格与生活方式，影响了后世文人。", "o": "文化史话整理 · 琴棋雅集", "g": "人物"}, {"t": "五、雅集文化", "h": "以西园雅集为题材", "c": "**后世常以「西园雅集」等题材作画，追慕前贤。**对雅集的想象，本身就是一种文化传统。", "o": "文化史话整理 · 琴棋雅集", "g": "典故"}, {"t": "五、雅集文化", "h": "茶、香、琴、书", "c": "**这几样器物，构成了文人雅集的基本元素。**雅，是一种被精心设计的生活美学。", "o": "文化史话整理 · 琴棋雅集", "g": "风物"}];</script>
+<script>
+/* 读册计分：与首页榜单共用同一 key 与去重集合，同一册只计一次 */
+(function () {
+  'use strict';
+  var KEY = 'qihuang.rank.v1', FILE = 'yaji.html';
+  function num() { try { return parseInt(window.localStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } }
+  function put(v) { try { window.localStorage.setItem(KEY, String(v)); } catch (e) {} }
+  function sdk() {
+    var list = [window.toy, window.Toy, window.toy && window.toy.toy, window.Toy && window.Toy.toy];
+    for (var i = 0; i < list.length; i++) if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    return null;
+  }
+  function send(score) {
+    var t = sdk(); if (!t) return;
+    try { t.submitScore({ score: score, board: 1 }); } catch (e) {}
+  }
+  var sk = KEY + '.seen', seen = [];
+  try { seen = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { seen = []; }
+  if (!Array.isArray(seen)) seen = [];
+  if (seen.indexOf(FILE) === -1) {
+    seen.push(FILE);
+    try { window.localStorage.setItem(sk, JSON.stringify(seen)); } catch (e) {}
+    var v = num() + 1; put(v); send(v);
+  }
+})();
+</script>
 <script src="assets/kb.js"></script>
 </body></html>

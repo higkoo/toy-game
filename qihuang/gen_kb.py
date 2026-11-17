@@ -444,7 +444,7 @@ def volume_html(v):
 <body>
 <header>
  <div class="hd"><h1>{v['title']}</h1><span class="sub">{sub}</span>
-  <a class="back" href="index.html">← 返回目录</a></div>
+  <a class="back" href="../index.html">← 返回首页</a></div>
  <p class="intro">{v['intro']}</p>
  <input id="q" placeholder="{v['q']}" autocomplete="off">
  <div class="bar">{''.join(genres)}<span class="cnt" id="cnt"></span></div>
@@ -453,8 +453,34 @@ def volume_html(v):
 </header>
 <main id="list"></main>
 <button id="more" style="display:none">继续显示</button>
-<footer>《{v['title']}》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="index.html" style="color:inherit">返回总目录</a></footer>
+<footer>《{v['title']}》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="../index.html" style="color:inherit">返回首页</a></footer>
 <script>const D={data};</script>
+<script>
+/* 读册计分：与首页榜单共用同一 key 与去重集合，同一册只计一次 */
+(function () {{
+  'use strict';
+  var KEY = 'qihuang.rank.v1', FILE = '{v['file']}';
+  function num() {{ try {{ return parseInt(window.localStorage.getItem(KEY), 10) || 0; }} catch (e) {{ return 0; }} }}
+  function put(v) {{ try {{ window.localStorage.setItem(KEY, String(v)); }} catch (e) {{}} }}
+  function sdk() {{
+    var list = [window.toy, window.Toy, window.toy && window.toy.toy, window.Toy && window.Toy.toy];
+    for (var i = 0; i < list.length; i++) if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    return null;
+  }}
+  function send(score) {{
+    var t = sdk(); if (!t) return;
+    try {{ t.submitScore({{ score: score, board: 1 }}); }} catch (e) {{}}
+  }}
+  var sk = KEY + '.seen', seen = [];
+  try {{ seen = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; }} catch (e) {{ seen = []; }}
+  if (!Array.isArray(seen)) seen = [];
+  if (seen.indexOf(FILE) === -1) {{
+    seen.push(FILE);
+    try {{ window.localStorage.setItem(sk, JSON.stringify(seen)); }} catch (e) {{}}
+    var v = num() + 1; put(v); send(v);
+  }}
+}})();
+</script>
 <script src="assets/kb.js"></script>
 </body></html>
 """
@@ -477,7 +503,8 @@ border-top:1px solid var(--rule);text-align:center;line-height:1.8}
 if '.genre{' not in CSS:
     open(os.path.join(OUT,'assets','kb.css'),'a',encoding='utf-8').write('\n'+extra)
 
-# ------------------------------------------------------------------ 总目录
+# ------------------------------------------------------------------ 首页册数据
+# 首页即知识库门面：把册信息导出为 JS 数据，供首页渲染卡片与搜索
 catalog = []
 for fn, v in V.items():
     seen = {}
@@ -485,75 +512,12 @@ for fn, v in V.items():
         seen[e['t']] = seen.get(e['t'],0)+1
     keys = ' '.join(e['h']+' '+e['g'] for e in v['entries']) + ' ' + v['title'] + ' ' + v['intro']
     catalog.append({"name":v['title'],"file":fn,"count":len(v['entries']),
-                    "keys":keys,
+                    "intro":v['intro'],"keys":keys,
                     "topics":[{"n":k,"c":c} for k,c in seen.items()]})
 
 C = json.dumps(catalog, ensure_ascii=False)
-idx = """<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>中医典籍文化故事 · 知识库总目录</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#fbfaf7;color:#2b2620;font-family:"PingFang SC","Songti SC",serif;line-height:1.65}
-.hd{padding:26px 30px 18px;border-bottom:1px solid #e6e1d6}
-.hd h1{font-size:23px;letter-spacing:1px;font-weight:700}
-.hd .sub{font-size:14px;color:#7a736a;margin-top:6px}
-.hd .tip{font-size:12.5px;color:#9a948a;margin-top:8px}
-.wrap{max-width:900px;margin:0 auto;padding:0 30px 60px}
-#q{width:100%;padding:13px 16px;margin:18px 0 6px;border:1px solid #d8d2c4;
-border-radius:6px;font-size:15px;background:#fff;font-family:inherit}
-#q:focus{outline:none;border-color:#4f6a52}
-.hint{font-size:13px;color:#8a837a;margin-bottom:18px}
-.vol{margin:0 0 30px}
-.vol-h{display:flex;align-items:baseline;gap:12px;padding:10px 0 8px;
-border-bottom:2px solid #4f6a52;margin-bottom:2px}
-.vol-h .nm{font-size:18px;font-weight:700;letter-spacing:1px}
-.vol-h .ct{font-size:13px;color:#8a837a}
-.vol-h .lk{margin-left:auto;font-size:13px;color:#996b4b;text-decoration:none}
-.tp{display:flex;align-items:baseline;gap:10px;padding:7px 4px;border-bottom:1px solid #f0ece2;
-text-decoration:none;color:inherit}
-.tp:hover{background:#f5f1e8}
-.tp .n{flex:1;font-size:14.5px}
-.tp .c{font-size:12.5px;color:#a09889;white-space:nowrap}
-footer{font-size:12.5px;color:#9a948a;text-align:center;padding:0 30px 40px;line-height:1.8}
-</style></head>
-<body>
-<div class="hd"><h1>中医典籍文化故事 · 知识库</h1>
-<span class="sub" id="vstat"></span>
-<span class="tip">本知识库为文化阅读内容，介绍典籍、人物与典故，仅供文化学习，不构成医疗建议。</span></div>
-<div class="wrap">
-<input id="q" placeholder="搜索册名、主题……（如 本草、典故、节气、杏林）" autocomplete="off">
-<div class="hint">输入即筛选下面的分册目录；点分册进入条目列表。</div>
-<div id="box"></div>
-</div>
-<footer>中医典籍文化故事 · 仅供文化阅读，不构成医疗建议</footer>
-<script>
-const C = __C__;
-document.getElementById('vstat').textContent =
-  C.length+' 册 · '+C.reduce((a,v)=>a+v.count,0)+' 则 · 典籍 / 医家 / 成语 / 药名 / 医德 / 节气 / 星官 / 文艺 / 博物 等';
-const box=document.getElementById('box');
-function render(kw){
-  kw=(kw||'').trim();
-  let out='';
-  for(const v of C){
-    const topics=v.topics.filter(t=>!kw||t.n.indexOf(kw)>=0||v.name.indexOf(kw)>=0||v.keys.indexOf(kw)>=0);
-    if(!topics.length&&kw)continue;
-    out+='<div class="vol"><div class="vol-h"><span class="nm">'+v.name+'</span>'+
-      '<span class="ct">'+v.count+' 则</span><a class="lk" href="'+v.file+'">进入 →</a></div>';
-    for(const tp of topics)out+='<a class="tp" href="'+v.file+'"><span class="n">'+tp.n+'</span>'+
-      '<span class="c">'+tp.c+'</span></a>';
-    out+='</div>';
-  }
-  box.innerHTML=out||'<div style="color:#97504a;font-size:14px">没有匹配的分册</div>';
-}
-document.getElementById('q').addEventListener('input',e=>render(e.target.value));
-render();
-</script>
-</body></html>
-"""
-idx = idx.replace('__C__', C)
-open(os.path.join(OUT,'index.html'),'w',encoding='utf-8').write(idx)
+open(os.path.join(OUT,'catalog.js'),'w',encoding='utf-8').write(
+  'window.KB_CATALOG = ' + C + ';\n')
 
 total = sum(len(v['entries']) for v in V.values())
 print('OK wrote', len(V), 'volumes,', total, 'entries')
