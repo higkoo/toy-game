@@ -189,6 +189,11 @@ body::before{
   color:var(--ink-soft);padding:6px 0;
 }
 .card-link.doc:hover{color:var(--gold-2)}
+/* 讲义类外链不跳转，点击复制：button 形态与原来的 a 视觉一致 */
+button.link-copy{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:inherit}
+button.link-copy:focus-visible{outline:2px solid var(--gold-2);outline-offset:3px;border-radius:2px}
+button.foot-link{font-size:11.5px;letter-spacing:.16em;color:var(--ink-soft);text-decoration:none;transition:color .2s}
+button.foot-link:hover{color:var(--gold-2)}
 .card-link.note{
   color:#7a5a1e;font-weight:600;letter-spacing:.14em;
 }
@@ -507,7 +512,7 @@ body.lock{overflow:hidden}
         <p>以易经六十四卦为纲，讲阴阳消长、时位变化。穷理尽性，知命而不困于命，是全套体系的入口。</p>
         <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
           <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/cpD5tS9dUKSJ" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
       <article class="card reveal">
@@ -517,7 +522,7 @@ body.lock{overflow:hidden}
         <p>把易理落回人间：进退、取舍、聚散、成败。讲的是人在局中如何自处，如何看清一件事的起承转合。</p>
         <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
           <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/cpD5tS9dUKSJ" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
       <article class="card reveal">
@@ -527,7 +532,7 @@ body.lock{overflow:hidden}
         <p>由天及地，讲山川形势与居所格局。看的是气脉的来去与聚散，也是古人理解世界的一种空间语言。</p>
         <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
           <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/cpD5tS9dUKSJ" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
     </div>
@@ -608,7 +613,7 @@ body.lock{overflow:hidden}
         <p>不逐条讲书，而讲张仲景的思维：如何看证、如何定方、如何在变化中守住那条主线。</p>
         <div class="card-foot"><i class="dot"></i><span>5 讲 · 合集</span>
           <a class="card-link" data-col="zhongjing" href="https://space.bilibili.com/10328533/lists/2117623" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/clk8q0BfBQmB" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/clk8q0BfBQmB" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
       <article class="card reveal">
@@ -618,7 +623,7 @@ body.lock{overflow:hidden}
         <p>以真实病例串起理论与方药。看一个医者在具体的人、具体的证面前，如何落笔、如何转方。</p>
         <div class="card-foot"><i class="dot"></i><span>17 集 · 合集</span>
           <a class="card-link" data-col="yian" href="https://space.bilibili.com/10328533/lists/3381593" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/cf3SdH2Hp7Q4" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cf3SdH2Hp7Q4" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
     </div>
@@ -717,7 +722,7 @@ body.lock{overflow:hidden}
         <span class="unfinished">原计划未完 · 仅存片段</span>
         <div class="card-foot"><i class="dot"></i><span>AI 原声片段</span>
           <a class="card-link" data-video="BV1pr421c7vh" href="https://www.bilibili.com/video/BV1pr421c7vh" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link doc" href="https://kdocs.cn/l/cholbHwJqpTf" target="_blank" rel="noopener">讲义</a>
+          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cholbHwJqpTf" aria-label="复制讲义链接">讲义</button>
         </div>
       </article>
       <article class="card reveal">
@@ -750,15 +755,15 @@ body.lock{overflow:hidden}
       <a href="#renji">人纪</a>
       <a href="#diji">地纪</a>
       <a href="kb/index.html">知识库</a>
-      <a href="https://www.kdocs.cn/l/cmO0zk3ENCCS" target="_blank" rel="noopener">原始资料</a>
+      <button type="button" class="link-copy foot-link" data-copy="https://www.kdocs.cn/l/cmO0zk3ENCCS" aria-label="复制原始资料链接">原始资料</button>
       <a href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12126037" target="_blank" rel="noopener">资源包</a>
-      <a href="https://gitee.com/onehealthy/ebook/blob/master/README.md" target="_blank" rel="noopener">配套讲义</a>
+      <button type="button" class="link-copy foot-link" data-copy="https://gitee.com/onehealthy/ebook/blob/master/README.md" aria-label="复制配套讲义链接">配套讲义</button>
     </div>
     <div class="copy">倪海厦学习天地 · 天纪 / 人纪 / 地纪 · 学习合集</div>
   </div>
 </footer>
 
-<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.20</button>
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.21</button>
 
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-mask" data-close></div>
@@ -782,7 +787,7 @@ body.lock{overflow:hidden}
   <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vtipTitle">
     <div class="sheet-head">
       <div>
-        <div class="sheet-kicker">视频链接</div>
+        <div class="sheet-kicker" id="vtipKicker">视频链接</div>
         <h3 id="vtipTitle">在 B 站打开</h3>
       </div>
       <button class="sheet-close" type="button" data-vtip-close aria-label="关闭">×</button>
@@ -933,8 +938,23 @@ body.lock{overflow:hidden}
 
   function showVideoTip(bv, label) {
     if (!vtip) return;
+    document.getElementById('vtipKicker').textContent = '视频链接';
+    document.getElementById('vtipNote').textContent = '视频没能在 App 内直接打开。复制下面的链接，在哔哩哔哩 App 中打开即可。';
     document.getElementById('vtipTitle').textContent = label || '在 B 站打开';
     vtipUrl.value = 'https://www.bilibili.com/video/' + bv;
+    vtipCopy.textContent = '复制链接';
+    vtip.hidden = false;
+    document.body.classList.add('lock');
+    vtip.querySelector('.sheet-close').focus();
+  }
+
+  /* 讲义等第三方外链：Toy 内不跳转，弹层展示可手动复制的链接 */
+  function showCopyTip(url, label) {
+    if (!vtip) return;
+    document.getElementById('vtipKicker').textContent = '讲义链接';
+    document.getElementById('vtipTitle').textContent = label || '讲义链接';
+    document.getElementById('vtipNote').textContent = 'Toy 内无法直接打开外部链接。长按或点击「复制链接」，再粘贴到浏览器访问。'.trim();
+    vtipUrl.value = url;
     vtipCopy.textContent = '复制链接';
     vtip.hidden = false;
     document.body.classList.add('lock');
@@ -1060,6 +1080,12 @@ body.lock{overflow:hidden}
     if (t.closest('#vtipCopy')) {
       e.preventDefault();
       copyVideoUrl();
+      return;
+    }
+    var copyLink = t.closest('[data-copy]');
+    if (copyLink) {
+      e.preventDefault();
+      showCopyTip(copyLink.getAttribute('data-copy'), copyLink.textContent.trim());
       return;
     }
     var vlink = t.closest('.card-link[data-video]');
