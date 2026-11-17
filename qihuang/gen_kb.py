@@ -344,6 +344,10 @@ V['tianji.html'] = {
  ]
 }
 
+# 合并扩充分册
+import volumes_extra as _x1, volumes_extra2 as _x2, volumes_extra3 as _x3
+V.update(_x1.V_EXTRA); V.update(_x2.V_EXTRA2); V.update(_x3.V_EXTRA3)
+
 # ------------------------------------------------------------------ 生成器
 
 CSS = open(os.path.join(OUT,'assets','kb.css'),encoding='utf-8').read()
@@ -512,7 +516,7 @@ footer{font-size:12.5px;color:#9a948a;text-align:center;padding:0 30px 40px;line
 </style></head>
 <body>
 <div class="hd"><h1>中医典籍文化故事 · 知识库</h1>
-<span class="sub">7 册 · 典籍源流 / 名医典故 / 药名博物 / 天文历法 / 医德故事</span>
+<span class="sub" id="vstat"></span>
 <span class="tip">本知识库为文化阅读内容，介绍典籍、人物与典故，仅供文化学习，不构成医疗建议。</span></div>
 <div class="wrap">
 <input id="q" placeholder="搜索册名、主题……（如 本草、典故、节气、杏林）" autocomplete="off">
@@ -522,6 +526,8 @@ footer{font-size:12.5px;color:#9a948a;text-align:center;padding:0 30px 40px;line
 <footer>中医典籍文化故事 · 仅供文化阅读，不构成医疗建议</footer>
 <script>
 const C = __C__;
+document.getElementById('vstat').textContent =
+  C.length+' 册 · '+C.reduce((a,v)=>a+v.count,0)+' 则 · 典籍 / 医家 / 成语 / 药名 / 医德 / 节气 / 星官 / 文艺 / 博物 等';
 const box=document.getElementById('box');
 function render(kw){
   kw=(kw||'').trim();
