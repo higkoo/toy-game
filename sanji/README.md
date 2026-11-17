@@ -54,7 +54,7 @@ sanji/
 │   │   └── poster.jpg    # Toy 海报（1280×720）
 │   └── kb/               # 知识库（子路径 kb/index.html）
 │       ├── index.html    # 总目录检索页（内联数据与脚本）
-│       ├── 针灸.html … 天纪.html  # 7 册内容页
+│       ├── zhenjiu.html … tianji.html  # 7 册内容页（英文文件名）
 │       └── assets/       # kb.css / kb.js
 └── README.md
 ```
