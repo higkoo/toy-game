@@ -346,7 +346,9 @@ V['tianji.html'] = {
 
 # 合并扩充分册
 import volumes_extra as _x1, volumes_extra2 as _x2, volumes_extra3 as _x3
+import volumes_extra4 as _x4, volumes_extra5 as _x5
 V.update(_x1.V_EXTRA); V.update(_x2.V_EXTRA2); V.update(_x3.V_EXTRA3)
+V.update(_x4.V_EXTRA4); V.update(_x5.V_EXTRA5)
 
 # ------------------------------------------------------------------ 生成器
 
@@ -426,6 +428,8 @@ buildTopics();run();
 def volume_html(v):
     entries = v['entries']
     data = json.dumps(entries, ensure_ascii=False)
+    import re as _re
+    sub = _re.sub(r'\d+\s*则$', str(len(entries))+' 则', v['sub'])
     genres = ['<span class="chip on" data-f="all">全部</span>',
               '<span class="chip" data-f="典籍">典籍</span>',
               '<span class="chip" data-f="人物">人物</span>',
@@ -439,7 +443,7 @@ def volume_html(v):
 </head>
 <body>
 <header>
- <div class="hd"><h1>{v['title']}</h1><span class="sub">{v['sub']}</span>
+ <div class="hd"><h1>{v['title']}</h1><span class="sub">{sub}</span>
   <a class="back" href="index.html">← 返回目录</a></div>
  <p class="intro">{v['intro']}</p>
  <input id="q" placeholder="{v['q']}" autocomplete="off">
