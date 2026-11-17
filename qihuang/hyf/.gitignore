@@ -1,0 +1,24 @@
+# 渲染产物与本地工件（不入库）
+renders/
+capture/
+.hyperframes/
+chrome-headless-shell/
+
+# 音频：由脚本本地生成，不入库
+assets/bgm.wav
+assets/bgm-ducked.wav
+assets/vo.wav
+assets/vo-master.wav
+scripts/_vo_tmp/
+
+# 完整 CJK 字体：26 MB，用 scripts/make_font_subset.py 抽子集后入库
+assets/NotoSerifCJK.ttc
+
+# 预览图（渲染时临时拷贝到工程根）
+preview-frame-*.png
+preview-frames-*.jpg
+preview-subtitle-cuts.jpg
+
+node_modules/
+*.log
+.DS_Store
