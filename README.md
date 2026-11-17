@@ -17,6 +17,8 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [dashcam](dashcam/README.md) | [夜行记录仪](https://www.bilibili.com/toy/dashcam/index.html) | 第一人称深夜货运模拟，43 个模块的自研 WebGL2 引擎 |
 | [seabreeze](seabreeze/README.md) | [海风竞速](https://www.bilibili.com/toy/seabreeze/index.html) | 落日海岸低多边形 3D 竞速，三圈计时赛，漂移攒氮气 |
 | [abyssbeacon](abyssbeacon/README.md) | [深蓝信标](https://www.bilibili.com/toy/abyssbeacon/index.html) | 生物荧光深海 3D 探索，收集光囊点亮三座远古灯塔 |
+| [xingzhao](xingzhao/README.md) | 星召群英 | 5v5 MOBA，1 名玩家 + 9 名 AI 操控历代英杰，推塔打野摧毁对方水晶 |
+| [skybreaker](skybreaker/README.md) | 铁翼破云 | F-14B 空战，鼠标驾驶六武器编队，截击波次、击破巨型空中堡垒 |
 
 游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
 
@@ -61,6 +63,8 @@ gomoku/
 《海风竞速》同样把 three.js 拆成独立文件：`src/index.html` + `src/three.global.js` + `src/game.js` 三者同目录上传。
 
 《深蓝信标》同样把 three.js 拆成独立文件：`dist/index.html` + `dist/three.global.js` + `dist/game.js` 三者同目录上传。
+
+《星召群英》与《铁翼破云》同样拆成两个文件同目录上传：《星召群英》是 `src/index.html` + `src/game.bundle.js`（内联 three.js 与游戏逻辑），《铁翼破云》是 `src/index.html` + `src/assets.js`（内嵌资源包，挂载 `window.__FLIGHT_ASSETS__`）。
 
 ## 联机说明
 
