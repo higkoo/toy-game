@@ -164,144 +164,15 @@ body::before{
 }
 .card:hover{transform:translateY(-4px);border-color:rgba(163,128,63,.42);box-shadow:0 22px 46px rgba(120,95,50,.16)}
 .card:hover::before{opacity:1}
-.card-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.card-idx{
-  font-size:10.5px;letter-spacing:.24em;color:var(--gold-deep);
-  border:1px solid rgba(216,181,106,.3);padding:3px 7px;border-radius:2px;
-}
 .card-tag{font-size:10.5px;letter-spacing:.2em;color:var(--ink-soft)}
 .card h3{
   margin:0;font-size:22px;font-weight:600;letter-spacing:.1em;color:#2b2418;
 }
-.card .card-en{margin-top:6px;font-size:10px;letter-spacing:.24em;color:var(--gold-deep);text-transform:uppercase}
 .card p{
   margin:14px 0 0;font-size:13px;line-height:1.95;color:var(--ink-dim);letter-spacing:.03em;flex:1;
 }
-.card-foot{display:flex;align-items:center;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(120,100,64,.14)}
-.card-foot .dot{width:4px;height:4px;border-radius:50%;background:var(--gold);opacity:.8}
-.card-foot span{font-size:10.5px;letter-spacing:.2em;color:var(--ink-soft)}
-.card-link{
-  margin-left:auto;display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;letter-spacing:.18em;color:var(--gold-2);text-decoration:none;
-  padding:6px 0;transition:gap .2s,color .2s;white-space:nowrap;
-}
-.card-link:hover{gap:10px;color:#5a411a}
-.card-link svg{width:12px;height:12px;fill:currentColor}
-.card-link.doc{
-  margin-left:4px;font-size:11.5px;letter-spacing:.14em;
-  color:var(--ink-soft);padding:6px 0;
-}
-.card-link.doc:hover{color:var(--gold-2)}
 /* 讲义类外链不跳转，点击复制：button 形态与原来的 a 视觉一致 */
-button.link-copy{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:inherit}
-button.link-copy:focus-visible{outline:2px solid var(--gold-2);outline-offset:3px;border-radius:2px}
-button.foot-link{font-size:11.5px;letter-spacing:.16em;color:var(--ink-soft);text-decoration:none;transition:color .2s}
-button.foot-link:hover{color:var(--gold-2)}
-.card-link.note{
-  color:#7a5a1e;font-weight:600;letter-spacing:.14em;
-}
-.card-link.note:hover{color:#5a411a}
 
-
-/* ---------- 课程封面图窗 ---------- */
-.card-media{
-  margin:-22px -20px 16px;height:150px;position:relative;overflow:hidden;
-  background:#e9e3d3;
-}
-.card-media img{
-  width:100%;height:100%;object-fit:cover;display:block;
-  filter:saturate(.94) contrast(1.02);
-  transition:transform .55s ease;
-}
-.card:hover .card-media img{transform:scale(1.05)}
-.card-media::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to bottom,transparent 56%,rgba(255,252,245,.38) 86%,rgba(255,252,245,.88));
-}
-
-/* ---------- 章节横幅（天纪） ---------- */
-.section-banner{
-  position:relative;height:196px;margin:0 0 20px;border-radius:3px;overflow:hidden;
-  border:1px solid rgba(120,100,64,.16);background:#e9e3d3;
-}
-.section-banner img{
-  width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block;
-  filter:saturate(.94) contrast(1.02);
-}
-.section-banner::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    linear-gradient(to bottom,transparent 50%,rgba(247,242,231,.42) 86%,rgba(247,242,231,.92)),
-    linear-gradient(90deg,rgba(247,242,231,.5),transparent 20%,transparent 80%,rgba(247,242,231,.5));
-}
-
-/* ---------- hero 人像 ---------- */
-.hero-portrait{
-  position:absolute;right:max(0px,calc(50% - 534px));bottom:0;z-index:1;
-  width:min(238px,26vw);pointer-events:none;user-select:none;
-  -webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent 96%);
-  mask-image:linear-gradient(to bottom,#000 60%,transparent 96%);
-  opacity:.88;
-}
-.hero-portrait::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(90deg,#f7f2e7 0%,rgba(247,242,231,.72) 22%,rgba(247,242,231,0) 52%);
-}
-.hero-portrait img{width:100%;display:block}
-
-/* ---------- 电子书货架 ---------- */
-.shelf .book-shelf{display:flex;flex-direction:column;gap:12px}
-.shelf .book{
-  display:flex;align-items:center;gap:16px;text-decoration:none;
-  background:linear-gradient(165deg,rgba(255,255,255,.88),rgba(255,252,245,.58));
-  border:1px solid rgba(120,100,64,.16);border-radius:3px;
-  padding:16px 18px;transition:transform .22s,border-color .22s,box-shadow .22s;
-}
-.shelf .book:hover{
-  transform:translateY(-2px);border-color:rgba(163,128,63,.4);
-  box-shadow:0 16px 34px rgba(120,95,50,.13);
-}
-.shelf .book.featured{
-  background:
-    linear-gradient(120deg,rgba(222,193,132,.26),rgba(222,193,132,.08) 55%),
-    linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,251,241,.62));
-  border-color:rgba(163,128,63,.32);
-}
-.shelf .book-ic{
-  flex:0 0 auto;width:46px;height:46px;border-radius:3px;display:grid;place-items:center;
-  font-size:15px;letter-spacing:.06em;color:#6d5124;
-  background:linear-gradient(160deg,rgba(243,221,166,.6),rgba(220,187,115,.42));
-  border:1px solid rgba(216,181,106,.42);
-}
-.shelf .book.featured .book-ic{width:54px;height:54px;font-size:14px;letter-spacing:.12em}
-.shelf .book-bd{flex:1;min-width:0}
-.shelf .book-bd b{
-  display:block;font-size:15px;font-weight:600;letter-spacing:.05em;color:#2b2418;
-}
-.shelf .book-bd span{
-  display:block;margin-top:5px;font-size:12px;line-height:1.75;letter-spacing:.03em;color:var(--ink-dim);
-}
-.shelf .book-cta{
-  flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-style:normal;
-  font-size:12px;letter-spacing:.18em;color:var(--gold-2);white-space:nowrap;
-}
-.shelf .book-cta svg{width:12px;height:12px;fill:currentColor;transition:transform .2s}
-.shelf .book:hover .book-cta svg{transform:translateX(3px)}
-
-/* 地纪特殊卡 */
-.card.finale{
-  grid-column:span 2;min-height:200px;
-  border-color:rgba(163,128,63,.3);
-  background:
-    linear-gradient(120deg,rgba(252,248,238,.94),rgba(252,248,238,.80) 52%,rgba(252,248,238,.92)),
-    url("img/diji-vista.jpg") 72% 16%/cover no-repeat;
-}
-.card.finale h3{font-size:26px}
-.card.finale .unfinished{
-  display:inline-flex;align-items:center;gap:6px;margin-top:2px;
-  font-size:10.5px;letter-spacing:.18em;color:#a8623a;
-}
-.card.finale .unfinished::before{content:"";width:5px;height:5px;border-radius:50%;background:#a8623a}
 
 /* ---------- 结语 ---------- */
 .coda{
@@ -345,96 +216,110 @@ button.foot-link:hover{color:var(--gold-2)}
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
 .reveal.in{opacity:1;transform:none}
 
-/* ---------- 分集面板（移动端合集替代页） ---------- */
-.sheet{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center}
-.sheet-mask{position:absolute;inset:0;background:rgba(44,37,25,.44);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:fade .2s ease}
-.sheet-panel{
-  position:relative;width:100%;max-width:620px;max-height:86vh;display:flex;flex-direction:column;
-  background:linear-gradient(180deg,#fffdf8,#f8f2e5);
-  border:1px solid rgba(163,128,63,.3);border-bottom:0;
-  border-radius:18px 18px 0 0;
-  box-shadow:0 -14px 42px rgba(80,60,30,.22);
-  padding:18px 18px calc(14px + var(--toy-bottom-inset, env(safe-area-inset-bottom, 0px)));
-  animation:sheet-up .28s cubic-bezier(.22,.9,.32,1);
-}
-@keyframes sheet-up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-.sheet-head{display:flex;align-items:flex-start;gap:12px}
-.sheet-kicker{font-size:10px;letter-spacing:.3em;color:var(--gold)}
-.sheet-head h3{margin:6px 0 0;font-size:21px;font-weight:600;letter-spacing:.1em;color:#2b2418}
-.sheet-close{
-  margin-left:auto;width:34px;height:34px;flex:0 0 34px;border-radius:50%;
-  border:1px solid rgba(163,128,63,.3);background:rgba(255,255,255,.72);
-  color:#6d5124;font-size:19px;line-height:1;cursor:pointer;font-family:inherit;padding:0;
-}
-.sheet-close:active{background:rgba(163,128,63,.14)}
-.sheet-meta{display:flex;justify-content:space-between;gap:10px;margin:10px 0 0;padding-bottom:11px;border-bottom:1px solid rgba(120,100,64,.14);font-size:11px;letter-spacing:.12em;color:var(--ink-soft)}
-.sheet-note{margin:8px 0 2px;font-size:10.5px;line-height:1.7;letter-spacing:.04em;color:#9a8f7d}
-.ep-list{list-style:none;margin:0;padding:2px 0 0;overflow:auto;-webkit-overflow-scrolling:touch;flex:1 1 auto;min-height:0}
-.ep-list a{
-  display:flex;align-items:center;gap:10px;padding:11px 2px;
-  text-decoration:none;color:var(--ink);border-bottom:1px dashed rgba(120,100,64,.16);
-}
-.ep-list a:active,.ep-list a:hover{background:rgba(163,128,63,.08)}
-.ep-no{flex:0 0 28px;font-size:10.5px;color:var(--gold-deep);font-variant-numeric:tabular-nums}
-.ep-title{
-  flex:1;min-width:0;font-size:12.5px;line-height:1.6;letter-spacing:.02em;color:#3a3223;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.ep-dur{flex:0 0 auto;font-size:10.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.ep-arrow{flex:0 0 10px;color:var(--gold);font-size:13px}
-.sheet-all{
-  appearance:none;cursor:pointer;width:100%;font-family:inherit;
-  display:block;text-align:center;margin-top:12px;padding:10px;
-  font-size:11.5px;letter-spacing:.14em;color:var(--gold-2);text-decoration:none;
-  border:1px solid rgba(163,128,63,.3);border-radius:2px;background:rgba(163,128,63,.06);
-}
-/* 「打开完整合集（PC 端）」只对 PC 有意义；移动端 App 内点分集即可播放，
-   这个入口是噪音，按 id 隐藏（.sheet-all 被「复制链接」按钮复用，不能动 class）。 */
-@media (max-width:760px){#sheetAll{display:none}}
-body.lock{overflow:hidden}
 
-/* ---------- 视频打不开时的兜底提示 ---------- */
-.vtip-url{
-  width:100%;margin:12px 0 0;padding:10px;border-radius:2px;
-  border:1px solid rgba(120,100,64,.22);background:rgba(255,255,255,.86);
-  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#4a4136;
+/* ---------- 知识库门面（首页即知识库） ---------- */
+.kb-search{
+  position:relative;max-width:620px;margin:34px auto 0;
 }
-@media (min-width:761px){
-  .sheet{align-items:center;padding:24px}
-  .sheet-panel{border-radius:14px;border-bottom:1px solid rgba(163,128,63,.3);max-height:min(82vh,760px)}
-  @keyframes sheet-up{from{transform:translateY(14px) scale(.985);opacity:.7}to{transform:none;opacity:1}}
+.kb-search input{
+  width:100%;padding:15px 20px 15px 46px;border-radius:999px;
+  border:1px solid rgba(163,128,63,.34);background:rgba(255,255,255,.82);
+  font-family:inherit;font-size:15px;color:var(--ink);outline:none;
+  transition:border-color .22s,box-shadow .22s,background .22s;
+}
+.kb-search input::placeholder{color:#a39884}
+.kb-search input:focus{
+  border-color:var(--gold);background:#fff;
+  box-shadow:0 0 0 4px rgba(163,128,63,.1);
+}
+.kb-search .ico{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;fill:none;stroke:var(--gold-deep);stroke-width:1.7;
+  pointer-events:none;
+}
+.kb-hint{
+  max-width:620px;margin:12px auto 0;text-align:center;
+  font-size:11.5px;letter-spacing:.14em;color:var(--ink-soft);
+}
+
+.kb-bar{
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  margin:56px 0 22px;padding-bottom:14px;
+  border-bottom:1px solid rgba(216,181,106,.28);
+}
+.kb-bar h2{
+  margin:0;font-size:clamp(21px,3.4vw,28px);font-weight:600;letter-spacing:.18em;color:var(--ink);
+}
+.kb-bar .cnt{margin-left:auto;font-size:12px;letter-spacing:.2em;color:var(--ink-soft)}
+
+.vol-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+  padding-bottom:20px;
+}
+.vol{
+  position:relative;display:flex;flex-direction:column;overflow:hidden;
+  border-radius:3px;padding:20px 20px 16px;min-height:196px;
+  background:linear-gradient(165deg,rgba(255,255,255,.88),rgba(255,252,245,.55));
+  border:1px solid rgba(120,100,64,.16);
+  box-shadow:0 8px 20px rgba(120,100,64,.05);
+  text-decoration:none;color:inherit;
+  transition:transform .28s,border-color .28s,box-shadow .28s,background .28s;
+}
+.vol::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(380px 200px at 18% 0%,rgba(216,181,106,.2),transparent 70%);
+}
+.vol:hover{transform:translateY(-4px);border-color:rgba(163,128,63,.44);box-shadow:0 20px 42px rgba(120,95,50,.14)}
+.vol:hover::before{opacity:1}
+.vol:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.vol-top{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.vol-seal{
+  width:26px;height:26px;flex:0 0 26px;border:1px solid var(--gold);border-radius:5px;
+  display:grid;place-items:center;font-size:12px;color:var(--gold-2);letter-spacing:0;
+}
+.vol-n{font-size:11px;letter-spacing:.22em;color:var(--ink-soft)}
+.vol-num{margin-left:auto;font-size:11px;letter-spacing:.16em;color:var(--gold-deep)}
+.vol h3{
+  margin:0;font-size:20px;font-weight:600;letter-spacing:.12em;color:#2b2418;
+  display:flex;align-items:baseline;gap:9px;
+}
+.vol h3 .go{
+  font-size:12px;letter-spacing:.1em;color:var(--gold-2);opacity:0;
+  transform:translateX(-6px);transition:opacity .25s,transform .25s;
+}
+.vol:hover h3 .go{opacity:1;transform:none}
+.vol p{
+  margin:12px 0 0;font-size:12.5px;line-height:1.95;color:var(--ink-dim);letter-spacing:.02em;flex:1;
+}
+.vol-tags{
+  margin-top:14px;padding-top:12px;border-top:1px solid rgba(120,100,64,.14);
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.vol-tags span{
+  font-size:10.5px;letter-spacing:.14em;color:var(--ink-soft);
+  border:1px solid rgba(120,100,64,.18);border-radius:999px;padding:2px 9px;
+}
+.vol-empty{
+  grid-column:1/-1;text-align:center;padding:60px 0 70px;
+  font-size:14px;letter-spacing:.1em;color:#97504a;
+}
+
+.kb-foot-note{
+  max-width:640px;margin:56px auto 0;text-align:center;
+  font-size:11.5px;line-height:2.1;letter-spacing:.05em;color:var(--ink-soft);
 }
 
 @media (max-width:860px){
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .card.finale{grid-column:span 2}
-  .hero-portrait{width:min(212px,31vw);opacity:.86}
+  .vol-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:600px){
-  .wrap{padding:0 16px}
-  .nav-inner{padding:10px 16px;gap:10px}
-  .nav-logo{font-size:12px;letter-spacing:.2em}
-  .hero{padding:44px 0 40px}
-  .hero .cn-sub{letter-spacing:.42em}
-  .hero p.lede{font-size:13px;line-height:2}
-  .section{padding:56px 0 6px}
-  .cards,.cards.two{grid-template-columns:1fr}
-  .card{min-height:0;padding:20px 18px 16px}
-  .card-media{height:128px;margin:-20px -18px 14px}
-  .section-banner{height:132px;margin-bottom:16px}
-  .hero-portrait{display:none}
-  .card.finale{grid-column:auto}
-  .hero-stats{margin-top:34px}
-  .hero-stats .st{flex:1 1 100px}
-  .coda{margin-top:64px;padding:40px 0 52px}
+  .vol-grid{grid-template-columns:1fr}
+  .vol{min-height:0}
+  .kb-search input{padding:13px 16px 13px 40px;font-size:14px}
+  .kb-bar{margin:40px 0 18px}
 }
-@media (prefers-reduced-motion:reduce){
-  .reveal{opacity:1;transform:none;transition:none}
-}
-</style>
-</head>
-<body>
+
+</style><body>
 
 <div class="grain"></div>
 
@@ -442,12 +327,8 @@ body.lock{overflow:hidden}
   <div class="nav-inner">
     <div class="nav-logo"><span class="seal">岐</span>典籍故事</div>
     <div class="nav-links">
-      <a href="#tianji">天纪</a>
-      <a href="#renji">人纪</a>
-      <a href="#ebook">电子书</a>
-      <a href="#kb">知识库</a>
-      <a href="#diji">地纪</a>
-      <a href="#coda">结语</a>
+      <a href="#kb">全部册目</a>
+      <a href="#about">关于</a>
     </div>
   </div>
 </nav>
@@ -467,681 +348,125 @@ body.lock{overflow:hidden}
     <path d="M0,380 L120,300 L210,346 L320,236 L420,320 L520,272 L640,360 L760,300 L880,352 L1000,264 L1120,330 L1230,286 L1340,360 L1440,318 L1440,520 L0,520 Z" fill="url(#mg1)"/>
     <path d="M0,440 L150,388 L260,428 L380,352 L500,420 L620,376 L740,436 L860,384 L980,440 L1100,372 L1220,428 L1340,392 L1440,440 L1440,520 L0,520 Z" fill="url(#mg2)"/>
   </svg>
-  <div class="hero-portrait"><img src="img/hero-portrait.jpg" alt="倪海厦先生" /></div>
   <div class="wrap hero-inner">
     <div class="eyebrow">典籍文化 · 故事合集</div>
     <h1>岐黄典籍故事</h1>
     <div class="cn-sub">源流 · 人物 · 典故 · 博物</div>
     <div class="en-sub">Stories from the Classics of Chinese Culture</div>
     <p class="lede">
-      一套关于中医典籍与传统文化的阅读合集。从典籍的成书流传、名医的动人典故，
-      到药名博物、天文历法与医德佳话——以文化为舟，循着典籍的脉络，
-      重走一遍传统之学里那些值得一读再读的故事。
+      以中医典籍与传统文化的故事为线索，分三十三册整理 692 则文化读物：
+      典籍源流、历代医家、成语典故、药名博物、天文历法、节气民俗、医德佳话、经络方名、医药器物。
+      只谈文化与历史，不涉诊疗。
     </p>
     <p class="disclaimer">本站为传统文化与典籍知识介绍，仅供文化阅读，不构成医疗建议。</p>
-    <div class="hero-actions">
-      <a class="btn btn-gold" href="#tianji">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5-9-5.5z"/></svg>
-        开始观看
-      </a>
-      <a class="btn btn-ghost" href="#renji">直达人纪</a>
+    <div class="kb-search">
+      <svg class="ico" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="15" y2="15"/>
+      </svg>
+      <input id="q" type="search" autocomplete="off"
+             placeholder="搜索册名或条目：针灸、杏林、节气、李时珍……"
+             aria-label="搜索册名或条目">
     </div>
+    <p class="kb-hint">输入即筛选册目；点任一册进入条目列表，可按体裁筛选与章节导航。</p>
     <div class="hero-stats">
-      <div class="st"><b>三</b><span>大 体 系</span></div>
-      <div class="st"><b>十一</b><span>部 课 程</span></div>
-      <div class="st"><b>全集</b><span>完 整 收 录</span></div>
+      <div class="st"><b>三十三</b><span>分 册</span></div>
+      <div class="st"><b>六百九十二</b><span>则 读 物</span></div>
+      <div class="st"><b>五</b><span>种 体 裁</span></div>
+      <div class="st"><b>零</b><span>诊 疗 内 容</span></div>
     </div>
   </div>
 </header>
 
-<main class="wrap">
-
-  <!-- 天纪 -->
-  <section class="section" id="tianji">
-    <div class="section-head reveal">
-      <div class="season-no">01 / 天 纪</div>
-      <h2>天纪 <em>天道</em></h2>
-    </div>
-    <p class="section-desc reveal">
-      《天纪》讲的是天地之间的大道理：以易经为骨，分天机道、人间道、地脉道三路展开。
-      从卦象推演到人事进退，再到山川形势，讲的不是趋吉避凶的技巧，而是如何读懂时与位。
-    </p>
-    <div class="rule reveal"></div>
-    <div class="section-banner reveal"><img src="img/cover-tianji.jpg" alt="天纪 · 紫微斗数" /></div>
-    <div class="cards">
-      <article class="card reveal">
-        <div class="card-top"><span class="card-idx">天纪 · 一</span><span class="card-tag">易理 / 象数</span></div>
-        <h3>天机道</h3>
-        <div class="card-en">The Way of Heaven</div>
-        <p>以易经六十四卦为纲，讲阴阳消长、时位变化。穷理尽性，知命而不困于命，是全套体系的入口。</p>
-        <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
-          <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-top"><span class="card-idx">天纪 · 二</span><span class="card-tag">人事 / 处世</span></div>
-        <h3>人间道</h3>
-        <div class="card-en">The Way of Man</div>
-        <p>把易理落回人间：进退、取舍、聚散、成败。讲的是人在局中如何自处，如何看清一件事的起承转合。</p>
-        <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
-          <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-top"><span class="card-idx">天纪 · 三</span><span class="card-tag">山川 / 形势</span></div>
-        <h3>地脉道</h3>
-        <div class="card-en">The Way of Earth</div>
-        <p>由天及地，讲山川形势与居所格局。看的是气脉的来去与聚散，也是古人理解世界的一种空间语言。</p>
-        <div class="card-foot"><i class="dot"></i><span>24 集 · 合集</span>
-          <a class="card-link" data-col="tianji" href="https://space.bilibili.com/10328533/lists/1858388" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cpD5tS9dUKSJ" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- 人纪 -->
-  <section class="section" id="renji">
-    <div class="section-head reveal">
-      <div class="season-no">02 / 人 纪</div>
-      <h2>人纪 <em>医道</em></h2>
-    </div>
-    <p class="section-desc reveal">
-      《人纪》辑录了几部最负盛名的中医典籍：从《黄帝内经》的天人思想，到《神农本草经》的博物智慧，
-      再到《伤寒论》《金匮要略》的成书流传。这里把它们当作文化经典来读——一条由典籍入传统的阅读路径。
-    </p>
-    <div class="rule reveal"></div>
-    <div class="cards">
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-zhenjiu.jpg" alt="针灸" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 一</span><span class="card-tag">经络 / 针法</span></div>
-        <h3>针灸</h3>
-        <div class="card-en">Acupuncture &amp; Moxibustion</div>
-        <p>从砭石到九针，从经络思想到针灸铜人。看一套古老的工具与观念，如何成为传统文化里的独特风景。</p>
-        <div class="card-foot"><i class="dot"></i><span>12 集 · 合集</span>
-          <a class="card-link" data-col="zhenjiu" href="https://space.bilibili.com/10328533/lists/1779828" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link note" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046731" target="_blank" rel="noopener">笔记</a>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-neijing.jpg" alt="黄帝内经" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 二</span><span class="card-tag">医理 / 经典</span></div>
-        <h3>黄帝内经</h3>
-        <div class="card-en">The Inner Canon</div>
-        <p>一部托名黄帝的奇书，讲阴阳五行、天人相应与四时节气。读它，是读古人理解世界的一套框架。</p>
-        <div class="card-foot"><i class="dot"></i><span>12 集 · 合集</span>
-          <a class="card-link" data-col="neijing" href="https://space.bilibili.com/10328533/lists/1842047" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link note" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046802" target="_blank" rel="noopener">笔记</a>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-bencao.jpg" alt="神农本草经" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 三</span><span class="card-tag">本草 / 药性</span></div>
-        <h3>神农本草经</h3>
-        <div class="card-en">The Materia Medica</div>
-        <p>神农尝百草的传说、三品分类的智慧、药名里的汉语趣味。一部把万物编成清单的古代博物志。</p>
-        <div class="card-foot"><i class="dot"></i><span>8 集 · 合集</span>
-          <a class="card-link" data-col="bencao" href="https://space.bilibili.com/10328533/lists/1921347" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link note" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046859" target="_blank" rel="noopener">笔记</a>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-shanghan.jpg" alt="伤寒论" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 四</span><span class="card-tag">成书 / 思想</span></div>
-        <h3>伤寒论</h3>
-        <div class="card-en">Treatise on Cold Damage</div>
-        <p>张仲景其人其书，「坐堂医生」的典故，六经作为归纳框架的思想。一部乱世里写成的经典及其流传。</p>
-        <div class="card-foot"><i class="dot"></i><span>8 集 · 合集</span>
-          <a class="card-link" data-col="shanghan" href="https://space.bilibili.com/10328533/lists/1953505" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link note" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12082272" target="_blank" rel="noopener">笔记</a>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-jingui.jpg" alt="金匮要略" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 五</span><span class="card-tag">藏书 / 校勘</span></div>
-        <h3>金匮要略</h3>
-        <div class="card-en">Essentials of the Golden Cabinet</div>
-        <p>「金匮」是珍藏之意。看一部险些散佚的古籍，如何在藏书楼与校勘者手中被重新找到、保存下来。</p>
-        <div class="card-foot"><i class="dot"></i><span>11 集 · 合集</span>
-          <a class="card-link" data-col="jingui" href="https://space.bilibili.com/10328533/lists/1975656" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <a class="card-link note" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12789925" target="_blank" rel="noopener">笔记</a>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-media"><img src="img/cover-zhongjing.jpg" alt="仲景心法" loading="lazy" /></div>
-        <div class="card-top"><span class="card-idx">人纪 · 六</span><span class="card-tag">人物 / 思维</span></div>
-        <h3>仲景心法</h3>
-        <div class="card-en">The Heart of Zhang Zhongjing</div>
-        <p>不逐条讲书，而讲一位学者的思维方式：如何在复杂现象里归纳条理，在变化中守住主线。</p>
-        <div class="card-foot"><i class="dot"></i><span>5 讲 · 合集</span>
-          <a class="card-link" data-col="zhongjing" href="https://space.bilibili.com/10328533/lists/2117623" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/clk8q0BfBQmB" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-top"><span class="card-idx">人纪 · 七</span><span class="card-tag">故事 / 医林</span></div>
-        <h3>杏林故事</h3>
-        <div class="card-en">Tales from the Medical tradition</div>
-        <p>杏林春暖、悬壶济世、橘井泉香——那些流传千年的医德佳话，以及它们何以动人。</p>
-        <div class="card-foot"><i class="dot"></i><span>17 集 · 合集</span>
-          <a class="card-link" data-col="yian" href="https://space.bilibili.com/10328533/lists/3381593" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cf3SdH2Hp7Q4" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- 电子书与资源包 -->
-  <section class="section shelf reveal" id="ebook">
-    <div class="section-head reveal">
-      <div class="season-no">附 / 电 子 书</div>
-      <h2>电子书 <em>与资源包</em></h2>
-    </div>
-    <p class="section-desc reveal">
-      各部课程的读书笔记与全套资源包，与上方合集一一对应，可按需取用。
-      笔记供研习参考，不能替代专业诊疗。
-    </p>
-    <div class="rule reveal"></div>
-    <div class="book-shelf">
-      <a class="book featured reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12126037" target="_blank" rel="noopener">
-        <div class="book-ic">全套</div>
-        <div class="book-bd">
-          <b>《三纪》学习笔记 · 全套资源包</b>
-          <span>含天纪.zip、人纪-针灸.zip 等全部课程打包文件（共 9 个交付文件）</span>
-        </div>
-        <em class="book-cta">去获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-      </a>
-      <div class="book-list">
-        <a class="book reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046731" target="_blank" rel="noopener">
-          <div class="book-ic">针</div>
-          <div class="book-bd"><b>《针灸》读书笔记</b><span>对应「针灸 · 人纪」合集</span></div>
-          <em class="book-cta">获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-        </a>
-        <a class="book reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046802" target="_blank" rel="noopener">
-          <div class="book-ic">内</div>
-          <div class="book-bd"><b>《黄帝内经》读书笔记</b><span>对应「黄帝内经 · 人纪」合集</span></div>
-          <em class="book-cta">获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-        </a>
-        <a class="book reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12046859" target="_blank" rel="noopener">
-          <div class="book-ic">草</div>
-          <div class="book-bd"><b>《神农本草经》读书笔记</b><span>对应「神农本草经 · 人纪」合集</span></div>
-          <em class="book-cta">获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-        </a>
-        <a class="book reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12082272" target="_blank" rel="noopener">
-          <div class="book-ic">寒</div>
-          <div class="book-bd"><b>《伤寒论》读书笔记</b><span>对应「伤寒论 · 人纪」合集</span></div>
-          <em class="book-cta">获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-        </a>
-        <a class="book reveal" href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12789925" target="_blank" rel="noopener">
-          <div class="book-ic">匮</div>
-          <div class="book-bd"><b>《金匮要略》读书笔记</b><span>对应「金匮要略 · 人纪」合集</span></div>
-          <em class="book-cta">获取<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 知识库 -->
-  <section class="section shelf reveal" id="kb">
-    <div class="section-head reveal">
-      <div class="season-no">附 / 知 识 库</div>
-      <h2>知识库 <em>全文检索</em></h2>
-    </div>
-    <p class="section-desc reveal">
-      以中医典籍与传统文化的故事为线索，分三十三册整理 692 则文化读物：典籍源流、历代医家、
-      成语典故、药名博物、天文历法、节气民俗、医德佳话、经络方名、医药器物，只谈文化与历史，不涉诊疗。支持全文搜索、体裁筛选与章节导航。
-    </p>
-    <div class="rule reveal"></div>
-    <div class="book-shelf">
-      <a class="book featured reveal" href="kb/index.html">
-        <div class="book-ic">库</div>
-        <div class="book-bd">
-          <b>中医典籍文化故事 · 知识库</b>
-          <span>典籍 · 医家 · 成语 · 药名 · 医德 · 节气 · 星官 · 文艺 · 博物 · 典故 · 饮食 · 读书 等 20 册</span>
-        </div>
-        <em class="book-cta">进入知识库<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></em>
-      </a>
-    </div>
-  </section>
-
-  <!-- 地纪 -->
-  <section class="section" id="diji">
-    <div class="section-head reveal">
-      <div class="season-no">03 / 地 纪</div>
-      <h2>地纪 <em>未竟</em></h2>
-    </div>
-    <p class="section-desc reveal">
-      《地纪》原计划由地脉山川进一步展开，与《天纪》互为表里。讲座未能全部完成，
-      如今留存的只是片段与提纲——也因此，它更像一个未写完的结尾，等后来者续上。
-    </p>
-    <div class="rule reveal"></div>
-    <div class="cards two">
-      <article class="card finale reveal">
-        <div class="card-top"><span class="card-idx">地纪 · 残章</span><span class="card-tag">未完成</span></div>
-        <h3>地纪 · 未竟之章</h3>
-        <div class="card-en">The Unfinished Chapter</div>
-        <p>散落的录音、提纲与门人整理的笔记，拼出一条未走完的路。听其言、观其法，比追问“完整”更要紧。</p>
-        <span class="unfinished">原计划未完 · 仅存片段</span>
-        <div class="card-foot"><i class="dot"></i><span>AI 原声片段</span>
-          <a class="card-link" data-video="BV1pr421c7vh" href="https://www.bilibili.com/video/BV1pr421c7vh" target="_blank" rel="noopener">观看<svg viewBox="0 0 16 16"><path d="M2 8h10l-4-4 1.4-1.4L16 8l-6.6 5.4L8 12l4-4H2z"/></svg></a>
-          <button type="button" class="card-link doc link-copy" data-copy="https://kdocs.cn/l/cholbHwJqpTf" aria-label="复制讲义链接">讲义</button>
-        </div>
-      </article>
-      <article class="card reveal">
-        <div class="card-top"><span class="card-idx">附 · 研习</span><span class="card-tag">方法 / 路径</span></div>
-        <h3>如何开始</h3>
-        <div class="card-en">A Path for Beginners</div>
-        <p>建议顺序：先从「针砭源流」认识器具与经络思想，再读「内经与象数」的天人框架，
-          继以「本草博物」「杏林故事」，最后看「天纪与象数」。徐徐读来，不必求快。</p>
-        <div class="card-foot"><i class="dot"></i><span>学习指引</span></div>
-      </article>
-    </div>
-  </section>
-
-  <!-- 结语 -->
-  <section class="coda" id="coda">
-    <div class="quote reveal">为天地立心，为生民立命，为往圣继绝学</div>
-    <div class="from reveal">— 全集结语 —</div>
-    <p class="note reveal">
-      本页为学习索引与观看入口整理，所有课程内容、影像与版权均归原作者及相关平台所有。
-      页面仅提供检索与导航，不存储、不转载任何课程文件。内容涉及医学，仅供研习参考，不能替代专业诊疗。
-    </p>
-  </section>
-
+<main class="wrap" id="kb">
+  <div class="kb-bar">
+    <h2>全部册目</h2>
+    <span class="cnt" id="vstat"></span>
+  </div>
+  <div class="vol-grid" id="box"></div>
 </main>
+
+<section class="coda" id="about">
+  <div class="quote reveal">为天地立心，为生民立命，为往圣继绝学</div>
+  <div class="from reveal">— 全集结语 —</div>
+  <p class="note reveal">
+    本站为中医典籍与传统文化的故事合集，介绍典籍源流、名医逸事、成语典故与博物风物，
+    仅供文化阅读与学习参考，不构成医疗建议。内容依据公开典籍与文化史材料整理，
+    每一则均标注出处，体裁分为典籍、人物、典故与风物四类。
+  </p>
+</section>
 
 <footer class="foot">
   <div class="wrap">
     <div class="links">
-      <a href="#tianji">天纪</a>
-      <a href="#renji">人纪</a>
-      <a href="#diji">地纪</a>
-      <a href="kb/index.html">知识库</a>
-      <button type="button" class="link-copy foot-link" data-copy="https://www.kdocs.cn/l/cmO0zk3ENCCS" aria-label="复制原始资料链接">原始资料</button>
-      <a href="https://mall.bilibili.com/neul-next/detailuniversal/detail.html?itemsId=12126037" target="_blank" rel="noopener">资源包</a>
-      <button type="button" class="link-copy foot-link" data-copy="https://gitee.com/onehealthy/ebook/blob/master/README.md" aria-label="复制配套讲义链接">配套讲义</button>
+      <a href="#kb">全部册目</a>
+      <a href="#about">关于</a>
     </div>
     <div class="copy">岐黄典籍故事 · 中医文化合集 · 仅供文化阅读，不构成医疗建议</div>
   </div>
 </footer>
 
-<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v2.2.0</button>
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v3.0.0</button>
 
-<div class="sheet" id="sheet" hidden>
-  <div class="sheet-mask" data-close></div>
-  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-    <div class="sheet-head">
-      <div>
-        <div class="sheet-kicker">视频合集 · 分集</div>
-        <h3 id="sheetTitle">天纪</h3>
-      </div>
-      <button class="sheet-close" type="button" data-close aria-label="关闭">×</button>
-    </div>
-    <div class="sheet-meta" id="sheetMeta"></div>
-    <p class="sheet-note">合集页在移动端可能打不开；这里按集列出，点任意一集会在哔哩哔哩 App 内直接打开播放。</p>
-    <ol class="ep-list" id="epList"></ol>
-    <a class="sheet-all" id="sheetAll" href="#" target="_blank" rel="noopener">在 B 站打开完整合集（PC 端）</a>
-  </div>
-</div>
-
-<div class="sheet" id="vtip" hidden>
-  <div class="sheet-mask" data-vtip-close></div>
-  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vtipTitle">
-    <div class="sheet-head">
-      <div>
-        <div class="sheet-kicker" id="vtipKicker">视频链接</div>
-        <h3 id="vtipTitle">在 B 站打开</h3>
-      </div>
-      <button class="sheet-close" type="button" data-vtip-close aria-label="关闭">×</button>
-    </div>
-    <p class="sheet-note" id="vtipNote">视频没能在 App 内直接打开。复制下面的链接，在哔哩哔哩 App 中打开即可。</p>
-    <input class="vtip-url" id="vtipUrl" readonly />
-    <button class="sheet-all" type="button" id="vtipCopy">复制链接</button>
-  </div>
-</div>
-
+<script src="kb/catalog.js"></script>
 <script>
+/* ===== 知识库目录渲染 ===== */
 (function () {
   'use strict';
+  var C = window.KB_CATALOG || [];
+  var box = document.getElementById('box');
+  var q = document.getElementById('q');
+  var stat = document.getElementById('vstat');
 
-  /* 合集分集数据：移动端 B 站合集页会空白，改由页内面板承接 */
-  var COL = {
-    tianji:{title:'天纪',sub:'天机道 / 人间道 / 地脉道',url:'https://space.bilibili.com/10328533/lists/1858388',eps:[
-      ['DVD01 · 高清复刻','01:45:21','BV1y94y1G7RJ'],
-      ['DVD02 · 高清复刻','01:46:49','BV1MQ4y187vN'],
-      ['DVD03 · 高清复刻','01:47:02','BV1FC4y1U7YA'],
-      ['DVD04 · 高清复刻','01:37:57','BV1gN4y1D7DU'],
-      ['DVD05 · 高清复刻','01:55:38','BV1me411D7Qs'],
-      ['DVD06 · 高清复刻','01:57:35','BV1CC4y117Md'],
-      ['DVD07 · 高清复刻','01:54:30','BV1yN4y117xQ'],
-      ['DVD08 · 高清复刻','01:50:18','BV1ru4y1w7Wm'],
-      ['DVD09 · 高清复刻','01:48:14','BV1ha4y1Z7C3'],
-      ['DVD10 · 高清复刻','01:57:33','BV1P64y177g9'],
-      ['DVD11 · 高清复刻','01:48:42','BV1mj411L7xR'],
-      ['DVD12 · 高清复刻','01:52:49','BV1FC4y1y7Vc'],
-      ['DVD13 · 高清复刻','01:32:18','BV1BN411j7wi'],
-      ['DVD14 · 高清复刻','01:46:35','BV1Wu4y1c7vA'],
-      ['DVD15 · 高清复刻','01:43:58','BV1BN4y1Y7Ar'],
-      ['DVD16 · 高清复刻','01:55:19','BV1wj411j729'],
-      ['DVD17 · 高清复刻','01:49:44','BV1cG411q71R'],
-      ['DVD18 · 高清复刻','01:50:51','BV1e64y177aL'],
-      ['DVD19 · 高清复刻','01:45:00','BV1mN41177Wd'],
-      ['DVD20 · 高清复刻','01:37:06','BV12G411i7SV'],
-      ['DVD21 · 高清复刻','01:51:35','BV1wc411675S'],
-      ['DVD22 · 高清复刻','01:57:36','BV1vH4y117oG'],
-      ['DVD23 · 高清复刻','01:46:30','BV1wM411Z7jF'],
-      ['DVD24 · 高清复刻','01:39:26','BV1Y94y1j7e4']
-    ]},
-    zhenjiu:{title:'针灸',sub:'原版 DVD 高清复刻',url:'https://space.bilibili.com/10328533/lists/1779828',eps:[
-      ['DVD01 · 高清复刻','03:26:29','BV13N4y1Z7hR'],
-      ['DVD02 · 高清复刻','03:51:17','BV1H84y127MF'],
-      ['DVD03 · 高清复刻','03:54:59','BV1s34y1g7Gr'],
-      ['DVD04 · 高清复刻','03:27:08','BV1Du4y1s7ey'],
-      ['DVD05 · 高清复刻','03:43:47','BV1Vy4y1K7Be'],
-      ['DVD06 · 高清复刻','03:48:52','BV1X94y1t7h9'],
-      ['DVD07 · 高清复刻','03:06:46','BV1z34y1g781'],
-      ['DVD08 · 高清复刻','03:51:36','BV1xp4y1T7kj'],
-      ['DVD09 · 高清复刻','03:38:16','BV1tN4y117Wm'],
-      ['DVD10 · 高清复刻','03:01:28','BV1XG41127ou'],
-      ['DVD11 · 高清复刻','02:17:15','BV1gw411X7t7'],
-      ['易筋经 · 健身练气','41:00','BV1ex4y1t7UM']
-    ]},
-    neijing:{title:'黄帝内经',sub:'原版 DVD 高清复刻',url:'https://space.bilibili.com/10328533/lists/1842047',eps:[
-      ['DVD01 · 高清复刻','03:51:46','BV1Tc411d7Ek'],
-      ['DVD02 · 高清复刻','03:42:45','BV14g4y1R72G'],
-      ['DVD03 · 高清复刻','03:22:19','BV1qG41197WL'],
-      ['DVD04 · 高清复刻','03:48:11','BV1t94y137Lh'],
-      ['DVD05 · 高清复刻','03:53:30','BV1Qw411T7mE'],
-      ['DVD06 · 高清复刻','03:47:27','BV1kG411S74t'],
-      ['DVD07 · 高清复刻','03:57:23','BV1u94y1G7W2'],
-      ['DVD08 · 高清复刻','03:47:54','BV1UN411M7uS'],
-      ['DVD09 · 高清复刻','02:58:17','BV1pa4y1D7tb'],
-      ['DVD10 · 高清复刻','02:27:28','BV12j411E7nH'],
-      ['DVD11 · 高清复刻','01:48:11','BV1rC4y127ML'],
-      ['周易六壬 · 高清复刻','01:48:25','BV1Rr421b7R4']
-    ]},
-    bencao:{title:'神农本草经',sub:'原版 DVD 高清复刻',url:'https://space.bilibili.com/10328533/lists/1921347',eps:[
-      ['DVD1 · 高清复刻','03:59:25','BV1mC4y1y7x2'],
-      ['DVD2 · 高清复刻','03:56:26','BV1uc411i7uX'],
-      ['DVD3 · 高清复刻','03:56:17','BV1wH4y1y7Af'],
-      ['DVD4 · 高清复刻','03:57:58','BV1bj41157YY'],
-      ['DVD5 · 高清复刻','03:59:50','BV1YG411v7jg'],
-      ['DVD6 · 高清复刻','02:54:05','BV14b4y1L7cJ'],
-      ['DVD7 · 高清复刻','03:00:32','BV1La4y1d7NU'],
-      ['DVD8 · 高清复刻','03:41:05','BV1du4y1g74t']
-    ]},
-    shanghan:{title:'伤寒论',sub:'原版 DVD 高清复刻',url:'https://space.bilibili.com/10328533/lists/1953505',eps:[
-      ['DVD1 · 高清复刻','03:56:36','BV1594y1N7qf'],
-      ['DVD2 · 高清复刻','03:56:32','BV1UQ4y1G7Hn'],
-      ['DVD3 · 高清复刻','03:58:27','BV1aC4y1S7vk'],
-      ['DVD4 · 高清复刻','03:57:33','BV1yC4y1Q7SM'],
-      ['DVD5 · 高清复刻','03:56:30','BV13Q4y137NQ'],
-      ['DVD6 · 高清复刻','03:55:45','BV1xb4y1V7gk'],
-      ['DVD7 · 高清复刻','02:57:43','BV1qu4y1K7Y7'],
-      ['DVD8 · 高清复刻','01:52:57','BV1na4y1k7Wi']
-    ]},
-    jingui:{title:'金匮要略',sub:'原版 DVD 高清复刻',url:'https://space.bilibili.com/10328533/lists/1975656',eps:[
-      ['DVD01 · 高清复刻','03:56:02','BV1sN4y1x78G'],
-      ['DVD02 · 高清复刻','03:54:51','BV1bC4y1C7Yp'],
-      ['DVD03 · 高清复刻','03:46:07','BV1C5411z7cB'],
-      ['DVD04 · 高清复刻','03:55:09','BV1D64y1E7Qn'],
-      ['DVD05 · 高清复刻','03:56:12','BV1pN4y1q7CX'],
-      ['DVD06 · 高清复刻','03:55:58','BV1H5411i7Z5'],
-      ['DVD07 · 高清复刻','03:55:39','BV1Bt4y1o7Tu'],
-      ['DVD08 · 高清复刻','03:54:54','BV1Xc411t7kN'],
-      ['DVD09 · 高清复刻','03:41:33','BV1W94y1T7NB'],
-      ['DVD10 · 高清复刻','02:19:13','BV1iT4y1n7JX'],
-      ['DVD11 · 高清复刻','59:34','BV1fc411x7BW']
-    ]},
-    zhongjing:{title:'仲景心法',sub:'五讲全收录',url:'https://space.bilibili.com/10328533/lists/2117623',eps:[
-      ['传讲（一）','02:37:41','BV1KN4y1n7SJ'],
-      ['传讲（二）','01:29:41','BV1VV411D7iy'],
-      ['传讲（三）','02:43:27','BV1jz421d7H3'],
-      ['传讲（四）','01:51:01','BV1MJ4m1x7xP'],
-      ['传讲（五）','02:22:19','BV1s2421w74z']
-    ]},
-    yian:{title:'倪师医案',sub:'公开医案与演讲实录',url:'https://space.bilibili.com/10328533/lists/3381593',eps:[
-      ['《深入浅出讲经方》@ 广西中医药大学','02:35:15','BV1azH1e8E7A'],
-      ['《第三届扶阳论坛》上','02:36:17','BV1ve4ceXE8V'],
-      ['《第三届扶阳论坛》下','03:08:51','BV1tm1XYDEnW'],
-      ['《针灸》专辑：眼部疾病、中风、疼痛','23:51','BV1bKxKeWE3R'],
-      ['《淋巴癌、血癌》','12:24','BV1BW42197yh'],
-      ['《僵冻人》','28:33','BV1QZ421T7tv'],
-      ['《肝硬化》','41:52','BV1iS42197YP'],
-      ['《动脉血管堵塞》','49:01','BV15f421i7NX'],
-      ['《肝病》','30:11','BV1NqWSeNExr'],
-      ['《肝癌》','19:06','BV1D8xCeaECs'],
-      ['《乳癌》','29:22','BV1KvWSeiEbM'],
-      ['《肾衰竭》','29:58','BV1Ny411q7MS'],
-      ['《三叉神经痛》','14:04','BV1xcxCepEFi'],
-      ['《红斑狼疮》1','28:44','BV1yBWSeeEaG'],
-      ['《红斑狼疮》2','36:15','BV1JYxyeJEoT'],
-      ['《从常见病到疑难杂症的个性化治疗》','24:45','BV14Ux4eLEyi'],
-      ['《脑瘤》','59:34','BV1tm1XYDEM9']
-    ]}
-  };
-
-  var sheet = document.getElementById('sheet');
-  var sheetTitle = document.getElementById('sheetTitle');
-  var sheetMeta = document.getElementById('sheetMeta');
-  var sheetAll = document.getElementById('sheetAll');
-  var epList = document.getElementById('epList');
-  var lastFocus = null;
-
-  function mobileFallback() {
-    var coarse = false;
-    try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
-    return coarse || window.innerWidth <= 760;
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
   }
-
-  var vtip = document.getElementById('vtip');
-  var vtipUrl = document.getElementById('vtipUrl');
-  var vtipCopy = document.getElementById('vtipCopy');
-
-  function showVideoTip(bv, label) {
-    if (!vtip) return;
-    document.getElementById('vtipKicker').textContent = '视频链接';
-    document.getElementById('vtipNote').textContent = '视频没能在 App 内直接打开。复制下面的链接，在哔哩哔哩 App 中打开即可。';
-    document.getElementById('vtipTitle').textContent = label || '在 B 站打开';
-    vtipUrl.value = 'https://www.bilibili.com/video/' + bv;
-    vtipCopy.textContent = '复制链接';
-    vtip.hidden = false;
-    document.body.classList.add('lock');
-    vtip.querySelector('.sheet-close').focus();
+  function sealOf(name) {
+    return esc(String(name).replace(/[^\u4e00-\u9fff]/g, '').slice(0, 1) || '卷');
   }
-
-  /* 讲义等第三方外链：Toy 内不跳转，弹层展示可手动复制的链接 */
-  function showCopyTip(url, label) {
-    if (!vtip) return;
-    document.getElementById('vtipKicker').textContent = '讲义链接';
-    document.getElementById('vtipTitle').textContent = label || '讲义链接';
-    document.getElementById('vtipNote').textContent = 'Toy 内无法直接打开外部链接。长按或点击「复制链接」，再粘贴到浏览器访问。'.trim();
-    vtipUrl.value = url;
-    vtipCopy.textContent = '复制链接';
-    vtip.hidden = false;
-    document.body.classList.add('lock');
-    vtip.querySelector('.sheet-close').focus();
-  }
-
-  function closeVideoTip() {
-    if (!vtip || vtip.hidden) return;
-    vtip.hidden = true;
-    if (sheet.hidden) document.body.classList.remove('lock');
-  }
-
-  /* Toy SDK 在不同容器里挂载位置不一致（window.Toy / window.toy），统一探测 */
-  function toyApi() {
-    var roots = [window.Toy, window.toy];
-    for (var i = 0; i < roots.length; i++) {
-      var o = roots[i];
-      if (!o) continue;
-      if (typeof o.navigate === 'function') return o;
-      if (o.toy && typeof o.toy.navigate === 'function') return o.toy;
+  function render(kw) {
+    kw = (kw || '').trim();
+    var hits = [];
+    for (var i = 0; i < C.length; i++) {
+      var v = C[i];
+      if (kw && v.name.indexOf(kw) < 0 && v.keys.indexOf(kw) < 0) continue;
+      hits.push(v);
     }
-    return null;
-  }
+    stat.textContent = kw
+      ? hits.length + ' 册匹配「' + kw + '」'
+      : C.length + ' 册 · ' + C.reduce(function (a, v) { return a + v.count; }, 0) + ' 则';
 
-  /* 走 Toy 原生导航：App 内直接打开原生视频页，避开 WebView 跳 bilibili:// 的报错。
-     Toy SDK 的 navigate 约定 id 传 BV 号（type 名会由 SDK 映射为 1），且必须在点击手势内同步调用。 */
-  function openVideo(bv, label) {
-    if (window.ToyRank) window.ToyRank.watch(bv);
-    var api = toyApi();
-    if (bv && api) {
-      try {
-        var r = api.navigate({ type: 'video', id: bv });
-        if (r && typeof r.catch === 'function') r.catch(function () { showVideoTip(bv, label); });
-        return;
-      } catch (e) {}
+    if (!hits.length) {
+      box.innerHTML = '<div class="vol-empty">没有匹配的册目，换个词试试。</div>';
+      return;
     }
-    showVideoTip(bv, label);
-  }
-
-  function copyVideoUrl() {
-    var text = vtipUrl.value;
-    var done = false;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text);
-        done = true;
+    var out = '';
+    for (var j = 0; j < hits.length; j++) {
+      var v = hits[j];
+      var tags = '';
+      for (var k = 0; k < v.topics.length && k < 3; k++) {
+        tags += '<span>' + esc(v.topics[k].n) + '</span>';
       }
-    } catch (e) {}
-    if (!done) {
-      try {
-        vtipUrl.select();
-        vtipUrl.setSelectionRange(0, text.length);
-        done = document.execCommand('copy');
-      } catch (e) {}
+      out += '<a class="vol" href="kb/' + esc(v.file) + '">' +
+        '<div class="vol-top">' +
+          '<span class="vol-seal">' + sealOf(v.name) + '</span>' +
+          '<span class="vol-n">' + esc(v.file.replace('.html', '')) + '</span>' +
+          '<span class="vol-num">' + v.count + ' 则</span>' +
+        '</div>' +
+        '<h3>' + esc(v.name) + '<span class="go">→</span></h3>' +
+        '<p>' + esc(v.intro) + '</p>' +
+        '<div class="vol-tags">' + tags + '</div>' +
+      '</a>';
     }
-    vtipCopy.textContent = done ? '已复制' : '请长按链接复制';
+    box.innerHTML = out;
   }
 
-  function openSheet(key) {
-    var c = COL[key];
-    if (!c) return;
-    sheetTitle.textContent = c.title;
-    sheetMeta.textContent = '共 ' + c.eps.length + ' 集 · ' + c.sub;
-    sheetAll.href = c.url;
-    var frag = document.createDocumentFragment();
-    for (var i = 0; i < c.eps.length; i++) {
-      var ep = c.eps[i];
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.href = 'https://www.bilibili.com/video/' + ep[2];
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.setAttribute('data-bv', ep[2]);
-      a.setAttribute('data-label', c.title + ' · ' + ep[0]);
-      var no = document.createElement('span');
-      no.className = 'ep-no';
-      no.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
-      var ti = document.createElement('span');
-      ti.className = 'ep-title';
-      ti.textContent = c.title + ' · ' + ep[0];
-      var du = document.createElement('span');
-      du.className = 'ep-dur';
-      du.textContent = ep[1];
-      var ar = document.createElement('span');
-      ar.className = 'ep-arrow';
-      ar.textContent = '›';
-      a.appendChild(no); a.appendChild(ti); a.appendChild(du); a.appendChild(ar);
-      li.appendChild(a);
-      frag.appendChild(li);
-    }
-    epList.textContent = '';
-    epList.appendChild(frag);
-    epList.scrollTop = 0;
-    sheet.hidden = false;
-    document.body.classList.add('lock');
-    var closeBtn = sheet.querySelector('.sheet-close');
-    if (closeBtn) closeBtn.focus();
-  }
-
-  function closeSheet() {
-    if (!sheet || sheet.hidden) return;
-    sheet.hidden = true;
-    if (vtip && !vtip.hidden) return;
-    document.body.classList.remove('lock');
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
-  }
-
-  epList.addEventListener('click', function (e) {
-    var a = e.target && e.target.closest ? e.target.closest('a[data-bv]') : null;
-    if (!a) return;
-    e.preventDefault();
-    openVideo(a.getAttribute('data-bv'), a.getAttribute('data-label'));
-  });
-
-  document.addEventListener('click', function (e) {
-    var t = e.target;
-    if (!t || !t.closest) return;
-    if (t.closest('[data-vtip-close]')) {
-      e.preventDefault();
-      closeVideoTip();
-      return;
-    }
-    if (t.closest('#vtipCopy')) {
-      e.preventDefault();
-      copyVideoUrl();
-      return;
-    }
-    var copyLink = t.closest('[data-copy]');
-    if (copyLink) {
-      e.preventDefault();
-      showCopyTip(copyLink.getAttribute('data-copy'), copyLink.textContent.trim());
-      return;
-    }
-    var vlink = t.closest('.card-link[data-video]');
-    if (vlink) {
-      var vbv = vlink.getAttribute('data-video');
-      if (mobileFallback()) {
-        e.preventDefault();
-        openVideo(vbv, '地纪 · 倪海厦《地纪》前言');
-      } else if (window.ToyRank) {
-        window.ToyRank.watch(vbv);   /* PC 端直接跳 B站，也记一集 */
-      }
-      return;
-    }
-    var link = t.closest('.card-link[data-col]');
-    if (link) {
-      if (mobileFallback()) {
-        e.preventDefault();
-        lastFocus = link;
-        openSheet(link.getAttribute('data-col'));
-      }
-      return;
-    }
-    if (t.closest('[data-close]')) {
-      e.preventDefault();
-      closeSheet();
-    }
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' || e.keyCode === 27) {
-      if (vtip && !vtip.hidden) closeVideoTip();
-      else closeSheet();
-    }
-  });
-
-  /* 滚动淡入：不支持 IntersectionObserver 时直接显示 */
-  var items = document.querySelectorAll('.reveal');
-  if (!('IntersectionObserver' in window)) {
-    for (var k = 0; k < items.length; k++) items[k].classList.add('in');
-    return;
-  }
-  var io = new IntersectionObserver(function (entries) {
-    for (var j = 0; j < entries.length; j++) {
-      if (entries[j].isIntersecting) {
-        entries[j].target.classList.add('in');
-        io.unobserve(entries[j].target);
-      }
-    }
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
-  for (var m = 0; m < items.length; m++) io.observe(items[m]);
+  q.addEventListener('input', function (e) { render(e.target.value); });
+  render('');
 })();
 </script>
+
 <script>
 /* ===== TOY 原生榜单：成绩上报 + 页面内排行榜面板 =====
  * 平台约束（官方 SDK 类型声明，见 README）：
@@ -1151,7 +476,7 @@ body.lock{overflow:hidden}
  *   - getMyRank 需登录，是否上榜必须用 ranked 判断（score 允许 0 / 负）。
  * 计分口径：只加分、不扣分。
  *   - 棋牌：赢按难度阶梯 +1/2/3/4，输/平 +0；玩过一局保底 1 分。
- *   - 内容：每看一集 +1，同一集只计一次，一直累计。
+ *   - 内容：每读一册 +1，同一册只计一次，一直累计。
  * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
  * init 不传 entry 时不自动创建入口，由页面自行绑定触发点（三纪：点右下角版本号）。
  */
@@ -1226,7 +551,7 @@ body.lock{overflow:hidden}
     return v;
   }
 
-  /* 内容类：每看一集 +1；用已看 id 集合去重，同一集不重复计分 */
+  /* 内容类：每读一册 +1；用已读 id 集合去重，同一册不重复计分 */
   function watch(id) {
     if (!CFG || !id) return 0;
     var sk = CFG.key + '.seen', list = [];
@@ -1299,7 +624,7 @@ body.lock{overflow:hidden}
 
   function meMarkup(my) {
     var rankTxt = (my && my.ranked && my.rank) ? ('第 ' + my.rank + ' 名') : '未上榜';
-    var label = CFG.kind === 'board' ? '榜单积分' : '已看集数';
+    var label = CFG.kind === 'board' ? '榜单积分' : '已读册数';
     return '<div><b>' + esc(rankTxt) + '</b><span>我的名次</span></div>' +
            '<div><b>' + esc(String(num(CFG.key, 0))) + '</b><span>' + label + '</span></div>';
   }
@@ -1336,7 +661,7 @@ body.lock{overflow:hidden}
       if (btn) btn.addEventListener('click', function () { load(period, true); });
     } else if (!data || !data.list || !data.list.length) {
       listEl.innerHTML = '<div class="tyrank-tip">' +
-        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。看一集，就会记 1 分。') +
+        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。读一册，就会记 1 分。') +
         '</div>';
     } else {
       listEl.innerHTML = listMarkup(data.list);
@@ -1410,7 +735,7 @@ body.lock{overflow:hidden}
       '<div class="tyrank-me"></div>' +
       '<div class="tyrank-list"></div>' +
       '<div class="tyrank-foot">分数只加不减，取历史最好成绩；' +
-        (CFG.kind === 'board' ? '赢按难度加 1/2/3/4 分，输和平局不加分。' : '每看一集加 1 分，同一集不重复计，一直累计。') +
+        (CFG.kind === 'board' ? '赢按难度加 1/2/3/4 分，输和平局不加分。' : '每读一册加 1 分，同一册不重复计，一直累计。') +
         '</div>';
     mask.appendChild(card);
     document.body.appendChild(mask);
@@ -1453,8 +778,9 @@ body.lock{overflow:hidden}
   };
 })();
 window.ToyRank.init({
-  key: 'sanji.rank.v1',
-  kind: 'content'
+  key: 'qihuang.rank.v1',
+  kind: 'content',
+  unit: '册'
 });
 /* 榜单入口：直接点右下角版本号，页脚不再单独显示「排行榜」 */
 (function () {
@@ -1462,6 +788,7 @@ window.ToyRank.init({
   if (v) v.addEventListener('click', function () { window.ToyRank.open(); });
 })();
 </script>
+
 <script>
 /* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
  * TOY 容器底部有一条原生互动栏，以「覆盖」方式浮在 WebView 之上：页面可用高度
