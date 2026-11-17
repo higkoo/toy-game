@@ -7,7 +7,7 @@
 <body>
 <header>
  <div class="hd"><h1>风土与医</h1><span class="sub">南北 · 地域 · 习俗 · 居处 · 20 则</span>
-  <a class="back" href="index.html">← 返回目录</a></div>
+  <a class="back" href="../index.html">← 返回首页</a></div>
  <p class="intro">一方水土养一方人，也塑造一方的医药观念。这里讲地域、气候、饮食与居处，怎样影响了传统对身体与生活的理解。</p>
  <input id="q" placeholder="搜索：南稻北麦、岭南、江南、水土、移居、地域……" autocomplete="off">
  <div class="bar"><span class="chip on" data-f="all">全部</span><span class="chip" data-f="典籍">典籍</span><span class="chip" data-f="人物">人物</span><span class="chip" data-f="典故">典故</span><span class="chip" data-f="风物">风物</span><span class="cnt" id="cnt"></span></div>
@@ -16,7 +16,33 @@
 </header>
 <main id="list"></main>
 <button id="more" style="display:none">继续显示</button>
-<footer>《风土与医》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="index.html" style="color:inherit">返回总目录</a></footer>
+<footer>《风土与医》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="../index.html" style="color:inherit">返回首页</a></footer>
 <script>const D=[{"t": "一、南北之异", "h": "南稻北麦与体质观", "c": "**主粮的差异，长期被认为与各地人的体质有关。**「一方水土养一方人」，是朴素的环境认知。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "一、南北之异", "h": "岭南的湿热想象", "c": "**岭南气候炎热潮湿，传统上形成了独特的调养观念。**环境认知，塑造了地方的生活智慧。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "一、南北之异", "h": "江南的温润", "c": "**江南温润多雨，饮食清淡精致，形成一种地域性的生活美学。**风土与人文，互相塑造。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "一、南北之异", "h": "北方干寒", "c": "**北方干寒，传统饮食与起居自有一套适应方式。**适应环境，是民间智慧的核心。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "二、水土与移居", "h": "「水土不服」的观念", "c": "**异地移居，身体需要适应新环境，「水土不服」由此而来。**一句话，概括了人与环境的适应关系。", "o": "文化史话整理 · 风土与医", "g": "典故"}, {"t": "二、水土与移居", "h": "迁徙与传播", "c": "**人口迁徙，带动着医药知识与习惯的传播。**人走到哪里，就把生活方式带到哪里。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "二、水土与移居", "h": "移民与在地化", "c": "**外来者逐渐适应当地，形成新的混合传统。**文化的融合，往往从生活细节开始。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "二、水土与移居", "h": "地域与道地", "c": "**「道地药材」的观念，把地理与品质紧密相连。**一方水土，出一方的物产。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "三、居处与起居", "h": "择居而安", "c": "**传统讲究居所的地势、朝向、水源。**这些经验，包含着对采光、通风、排水的朴素认识。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "三、居处与起居", "h": "四合院与天井", "c": "**不同地域的民居形制，体现了对气候的适应。**建筑，是环境智慧的物质化。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "三、居处与起居", "h": "起居与时令", "c": "**传统讲究顺应四时调整起居。**把生活节奏与自然变化对应，是「天人相应」的实践。", "o": "文化史话整理 · 风土与医", "g": "典籍"}, {"t": "三、居处与起居", "h": "睡眠与作息", "c": "**古人重视「日出而作、日入而息」，强调作息有常。**规律的节律，是传统养生的重要观念。", "o": "文化史话整理 · 风土与医", "g": "典籍"}, {"t": "四、食俗与风土", "h": "南米北面", "c": "**主粮的差异，塑造了南北不同的饮食文化。**一碗饭、一碗面，背后是整片土地的物产。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "四、食俗与风土", "h": "口味的地域分布", "c": "**酸甜苦辣的分布，与气候、物产、历史相关。**口味地图，是一张文化地图。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "四、食俗与风土", "h": "节令食俗的地域差", "c": "**同一节日，南北食物不同。**同中有异，是中华文化多样性的体现。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "四、食俗与风土", "h": "茶馆与社团", "c": "**四川茶馆、广东茶楼，各有风土特色。**一种饮食空间，塑造一种社会交往方式。", "o": "文化史话整理 · 风土与医", "g": "风物"}, {"t": "五、风土的文化", "h": "《黄帝内经》与地理", "c": "**《内经》中有根据地域讨论生活差异的内容。**两千年前，古人已注意到环境与人关系密切。", "o": "文化史话整理 · 风土与医", "g": "典籍"}, {"t": "五、风土的文化", "h": "方志里的风土志", "c": "**地方志常设「风土」「风俗」门，记录一方水土人情。**这是研究地域文化的重要资料。", "o": "文化史话整理 · 风土与医", "g": "典籍"}, {"t": "五、风土的文化", "h": "风土与文学", "c": "**不同地域孕育不同文学气质：江南婉约、塞北苍凉。**风土，塑造着审美的底色。", "o": "文化史话整理 · 风土与医", "g": "典故"}, {"t": "五、风土的文化", "h": "乡土记忆", "c": "**人们对自己家乡的水土、饮食、方言，怀有深切情感。**乡土，是每个人最早的文化认同。", "o": "文化史话整理 · 风土与医", "g": "典故"}];</script>
+<script>
+/* 读册计分：与首页榜单共用同一 key 与去重集合，同一册只计一次 */
+(function () {
+  'use strict';
+  var KEY = 'qihuang.rank.v1', FILE = 'fengtu.html';
+  function num() { try { return parseInt(window.localStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } }
+  function put(v) { try { window.localStorage.setItem(KEY, String(v)); } catch (e) {} }
+  function sdk() {
+    var list = [window.toy, window.Toy, window.toy && window.toy.toy, window.Toy && window.Toy.toy];
+    for (var i = 0; i < list.length; i++) if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    return null;
+  }
+  function send(score) {
+    var t = sdk(); if (!t) return;
+    try { t.submitScore({ score: score, board: 1 }); } catch (e) {}
+  }
+  var sk = KEY + '.seen', seen = [];
+  try { seen = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { seen = []; }
+  if (!Array.isArray(seen)) seen = [];
+  if (seen.indexOf(FILE) === -1) {
+    seen.push(FILE);
+    try { window.localStorage.setItem(sk, JSON.stringify(seen)); } catch (e) {}
+    var v = num() + 1; put(v); send(v);
+  }
+})();
+</script>
 <script src="assets/kb.js"></script>
 </body></html>

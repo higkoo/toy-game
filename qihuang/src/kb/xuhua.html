@@ -7,7 +7,7 @@
 <body>
 <header>
  <div class="hd"><h1>医林续话</h1><span class="sub">人物 · 轶事 · 雅事 · 补遗 · 20 则</span>
-  <a class="back" href="index.html">← 返回目录</a></div>
+  <a class="back" href="../index.html">← 返回首页</a></div>
  <p class="intro">正史之外，还有许多零碎却动人的人物故事。这里收录医者的轶事、交往与雅趣，补足那些未被大写特写的历史细节。</p>
  <input id="q" placeholder="搜索：医者轶事、雅集、藏书、师友、题跋、补遗……" autocomplete="off">
  <div class="bar"><span class="chip on" data-f="all">全部</span><span class="chip" data-f="典籍">典籍</span><span class="chip" data-f="人物">人物</span><span class="chip" data-f="典故">典故</span><span class="chip" data-f="风物">风物</span><span class="cnt" id="cnt"></span></div>
@@ -16,7 +16,33 @@
 </header>
 <main id="list"></main>
 <button id="more" style="display:none">继续显示</button>
-<footer>《医林续话》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="index.html" style="color:inherit">返回总目录</a></footer>
+<footer>《医林续话》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="../index.html" style="color:inherit">返回首页</a></footer>
 <script>const D=[{"t": "一、医者轶事", "h": "医者的书房", "c": "**许多医者藏书丰富，读书与行医并重。**「儒医」的理想，就体现在这书卷气里。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "一、医者轶事", "h": "以医会友", "c": "**医者之间常以学问相交，讨论经典、交换见闻。**学术共同体，是传统学术发展的重要土壤。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "一、医者轶事", "h": "师友之间的唱和", "c": "**医者与文人常诗文唱和，互赠题跋。**一幅字、一首诗，寄托着敬意与情谊。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "一、医者轶事", "h": "行医与出游", "c": "**有些医者热爱山水，游历四方，增长见闻。**「读万卷书，行万里路」，同样适用于医者。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "二、雅事与趣味", "h": "医者的字与号", "c": "**医者常有字、有号，体现文化修养。**一个别号，往往寄托着志趣。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "二、雅事与趣味", "h": "书斋命名", "c": "**医者的书斋常取雅名，如「治病」「济世」之类。**斋名，是自我期许的浓缩。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "二、雅事与趣味", "h": "题跋与赠言", "c": "**名人为医书题跋、赠言，是常见的文化交往。**一段题跋，可能决定一部书的命运。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "二、雅事与趣味", "h": "收藏与鉴赏", "c": "**一些医者兼收藏家，收集古籍、金石、字画。**雅好与专业，在传统士人那里并行不悖。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "三、历史的缝隙", "h": "被遗忘的医者", "c": "**更多医者未曾留名，只在地方志里留下只言片语。**历史的缝隙里，藏着无数普通的坚守。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "三、历史的缝隙", "h": "家族与传承", "c": "**医学常在家族内传承，父子、祖孙相继。**家族，是知识传承的重要单元。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "三、历史的缝隙", "h": "女性的贡献", "c": "**女性在医药上的贡献，多被正史忽略。**重新发现她们，是史学的重要工作。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "三、历史的缝隙", "h": "民间与官方之间", "c": "**民间医者与官方医官，共同构成了医学的世界。**两个系统的互动，塑造了医学的全貌。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "四、故事的流传", "h": "轶事如何形成", "c": "**许多轶事在流传中不断被加工，虚实难辨。**故事的价值，未必在真伪，而在它所表达的意义。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "四、故事的流传", "h": "笔记里的细节", "c": "**笔记体著作保存了大量生动的细节。**正史之外的鲜活，往往在这些小书里。", "o": "文化史话整理 · 医林续话", "g": "典籍"}, {"t": "四、故事的流传", "h": "口碑与地方记忆", "c": "**民间口碑，保存着对医者的集体记忆。**那些被反复讲述的故事，自有其价值。", "o": "文化史话整理 · 医林续话", "g": "风物"}, {"t": "四、故事的流传", "h": "故事的当代讲述", "c": "**古老的故事今天被重新讲述，获得新的生命。**讲述，就是传承的方式。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "五、补遗与随想", "h": "一医一世界", "c": "**每一位医者背后，都有一个独特的时代与人生。**读人，也是读史。", "o": "文化史话整理 · 医林续话", "g": "人物"}, {"t": "五、补遗与随想", "h": "小故事里的道理", "c": "**许多医者轶事，讲的是为人处世的道理。**故事之所以流传，往往因为它有教益。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "五、补遗与随想", "h": "雅与俗的交织", "c": "**医者的世界，既有精英的雅，也有民间的俗。**二者的交织，才是完整的文化图景。", "o": "文化史话整理 · 医林续话", "g": "典故"}, {"t": "五、补遗与随想", "h": "历史的温度", "c": "**具体的人物与故事，让冰冷的历史有了温度。**读故事，是与古人重新相遇。", "o": "文化史话整理 · 医林续话", "g": "典故"}];</script>
+<script>
+/* 读册计分：与首页榜单共用同一 key 与去重集合，同一册只计一次 */
+(function () {
+  'use strict';
+  var KEY = 'qihuang.rank.v1', FILE = 'xuhua.html';
+  function num() { try { return parseInt(window.localStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } }
+  function put(v) { try { window.localStorage.setItem(KEY, String(v)); } catch (e) {} }
+  function sdk() {
+    var list = [window.toy, window.Toy, window.toy && window.toy.toy, window.Toy && window.Toy.toy];
+    for (var i = 0; i < list.length; i++) if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    return null;
+  }
+  function send(score) {
+    var t = sdk(); if (!t) return;
+    try { t.submitScore({ score: score, board: 1 }); } catch (e) {}
+  }
+  var sk = KEY + '.seen', seen = [];
+  try { seen = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { seen = []; }
+  if (!Array.isArray(seen)) seen = [];
+  if (seen.indexOf(FILE) === -1) {
+    seen.push(FILE);
+    try { window.localStorage.setItem(sk, JSON.stringify(seen)); } catch (e) {}
+    var v = num() + 1; put(v); send(v);
+  }
+})();
+</script>
 <script src="assets/kb.js"></script>
 </body></html>

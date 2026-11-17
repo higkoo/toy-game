@@ -7,7 +7,7 @@
 <body>
 <header>
  <div class="hd"><h1>古籍拾零</h1><span class="sub">罕见 · 残卷 · 辑佚 · 发现 · 20 则</span>
-  <a class="back" href="index.html">← 返回目录</a></div>
+  <a class="back" href="../index.html">← 返回首页</a></div>
  <p class="intro">有些书从未广为流传，有些书只剩残章断简。这里讲那些散落在考古发现与藏书楼里的医药文献，以及把它们重新找回来的努力。</p>
  <input id="q" placeholder="搜索：敦煌医书、马王堆、辑佚、残卷、孤本、医籍……" autocomplete="off">
  <div class="bar"><span class="chip on" data-f="all">全部</span><span class="chip" data-f="典籍">典籍</span><span class="chip" data-f="人物">人物</span><span class="chip" data-f="典故">典故</span><span class="chip" data-f="风物">风物</span><span class="cnt" id="cnt"></span></div>
@@ -16,7 +16,33 @@
 </header>
 <main id="list"></main>
 <button id="more" style="display:none">继续显示</button>
-<footer>《古籍拾零》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="index.html" style="color:inherit">返回总目录</a></footer>
+<footer>《古籍拾零》· 中医典籍文化故事 · 仅供文化阅读，不构成医疗建议 · <a href="../index.html" style="color:inherit">返回首页</a></footer>
 <script>const D=[{"t": "一、出土文献", "h": "马王堆帛书", "c": "**马王堆汉墓出土的帛书，包含早期经脉等内容。**一批丝帛，改写了我们对早期医学的认识。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "一、出土文献", "h": "敦煌医药卷子", "c": "**敦煌藏经洞发现的医药卷子，保存了大量中古医药资料。**残卷虽碎，却极为珍贵。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "一、出土文献", "h": "简牍里的医药", "c": "**居延、武威等地出土的简牍中，也有医药内容。**写在竹木上的文字，是更早的医疗记录。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "一、出土文献", "h": "吐鲁番文书", "c": "**吐鲁番出土的文书，也包含医药相关内容。**丝路重镇，也是医药交流的枢纽。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "二、辑佚与还原", "h": "辑佚：从碎片中打捞", "c": "**从类书、注文里搜集散佚古书的片段，尽力还原。**这是学者最需耐心的工作之一。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "二、辑佚与还原", "h": "《神农本草经》的辑复", "c": "**原书已佚，后人从各种引文中辑录，恢复其大致面貌。**一部书，靠碎片重新「活」了过来。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "二、辑佚与还原", "h": "辑佚的局限", "c": "**辑本终非原书，难免遗漏与错杂。**承认局限，是学术诚实的一部分。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "二、辑佚与还原", "h": "辑佚的意义", "c": "**辑佚让失传的知识重见天日，是文化传承的重要方式。**打捞遗忘，功在千秋。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "三、孤本与秘籍", "h": "孤本的价值", "c": "**仅存一部的书，称「孤本」，格外珍贵。**一部书的命运，有时悬于一线。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "三、孤本与秘籍", "h": "藏书楼与守护", "c": "**私家藏书楼，是许多孤本的避风港。**守护者不为人知，却功不可没。", "o": "文化史话整理 · 古籍拾零", "g": "风物"}, {"t": "三、孤本与秘籍", "h": "秘籍的神话化", "c": "**小说里常把医书写成「秘籍」，得之即可成神医。**这种想象，反映出大众对知识的神秘感。", "o": "文化史话整理 · 古籍拾零", "g": "典故"}, {"t": "三、孤本与秘籍", "h": "从秘藏到公开", "c": "**古籍影印、数字化，让孤本得以广泛查阅。**知识从秘藏走向共享，是时代的进步。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "四、文本的旅行", "h": "传抄中的异同", "c": "**每一次传抄，都可能产生新的异同。**文本的差异，是流传的痕迹。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "四、文本的旅行", "h": "刻本与坊刻", "c": "**书坊刻书，让知识广传，也带来版本的多样。**商业与学术，互相影响。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "四、文本的旅行", "h": "避讳与断代", "c": "**避讳字是判断古籍年代的重要线索。**一个字的写法，藏着时代的信息。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "四、文本的旅行", "h": "题跋与收藏印", "c": "**古籍上的题跋、藏印，记录着它的流转经历。**一部书的边上，写满了后人的故事。", "o": "文化史话整理 · 古籍拾零", "g": "风物"}, {"t": "五、发现的意义", "h": "考古改变认知", "c": "**新的出土文献，常推翻我们对历史的旧认识。**历史，永远在等待新的材料。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "五、发现的意义", "h": "残卷的价值", "c": "**即便残缺，一卷古书也可能包含关键信息。**碎片，有时比完整更珍贵。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "五、发现的意义", "h": "文献与实物互证", "c": "**文献记载与出土器物互相印证，让历史更可信。**双重证据，是严谨治学的方法。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}, {"t": "五、发现的意义", "h": "每一部书都有命运", "c": "**写成、散佚、发现、整理，一部书也有它的生命史。**读一部书，也是读它的经历。", "o": "文化史话整理 · 古籍拾零", "g": "典籍"}];</script>
+<script>
+/* 读册计分：与首页榜单共用同一 key 与去重集合，同一册只计一次 */
+(function () {
+  'use strict';
+  var KEY = 'qihuang.rank.v1', FILE = 'guji.html';
+  function num() { try { return parseInt(window.localStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } }
+  function put(v) { try { window.localStorage.setItem(KEY, String(v)); } catch (e) {} }
+  function sdk() {
+    var list = [window.toy, window.Toy, window.toy && window.toy.toy, window.Toy && window.Toy.toy];
+    for (var i = 0; i < list.length; i++) if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    return null;
+  }
+  function send(score) {
+    var t = sdk(); if (!t) return;
+    try { t.submitScore({ score: score, board: 1 }); } catch (e) {}
+  }
+  var sk = KEY + '.seen', seen = [];
+  try { seen = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { seen = []; }
+  if (!Array.isArray(seen)) seen = [];
+  if (seen.indexOf(FILE) === -1) {
+    seen.push(FILE);
+    try { window.localStorage.setItem(sk, JSON.stringify(seen)); } catch (e) {}
+    var v = num() + 1; put(v); send(v);
+  }
+})();
+</script>
 <script src="assets/kb.js"></script>
 </body></html>
