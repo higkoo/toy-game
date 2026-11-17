@@ -73,3 +73,9 @@ border-top:1px solid var(--rule);margin-top:8px;flex-wrap:nowrap}
 .topics.open{display:flex}
 @media(max-width:640px){html,body{font-size:16px}header{padding:10px 14px 8px}main{padding:14px}
 h1{font-size:16px}.sub{display:none}.item{padding:13px 14px}.card{padding:16px}.tb{font-size:13.5px}}
+
+/* ---------- 右下角版本号（点开排行榜） ---------- */
+.version{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:80;user-select:none;font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--green);background:rgba(255,255,255,.88);border:1px solid var(--rule);border-radius:999px;padding:4px 10px;line-height:1.6;cursor:pointer;-webkit-appearance:none;appearance:none;transition:background .15s,border-color .15s,transform .1s}
+.version:hover{background:#fff;border-color:var(--green)}
+.version:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.version:active{transform:scale(.95)}
