@@ -48,15 +48,33 @@ const progress = { pods: 0, shells: 0, delivered: 0, lights: [0, 0, 0] };
 let nearBeacon = -1;
 let toastTimer = null;
 
+// 把存档里的灯塔电量同步到场景与 HUD；开局和读档都走这里
+function applyLights() {
+  if (!world || !Array.isArray(world.beacons)) return;
+  world.beacons.forEach((b, i) => {
+    const c = Math.max(0, Math.min(NEED_PER_BEACON, Math.floor(Number(progress.lights[i]) || 0)));
+    progress.lights[i] = c;
+    const u = b.userData, lit = c / NEED_PER_BEACON;
+    u.charge = c;
+    u.rings.forEach((r, k) => r.material.opacity = (k / NEED_PER_BEACON < lit) ? 0.95 : 0.06);
+    u.lampMat.opacity = 0.08 + lit * 0.72;
+    u.beamMat.opacity = c >= NEED_PER_BEACON ? 0.3 : lit * 0.16;
+  });
+  updateHUD();
+}
+
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
+    if (Number.isFinite(Number(s.best))) progress.best = Math.max(0, Number(s.best));
     if (Array.isArray(s.lights) && s.lights.length === BEACON_TOTAL) {
-      progress.best = s.best || 0;
+      progress.lights = s.lights.map(v => Math.max(0, Math.min(NEED_PER_BEACON, Math.floor(Number(v) || 0))));
     }
   } catch (e) { }
+  applyLights();
 }
-function saveBest() {
+
+function saveProgress() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify({ best: progress.best || 0, lights: progress.lights })); } catch (e) { }
 }
 function toast(msg, ms = 2600) {
@@ -96,13 +114,8 @@ function spawnPods() {
 // ============================================================================
 function resetGame() {
   progress.pods = 0; progress.shells = 0; progress.delivered = 0;
-  progress.lights = [0, 0, 0];
-  world.beacons.forEach(b => {
-    b.userData.charge = 0;
-    b.userData.rings.forEach(r => r.material.opacity = 0.06);
-    b.userData.lampMat.opacity = 0.08;
-    b.userData.beamMat.opacity = 0;
-  });
+  // 灯塔电量来自存档，不再每局清零
+  applyLights();
   sub.reset();
   spawnPods();
   updateHUD();
@@ -142,6 +155,7 @@ function deliverToBeacon(i) {
   u.beamMat.opacity = lit * 0.16;
   progress.delivered++;
   progress.lights[i] = u.charge;
+  saveProgress();
   updateHUD();
   if (u.charge >= NEED_PER_BEACON) {
     u.beamMat.opacity = 0.3;
@@ -156,7 +170,13 @@ function endGame(won) {
   state = 'end';
   const score = progress.delivered * 100 + progress.shells * 50;
   progress.best = Math.max(progress.best || 0, score);
-  saveBest();
+  if (won) {
+    // 通关后清空灯塔进度，下一局从零开始；最好成绩保留
+    progress.lights = [0, 0, 0];
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ best: progress.best, lights: progress.lights })); } catch (e) { }
+  } else {
+    saveProgress();
+  }
   UI.endTitle.textContent = won ? '三座灯塔已亮' : '本次潜航结束';
   UI.endSub.textContent = `送达光囊 ${progress.delivered} · 拾得贝片 ${progress.shells} · 得分 ${score}`;
   UI.end.classList.add('show');

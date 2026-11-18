@@ -1,6 +1,6 @@
 # Toy 小游戏合集
 
-B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页面都是原生 HTML + CSS + JavaScript，没有构建步骤，打开就能玩；内容型页面会拆成多个文件。
+B 站 Toy 容器中运行的静态小游戏与学习页面合集。页面本身都是原生 HTML + CSS + JavaScript，没有打包器，打开就能玩。少数项目在 `src` 之外另有生成步骤（见「构建与生成」），但发布物仍是纯静态文件。
 
 ## 游戏一览
 
@@ -19,19 +19,22 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 | [abyssbeacon](abyssbeacon/README.md) | [深蓝信标](https://www.bilibili.com/toy/abyssbeacon/index.html) | 生物荧光深海 3D 探索，收集光囊点亮三座远古灯塔 |
 | [xingzhao](xingzhao/README.md) | 星召群英 | 5v5 MOBA，1 名玩家 + 9 名 AI 操控历代英杰，推塔打野摧毁对方水晶 |
 | [skybreaker](skybreaker/README.md) | 铁翼破云 | F-14B 空战，鼠标驾驶六武器编队，截击波次、击破巨型空中堡垒 |
+| [yangyu](yangyu/README.md) | 阳羽 | 3D 飞行收集，穿过天门环累积光羽 |
+| [qihuang](qihuang/README.md) | 岐黄典籍故事 | 中医典籍科普，按卷次阅读原文与注解 |
 
-游戏名称已隐式链接到对应的 Toy 正式发布页，点击即可直接游玩。
+带链接的游戏名可直接跳到 Toy 正式发布页；《星召群英》《铁翼破云》《阳羽》《岐黄典籍故事》暂未在仓库内固定线上链接。
 
 ## 目录结构
 
-每个游戏一个目录，源码和素材分开存放：
+每个游戏一个目录，发布根目录里放 `index.html` 和它依赖的资源：
 
 ```text
 <game>/
-├── src/
-│   └── index.html      # 游戏源码（单文件）
-├── assets/             # 图标、海报等静态素材（如有）
-└── README.md           # 该游戏的玩法与实现说明
+├── src/                  # 发布根目录（深蓝信标为 dist/）
+│   ├── index.html
+│   ├── *.js              # 拆出来的 three.js / 资源包 / 游戏逻辑
+│   └── img/ 或 assets/   # 图标、海报等外层素材
+└── README.md             # 该游戏的玩法与实现说明
 ```
 
 例如：
@@ -39,10 +42,25 @@ B 站 Toy 容器中运行的纯静态小游戏与学习页面合集。所有页�
 ```text
 gomoku/
 ├── src/index.html
-├── assets/icon.png
-├── assets/poster.png
+├── src/img/icon.png
+├── src/img/poster.png
+└── README.md
+
+abyssbeacon/
+├── source/               # 分片源码，拼成 dist/
+├── dist/index.html       # 发布根目录
+├── dist/three.global.js
+├── dist/game.js
 └── README.md
 ```
+
+## 构建与生成
+
+绝大部分项目是"改完直接传"，下面三个不是：
+
+- **深蓝信标**：源码在 `abyssbeacon/source/`（`01_style`、`02_scene`、`03_game` 等分片），拼接后输出到 `dist/`。改 `source` 之后必须重新生成 `dist`，否则线上还是旧的。
+- **岐黄典籍故事**：`qihuang` 下的 `build_home.py`、`gen_kb.py`、`volumes_extra*.py` 负责生成 `src/index.html` 与卷次内容。直接改 `src` 里的产物，下次生成会被覆盖。
+- **阳羽 / 铁翼破云**：入口 `index.html` 只保留标记，three.js 与游戏逻辑已拆成同目录 `.js` 文件，改代码改 `.js`，不要再塞回 HTML。
 
 ## 本地运行
 
@@ -64,6 +82,13 @@ gomoku/
 - `--poster` 用 **4:3 横图**（建议 1200×900），PNG/JPG 均可，放各自项目的 `assets/`（或 `src/img/`）下，不要用远程热链。
 - 入口 `index.html` **解压后不得超过 1 MB**（超了报 `307000`），所以大项目一律把资源拆成同目录的独立文件。
 
+### 外层素材规格
+
+- **图标**：512×512 PNG 为主。`sanji` 用的是 1024×1024，平台会自行缩放，不必改。
+- **海报**：Toy 卡片按 4:3 显示，建议 1200×900。目前仍有 6 个作品是 1280×720（16:9）——`abyssbeacon`、`berth4`、`dashcam`、`jianzhi`、`sanji`、`seabreeze`。16:9 在卡片里会被裁掉左右各约 12.5%，这些海报的主体文字都压在中间 4:3 安全区内；下次重制时直接出 1200×900，并保持主体在中央。
+- **原始大图只留档，不进发布包**：`tetris/assets/` 放 `icon.jpg`（1920×1920）和 `poster.jpg`（2240×1680），上传只用 `src/img/icon.png`、`src/img/poster.png`。
+- **一个素材只放一份**：发布根目录里同时放 jpg 和 png 两套，只会让包体白白多几百 KB。
+
 标准流程是「先预览、确认后再提交」，不要一步 `--yes`：
 
 ```bash
@@ -79,7 +104,11 @@ toy create <项目>/src --title "<标题>" --slug <slug> \
 
 《深蓝信标》同样把 three.js 拆成独立文件：`dist/index.html` + `dist/three.global.js` + `dist/game.js` 三者同目录上传。
 
-《星召群英》与《铁翼破云》同样拆成两个文件同目录上传：《星召群英》是 `src/index.html` + `src/game.bundle.js`（内联 three.js 与游戏逻辑），《铁翼破云》是 `src/index.html` + `src/assets.js`（内嵌资源包，挂载 `window.__FLIGHT_ASSETS__`）。
+《星召群英》拆成 `src/index.html` + `src/game.bundle.js`（three.js 与游戏逻辑打在同一个 bundle 里）。
+
+《铁翼破云》拆成 `src/index.html` + `src/three.global.js`（three.js，挂 `window.TH`）+ `src/game.js`（游戏逻辑）+ `src/assets.js`（内嵌资源包，挂 `window.__FLIGHT_ASSETS__`），四个文件同目录上传。
+
+《阳羽》原本把 three.js 和游戏逻辑一起内联在入口里（657 KB），现在拆成 `src/index.html` + `src/game.js` 两个文件，入口只留标记和样式。
 
 ## 联机说明
 
