@@ -17,12 +17,12 @@ B 站 Toy 容器中运行的静态小游戏与学习页面合集。页面本身�
 | [dashcam](dashcam/README.md) | [夜行记录仪](https://www.bilibili.com/toy/dashcam/index.html) | 第一人称深夜货运模拟，43 个模块的自研 WebGL2 引擎 |
 | [seabreeze](seabreeze/README.md) | [海风竞速](https://www.bilibili.com/toy/seabreeze/index.html) | 落日海岸低多边形 3D 竞速，三圈计时赛，漂移攒氮气 |
 | [abyssbeacon](abyssbeacon/README.md) | [深蓝信标](https://www.bilibili.com/toy/abyssbeacon/index.html) | 生物荧光深海 3D 探索，收集光囊点亮三座远古灯塔 |
-| [xingzhao](xingzhao/README.md) | 星召群英 | 5v5 MOBA，1 名玩家 + 9 名 AI 操控历代英杰，推塔打野摧毁对方水晶 |
-| [skybreaker](skybreaker/README.md) | 铁翼破云 | F-14B 空战，鼠标驾驶六武器编队，截击波次、击破巨型空中堡垒 |
-| [yangyu](yangyu/README.md) | 阳羽 | 3D 飞行收集，穿过天门环累积光羽 |
-| [qihuang](qihuang/README.md) | 岐黄典籍故事 | 中医典籍科普，按卷次阅读原文与注解 |
+| [xingzhao](xingzhao/README.md) | [星召群英](https://www.bilibili.com/toy/xingzhao/index.html) | 5v5 MOBA，1 名玩家 + 9 名 AI 操控历代英杰，推塔打野摧毁对方水晶 |
+| [skybreaker](skybreaker/README.md) | [铁翼破云](https://www.bilibili.com/toy/skybreaker/index.html) | F-14B 空战，鼠标驾驶六武器编队，截击波次、击破巨型空中堡垒 |
+| [yangyu](yangyu/README.md) | [阳羽](https://www.bilibili.com/toy/yangyu/index.html) | 3D 飞行收集，穿过天门环累积光羽 |
+| [qihuang](qihuang/README.md) | [岐黄典籍故事](https://www.bilibili.com/toy/qihuang/index.html) | 中医典籍科普，按卷次阅读原文与注解 |
 
-带链接的游戏名可直接跳到 Toy 正式发布页；《星召群英》《铁翼破云》《阳羽》《岐黄典籍故事》暂未在仓库内固定线上链接。
+15 款作品都已上线，点击游戏名即可直接试玩。
 
 ## 目录结构
 
