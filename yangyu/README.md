@@ -25,6 +25,16 @@ cd src && python3 -m http.server 8000
 - WebAudio 程序化音效，无音频文件
 - 移动端触控与自适应分辨率缩放
 
+## 目录
+
+```text
+yangyu/
+├── src/
+│   ├── index.html   # 页面入口：只剩 HTML + CSS
+│   └── game.js      # three.js + 游戏逻辑（同目录，相对路径加载）
+└── README.md
+```
+
 ## 发布到 Toy
 
 封面在 `assets/poster.jpg`（1200×900，4:3）。`--visibility public` 必须带 `--poster`，否则提交审核报 `307009`：

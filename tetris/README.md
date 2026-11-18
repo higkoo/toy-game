@@ -38,9 +38,7 @@ tetris/
 │   ├── index.html      # 游戏源码
 │   └── img/
 │       ├── icon.png    # Toy 图标（512×512，发布用）
-│       ├── icon.jpg    # 图标原始大图（1920×1920）
-│       ├── poster.png  # Toy 海报（1200×900，发布用）
-│       └── poster.jpg  # 海报原始大图（2240×1680）
+│       └── poster.png  # Toy 海报（1200×900，发布用）
 └── README.md
 ```
 

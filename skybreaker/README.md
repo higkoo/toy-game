@@ -18,14 +18,16 @@
 ```text
 skybreaker/
 ├── src/
-│   ├── index.html        # 页面入口：HTML + CSS + 游戏逻辑（约 670 KB）
-│   └── assets.js         # 模型与贴图资源包（约 8.7 MB，挂载 window.__FLIGHT_ASSETS__）
+│   ├── index.html        # 页面入口：只剩 HTML + CSS（约 7 KB）
+│   ├── three.global.js   # three.js（约 560 KB，挂 window.TH）
+│   ├── game.js           # 游戏逻辑（约 86 KB）
+│   └── assets.js         # 模型与贴图资源包（约 8.7 MB，挂 window.__FLIGHT_ASSETS__）
 └── README.md
 ```
 
-## 为什么是两个文件
+## 为什么拆成四个文件
 
-原稿是单文件 HTML，three.js 与 flight-assets 资源 JSON 都内联，体积远超 Toy 收包预检「入口 `index.html` 解压后 ≤ 1 MB」的上限。游戏脚本保留在 `index.html` 中，只把内联的资源包原样外置为 `assets.js`，运行时挂载到 `window.__FLIGHT_ASSETS__` 供主流程解析。两个文件必须放在同一目录，用相对路径加载。
+原稿是单文件 HTML，three.js、游戏逻辑与 flight-assets 资源 JSON 全内联，体积远超 Toy 收包预检「入口 `index.html` 解压后 ≤ 1 MB」的上限。现在入口只留 HTML 与 CSS，three.js、游戏逻辑、资源包分别外置，四个文件必须同目录、用相对路径加载。
 
 ## 本地运行
 
@@ -37,7 +39,7 @@ cd skybreaker/src && python3 -m http.server 8080
 
 ## 依赖
 
-- 零第三方网络依赖，断网可玩；three.js 内联于 `index.html`
+- 零第三方网络依赖，断网可玩；three.js 与游戏逻辑都在同目录，入口不再内联大脚本
 - 浏览器能力：WebGL2、`AudioContext`、`localStorage`、系统字体
 - 模型、贴图与音效均内嵌于资源包，无外部资源请求
 

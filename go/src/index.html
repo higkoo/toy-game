@@ -2450,6 +2450,10 @@ scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
     p2pStopRetry();
     p2pRebuildTries = 0;
     stopPolling();
+    if (online.sseTimer) {
+      window.clearTimeout(online.sseTimer);
+      online.sseTimer = 0;
+    }
     if (online.es) {
       try { online.es.close(); } catch (e) { /* ignore */ }
       online.es = null;
@@ -2498,7 +2502,11 @@ scanTarget: ''     // 'guest' = 扫房主的 offer, 'host' = 扫访客的 answer
             };
             es.onerror = function () {
               if (online.es !== es) return;
+              online.sseFails = (online.sseFails || 0) + 1;
+              try { es.close(); } catch (e) { /* ignore */ }
+              online.es = null;
               startPolling();
+              scheduleSseReconnect();
             };
           }
         } catch (e) { /* ntfy 通道继续轮询兜底 */ }
@@ -3634,7 +3642,7 @@ if (target === 'guest' && qrState.step === 1) {
     if (!online.topic) return Promise.resolve(false);
     var body = JSON.stringify(msg);
     var attempt = 0;
-    var limited = false;
+    var limitedUntil = 0;
     function send() {
       attempt++;
       return timedFetch(RELAY + online.topic, {
@@ -3642,15 +3650,22 @@ if (target === 'guest' && qrState.step === 1) {
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: body
       }, PUBLISH_TIMEOUT_MS).then(function (r) {
-        if (r && r.status === 429) { limited = true; return false; }
+        /* 被限流不能当失败丢掉：记下可重试时间，落子/状态还有机会补发 */
+        if (r && r.status === 429) {
+          var ra = parseInt(r.headers && r.headers.get && r.headers.get('Retry-After'), 10);
+          limitedUntil = Date.now() + (isFinite(ra) && ra > 0 ? Math.min(5000, ra * 1000) : 1500);
+          return false;
+        }
         return !!(r && r.ok);
       }, function () {
         return false;
       }).then(function (ok) {
-        if (ok) online.lastHeard = Date.now();
-        if (ok || limited || attempt >= 3) return ok;
+        if (ok) { online.lastHeard = Date.now(); return true; }
+        if (attempt >= 3) return false;
+        var wait = limitedUntil > Date.now() ? limitedUntil - Date.now() : (attempt === 1 ? 500 : 1200);
+        wait += Math.random() * 300;
         return new Promise(function (resolve) {
-          window.setTimeout(function () { resolve(send()); }, attempt === 1 ? 500 : 1200);
+          window.setTimeout(function () { resolve(send()); }, wait);
         });
       });
     }
@@ -4248,6 +4263,7 @@ if (target === 'guest' && qrState.step === 1) {
         es.onopen = function () {
           if (online.es !== es) return;
           online.fail = 0;
+          online.sseFails = 0;
           online.lastHeard = Date.now();
           /* 不打断已经在途的轮询：让它把断线期间的消息处理完，避免切换瞬间漏一手 */
           stopPolling(false);
@@ -4264,12 +4280,28 @@ if (target === 'guest' && qrState.step === 1) {
         es.onerror = function () {
           if (online.es !== es) return;
           online.fail++;
-          /* 断了就立刻回退轮询，SSE 自己重连成功后 onopen 会再停掉轮询 */
+          online.sseFails = (online.sseFails || 0) + 1;
+          /* 主动关掉旧连接，别让 EventSource 自己高频重连打中转；轮询立刻接上 */
+          try { es.close(); } catch (e) { /* ignore */ }
+          online.es = null;
           startPolling();
-          setConn('实时连接断开，已切到轮询重连…');
+          setConn(online.sseFails >= 3 ? '实时连接不稳，已切到轮询…' : '正在重连实时通道…');
+          scheduleSseReconnect();
         };
       }
     } catch (e) { /* 已经在轮询 */ }
+  }
+
+  /* SSE 断线重连：指数退避 + 抖动。ntfy 抖动时不要连击，期间靠轮询保底 */
+  function scheduleSseReconnect() {
+    if (!online.topic || !window.EventSource || online.sseTimer) return;
+    var n = Math.min(online.sseFails || 0, 6);
+    var delay = Math.min(30000, 900 * Math.pow(1.7, n)) * (1 + Math.random() * 0.35);
+    online.sseTimer = window.setTimeout(function () {
+      online.sseTimer = 0;
+      if (!online.topic || online.es) return;
+      subscribe(online.room || online.topic);
+    }, delay);
   }
 
   function startPolling() {
@@ -4351,6 +4383,8 @@ if (target === 'guest' && qrState.step === 1) {
         setConn('网络有点慢，正在自动重试…（也可点「重连」）');
       }
       online.pollDelay = online.pollFails <= 1 ? 1500 : Math.min(online.pollDelay * 2, 8000);
+      /* 抖动：多端同时退避时错开，避免一起打同一个中转 */
+      online.pollDelay += Math.random() * 400;
       updateRoomMeta();
       schedulePoll();
     });
@@ -4402,6 +4436,16 @@ if (target === 'guest' && qrState.step === 1) {
       online.linkTimer = 0;
     }
   }
+
+  /* 系统网络事件：恢复时立刻重建连接，别等看门狗的 6 秒轮询 */
+  window.addEventListener('online', function () {
+    if (!online.room) return;
+    setConn('网络恢复了，正在重连…');
+    reconnectRoom();
+  });
+  window.addEventListener('offline', function () {
+    if (online.room) setConn('网络断了，恢复后会自动重连');
+  });
 
   function restartStream() {
     if (online.room) subscribe(online.room);
