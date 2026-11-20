@@ -128,6 +128,25 @@ toy create <项目>/src --title "<标题>" --slug <slug> \
 
 联机时如果房间信息出现「网络慢」，可以直接点「重连」；网络恢复或切回前台时也会自动重连并同步棋局。
 
+## 本地检查
+
+改完代码后，在仓库根目录跑：
+
+```bash
+python3 scripts/check_repo.py          # 入口体积、本地资源引用、封面比例
+python3 scripts/fingerprint.py --check # JS/CSS 文件名是否带内容指纹
+python3 scripts/smoke_test.py          # 15 个入口浏览器冒烟（需 playwright）
+```
+
+改了某个项目的 JS/CSS 后，先跑一次指纹脚本再提交：
+
+```bash
+python3 scripts/fingerprint.py benneng/src
+```
+
+`abyssbeacon` 用 `python3 abyssbeacon/source/build.py` 重建，构建结束会自动加指纹。
+GitHub Actions 会在 push / PR 时自动跑前两项与浏览器冒烟。
+
 ## 说明
 
 仓库不包含 Toy 会话凭据、用户上传文件、截图和构建产物，这些路径已写入 `.gitignore`。

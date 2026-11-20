@@ -7,6 +7,9 @@ node_modules/
 .DS_Store
 *.zip
 
+# abyssbeacon 构建生成的单文件版
+abyssbeacon/深蓝信标.html
+
 # 音视频不进入仓库
 *.mp4
 *.mov
