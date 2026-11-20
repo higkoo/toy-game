@@ -2,13 +2,13 @@
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v)),rand=(a,b)=>a+Math.random()*(b-a),choice=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 let renderer;
-try{renderer=new T.Renderer({canvas:$('scene'),antialias:true,powerPreference:'high-performance'})}catch(err){$('ultHint').textContent='需要支持 WebGL 2 的浏览器，请打开硬件加速。';$('start').disabled=true;return}
+try{renderer=new T.Renderer({canvas:$('scene'),antialias:true,powerPreference:'high-performance'})}catch(err){$('ultHint').textContent='需要支持 WebGL 2 的浏览器，请打开硬件加速。';$('loadState').textContent='无法启动 3D 渲染。';$('start').disabled=true;return}
 const scene=new T.Scene(),camera=new T.Camera(52,1,.2,3600);scene.fog=new T.Fog(0x9db7c4,.0028);
 renderer.outputColorSpace='srgb';renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}resize();onresize=resize;
 const daylight=new T.Sun(0xffeacf,2.65);daylight.position.set(-90,110,38);scene.add(daylight,new T.Hemi(0xe5f5ff,0x50606d,1.5));
 const assetPack=window.__FLIGHT_ASSETS__;
-if(!assetPack||!assetPack.mesh||!assetPack.maps){$('ultHint').textContent='资源包 assets.js 未能加载，请刷新页面重试。';$('start').disabled=true;return}
+if(!assetPack||!assetPack.mesh||!assetPack.maps){$('ultHint').textContent='资源包 assets.js 未能加载，请刷新页面重试。';$('loadState').textContent='资源加载失败，请刷新重试。';$('start').disabled=true;return}
 const decodeBytes=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
 const textures=new Map();
 function loadMap(name) {
@@ -1013,7 +1013,7 @@ for(const [id,[label]] of Object.entries(specials)){const b=document.createEleme
 function startGame(){if(state!=='intro')return;try{actx=new AudioContext();actx.resume().catch(()=>{})}catch{}state='play';$('intro').hidden=true;$('hud').hidden=false;camera.fov=57;camera.updateProjectionMatrix();camera.position.set(0,18,22);camera.lookAt(0,12,-28);nextBoss=drawBoss();enterZone(0);nextWave=time;gear.push({id:'guided',rank:1,cd:1});say('按住左键开火 · 松开进入战术慢速',4)}
 function changePause(){if(state==='play'){secondaryDown=guardQueued=false;state='paused';firing=triggerTap=false;$('pause').hidden=false;$('hud').classList.add('paused');$('inspect').textContent=gear.map(mountLabel).join('　/　')+(pending?'。可在下方继续查看并选择升级。':'。')}else if(state==='paused'){state='play';$('pause').hidden=true;$('hud').classList.remove('paused')}}
 function finish(win){if(state!=='play')return;state='end';firing=false;$('resultTitle').textContent=win?'任务完成':'机体损毁';$('report').textContent=(boss?boss.arena:mapNames[zone])+'　·　击破 '+kills+' 个目标　·　等级 '+level+'　·　飞行 '+Math.floor(elapsed/60)+'分'+Math.floor(elapsed%60)+'秒';$('result').hidden=false;$('hud').hidden=true}
-$('start').onclick=startGame;$('resume').onclick=changePause;
+$('start').onclick=startGame;$('start').disabled=false;$('start').textContent='出击　→';$('loadState').textContent='';$('resume').onclick=changePause;
 function isGuardKey(e){
  return e.code==='ControlLeft'||(e.key==='Control'&&e.location!==2)||e.code==='KeyF';
 }
