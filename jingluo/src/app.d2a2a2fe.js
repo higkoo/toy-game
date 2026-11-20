@@ -62,10 +62,154 @@
   const organGroup = new T.Group();
   root.add(skinGroup, boneGroup, organGroup);
 
+  // CC0 真实人体基础网格（MakeHuman hm08，经 aicuc/3d-acupoint-atlas 适配）
+  const realBody = new T.Group();
+  realBody.name = "realBody";
+  let realBodyMesh = null;
+  root.add(realBody);
+  const handDetailRoot = new T.Group();
+  handDetailRoot.name = "handDetailRoot";
+  handDetailRoot.visible = false;
+  root.add(handDetailRoot);
+  const handDetailGroups = { 1: null, "-1": null };
+  (function buildRealBody() {
+    const d = window.HUMAN_BODY;
+    if (!d) return;
+    function decode(text, signed) {
+      const raw = atob(text);
+      const view = new DataView(new ArrayBuffer(raw.length));
+      for (let i = 0; i < raw.length; i++) view.setUint8(i, raw.charCodeAt(i));
+      const out = new Array(raw.length / 2);
+      for (let i = 0; i < raw.length; i += 2) out[i / 2] = signed ? view.getInt16(i, true) / 1000 : view.getUint16(i, true);
+      return out;
+    }
+    const positions = decode(d.positions, true);
+    // 参考模型为抬臂站姿；绕肩关节把上臂放下，使手落在髋侧，贴近本图谱坐标
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i], y = positions[i + 1];
+      const ax = Math.abs(x);
+      if (y < 3.45 || ax < .72) continue;
+      const sgn = x >= 0 ? 1 : -1;
+      const w = Math.min(1, Math.max(0, (ax - .74) / .22));
+      if (!w) continue;
+      const px = .84 * sgn, py = 6.22;
+      const ang = -sgn * .384 * w; // 22°
+      const dx = x - px, dy = y - py;
+      const nx = px + dx * Math.cos(ang) - dy * Math.sin(ang);
+      const ny = py + dx * Math.sin(ang) + dy * Math.cos(ang);
+      positions[i] = x * (1 - w) + nx * w;
+      positions[i + 1] = y * (1 - w) + ny * w;
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute("position", new T.Float32BufferAttribute(positions, 3));
+    geo.setIndex(decode(d.indices, false));
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    geo.addGroup(0, d.skinIndexCount, 0);
+    geo.addGroup(d.skinIndexCount, geo.index.count - d.skinIndexCount, 1);
+    const skin = new T.MeshPhysicalMaterial({
+      color: 0xf0c3a7, roughness: .60, metalness: 0,
+      clearcoat: .14, clearcoatRoughness: .52,
+      sheen: .25, sheenColor: 0x5a2d22, sheenRoughness: .7
+    });
+    const eye = new T.MeshPhysicalMaterial({ color: 0xf1e9df, roughness: .30, metalness: 0 });
+    const mesh = new T.Mesh(geo, [skin, eye]);
+    const scale = 1.8 / 7.628;
+    mesh.scale.setScalar(scale);
+    mesh.position.set(0, -0.279 * scale, -0.042);
+    mesh.frustumCulled = false;
+    realBody.add(mesh);
+    realBodyMesh = mesh;
+
+    /* 医学着装：运动内衣 + 高裁短裤，避免公开发布审核风险 */
+    const garment = new T.Group(); realBody.add(garment);
+    const clothMat = new T.MeshStandardMaterial({ color: 0x24464d, roughness: .80, metalness: .03, emissive: 0x0b2024, emissiveIntensity: .32 });
+    const clothTrim = new T.MeshStandardMaterial({ color: 0xc9a66d, roughness: .48, metalness: .22, emissive: 0x3b2a12, emissiveIntensity: .32 });
+    function clothRings(rings, mat, seg = 48) {
+      const pos = [], idx = [];
+      for (const [y, rx, rz] of rings) {
+        for (let i = 0; i <= seg; i++) {
+          const a = i / seg * Math.PI * 2;
+          pos.push(Math.cos(a) * rx, y, Math.sin(a) * rz);
+        }
+      }
+      for (let r = 0; r < rings.length - 1; r++) for (let i = 0; i < seg; i++) {
+        const a = r * (seg + 1) + i, b = a + seg + 1;
+        idx.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx); g.computeVertexNormals();
+      return new T.Mesh(g, mat);
+    }
+    function trimRing(y, rx, rz) {
+      const m = new T.Mesh(new T.TorusGeometry(1, .0035, 6, 64), clothTrim);
+      m.rotation.x = Math.PI / 2; m.scale.set(rx, rz, 1); m.position.y = y;
+      return m;
+    }
+    function braShell() {
+      const seg = 64, rows = 13, pos = [], idx = [];
+      const profile = [[.920, .190, .132], [1.010, .194, .138], [1.100, .208, .142], [1.185, .226, .148], [1.265, .242, .154], [1.330, .245, .154], [1.385, .238, .146], [1.410, .230, .138]];
+      function at(t) {
+        const f = t * (profile.length - 1), i = Math.min(profile.length - 2, Math.floor(f)), u = f - i;
+        const a = profile[i], b = profile[i + 1];
+        return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+      }
+      for (let j = 0; j < rows; j++) {
+        const t = j / (rows - 1);
+        let [yBase, rx, rz] = at(t);
+        for (let i = 0; i <= seg; i++) {
+          const a = i / seg * Math.PI * 2;
+          const x = Math.cos(a) * rx;
+          const front = Math.max(0, Math.sin(a));
+          const cupW = Math.sin(Math.PI * Math.min(1, Math.max(0, (yBase - 1.14) / .22)));
+          const bulge = .030 * (Math.exp(-Math.pow((x - .092) / .066, 2)) + Math.exp(-Math.pow((x + .092) / .066, 2))) * front * Math.max(0, cupW);
+          const dip = .032 * Math.exp(-Math.pow(x / .042, 2)) * Math.pow(Math.max(0, (yBase - 1.25) / .16), 3);
+          pos.push(x, yBase - dip, Math.sin(a) * (rz + bulge));
+        }
+      }
+      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < seg; i++) {
+        const a = j * (seg + 1) + i, b = a + seg + 1;
+        idx.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx); g.computeVertexNormals();
+      return new T.Mesh(g, clothMat);
+    }
+    const bra = braShell();
+    bra.add(trimRing(.923, .191, .133));
+    garment.add(bra);
+    const hipBand = clothRings([[.918, .195, .144], [.965, .205, .151], [1.012, .197, .145], [1.048, .182, .135]], clothMat);
+    hipBand.add(trimRing(1.048, .183, .136));
+    garment.add(hipBand);
+    for (const sg of [-1, 1]) {
+      const leg = clothRings([[.748, .070, .083], [.795, .080, .094], [.855, .094, .108], [.915, .112, .126], [.972, .118, .130]], clothMat, 32);
+      leg.position.x = sg * .092;
+      leg.add(trimRing(.751, .071, .084));
+      garment.add(leg);
+    }
+
+    /* 短发与眉眼，削弱“医学人偶”的裸模感 */
+    const hair = new T.MeshStandardMaterial({ color: 0x18262c, roughness: .46, metalness: .03 });
+    const cap = new T.Mesh(new T.SphereGeometry(.092, 28, 18, 0, Math.PI * 2, 0, Math.PI * .40), hair);
+    cap.position.set(0, 1.742, -.006); cap.scale.set(.94, .82, 1.0);
+    realBody.add(cap);
+    const bun = new T.Mesh(new T.SphereGeometry(.042, 16, 12), hair);
+    bun.position.set(0, 1.678, -.105); bun.scale.set(1.2, .8, .7);
+    realBody.add(bun);
+    const mouth = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3([
+      V3(-.018, 1.638, .101), V3(0, 1.634, .106), V3(.018, 1.638, .101)
+    ]), 10, .0018, 4, false), new T.MeshStandardMaterial({ color: 0x8b4d4a, roughness: .6 }));
+    realBody.add(mouth);
+    realBody.updateMatrixWorld(true);
+  })();
+  skinGroup.visible = false;
+
   const skinUniforms = { uTime: { value: 0 } };
 
   const skinMat = new T.MeshStandardMaterial({
-    color: 0xf7d8c0, roughness: .60, metalness: .015,
+    color: 0xf0c3a7, roughness: .60, metalness: .015,
     emissive: 0x24100c, emissiveIntensity: .035, side: T.FrontSide
   });
   const skinShadeMat = new T.MeshStandardMaterial({ color: 0xd79f81, roughness: .72, metalness: 0 });
@@ -334,14 +478,15 @@
   const handSegments = [];
   function buildHand(s) {
     const wrist = V3(s * .336, .815, .035);
+    const hg = new T.Group(); hg.name = "handDetail" + s;
     // 手掌：倒角挤出，腕部窄、掌指关节处宽、底边平，便于五指排布
     const palmShape = new T.Shape();
     palmShape.moveTo(-.021, .824);
     palmShape.quadraticCurveTo(-.035, .808, -.045, .786);
     palmShape.quadraticCurveTo(-.052, .762, -.052, .740);
-    palmShape.quadraticCurveTo(-.051, .712, -.036, .708);
-    palmShape.lineTo(.036, .708);
-    palmShape.quadraticCurveTo(.051, .712, .052, .740);
+    palmShape.quadraticCurveTo(-.051, .704, -.034, .699);
+    palmShape.quadraticCurveTo(0, .695, .034, .699);
+    palmShape.quadraticCurveTo(.051, .704, .052, .740);
     palmShape.quadraticCurveTo(.052, .762, .045, .786);
     palmShape.quadraticCurveTo(.035, .808, .021, .824);
     palmShape.quadraticCurveTo(0, .828, -.021, .824);
@@ -351,13 +496,13 @@
     });
     const palm = new T.Mesh(palmGeo, skinMat);
     palm.position.set(s * .335, 0, .026);
-    skinGroup.add(palm);
+    hg.add(palm);
     // 掌根曲线本身已表达大鱼际/小鱼际，不再叠加球体
     // 掌纹改用贴面细线，避免浮在掌外产生阴影
     const wristCrease = new T.CatmullRomCurve3([
       V3(s * .304, .818, .0608), V3(s * .335, .816, .0622), V3(s * .368, .818, .0606)
     ]);
-    skinGroup.add(new T.Mesh(new T.TubeGeometry(wristCrease, 14, .0010, 4, false), creaseMat));
+    hg.add(new T.Mesh(new T.TubeGeometry(wristCrease, 14, .0010, 4, false), creaseMat));
 
     function phalanx(a, b, r1, r2, outlineWidth = 0) {
       const va = V3(s * a[0], a[1], a[2]);
@@ -369,20 +514,20 @@
       mesh.position.copy(va).add(vb).multiplyScalar(.5);
       mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
       if (outlineWidth > 0) addOutline(mesh, outlineWidth);
-      skinGroup.add(mesh);
+      hg.add(mesh);
       return { mesh, va, vb, dir, len };
     }
     function joint(p, r) {
       const m = new T.Mesh(new T.SphereGeometry(r, 14, 11), skinMat);
       m.position.set(s * p[0], p[1], p[2]);
-      skinGroup.add(m);
+      hg.add(m);
       return m;
     }
     function crease(p, axis, r) {
       const torus = new T.Mesh(new T.TorusGeometry(r, .00045, 3, 10), creaseMat);
       torus.position.set(s * p[0], p[1], p[2]);
       torus.quaternion.setFromUnitVectors(V3(0, 0, 1), axis.clone().normalize());
-      skinGroup.add(torus);
+      hg.add(torus);
     }
     function nail(a, b, dir, r) {
       const m = new T.Mesh(new T.SphereGeometry(1, 12, 8), nailMat);
@@ -390,7 +535,7 @@
       const t = .70;
       m.position.set(s * (a[0] + (b[0] - a[0]) * t), a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t - r * .95);
       m.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
-      skinGroup.add(m);
+      hg.add(m);
     }
 
     const defs = [
@@ -398,12 +543,12 @@
       { key: "index", name: "食指", short: "食", pts: [[.362, .720, .042], [.364, .684, .044], [.366, .658, .046], [.368, .636, .048]], radii: [.0116, .0100, .0088, .0074] },
       { key: "middle", name: "中指", short: "中", pts: [[.335, .720, .041], [.334, .682, .043], [.333, .652, .045], [.332, .627, .047]], radii: [.0120, .0105, .0092, .0078] },
       { key: "ring", name: "环指", short: "环", pts: [[.308, .720, .041], [.306, .685, .043], [.303, .658, .045], [.301, .638, .047]], radii: [.0110, .0095, .0084, .0070] },
-      { key: "little", name: "小指", short: "小", pts: [[.282, .720, .042], [.278, .690, .044], [.274, .668, .046], [.270, .652, .048]], radii: [.0097, .0083, .0072, .0060] }
+      { key: "little", name: "小指", short: "小", pts: [[.289, .720, .042], [.286, .690, .044], [.283, .668, .046], [.280, .652, .048]], radii: [.0102, .0087, .0075, .0062] }
     ];
 
     const rig = { side: s, fingers: {}, segments: [] };
     defs.forEach(def => {
-      const joints = def.pts.map((p, pi) => joint(p, pi === 0 ? def.radii[0] * .78 : def.radii[Math.min(pi, 3)] * .88));
+      const joints = def.pts.map((p, pi) => joint(p, pi === 0 ? def.radii[0] * (def.metacarpal ? 1.08 : 1.02) : def.radii[Math.min(pi, 3)] * .88));
       if (def.metacarpal) {
         phalanx(def.pts[0], def.pts[1], def.radii[0], def.radii[1], 0);
       }
@@ -427,7 +572,14 @@
     });
     // 掌指关节隆起
 
+    const cuff = new T.Mesh(new T.CylinderGeometry(.031, .038, .105, 22, 1, true), skinMat);
+    cuff.position.set(s * .336, .875, .035); hg.add(cuff);
+    const cuffTrim = new T.Mesh(new T.TorusGeometry(.038, .0032, 6, 28), trimMat);
+    cuffTrim.rotation.x = Math.PI / 2; cuffTrim.position.set(s * .336, .818, .035); hg.add(cuffTrim);
     handRigs.push(rig);
+    hg.visible = false;
+    handDetailGroups[s] = hg;
+    handDetailRoot.add(hg);
   }
   buildHand(1);
   buildHand(-1);
@@ -561,6 +713,77 @@
     return tex;
   }
 
+  /* ---------- 将旧坐标投影到真实人体表面 ---------- */
+  const _ray = new T.Raycaster();
+  const projectionCache = new Map();
+  function outwardDir(p, sideSign = 0) {
+    if (p.y > 1.70) return V3(0, 1, 0);
+    if (p.y < .24) return V3((p.x || sideSign * .12) * 2, -1, p.z * 2).normalize();
+    if (p.y < .92 && Math.abs(p.x) < .13) return V3(p.x * .4, 0, p.z >= 0 ? 1 : -1).normalize();
+    if (Math.abs(p.x) > .13 || (sideSign && p.y < 1.36)) return V3(sideSign || p.x, 0, p.z * .45).normalize();
+    return V3(p.x * .35, 0, p.z >= 0 ? 1 : -1).normalize();
+  }
+  function projectPoint(p, dirOverride, sideSign = 0) {
+    if (!realBodyMesh) return p.clone();
+    const cacheKey = dirOverride ? "" : `${p.x.toFixed(4)}|${p.y.toFixed(4)}|${p.z.toFixed(4)}|${sideSign}`;
+    if (cacheKey && projectionCache.has(cacheKey)) return projectionCache.get(cacheKey).clone();
+    const dir = (dirOverride || outwardDir(p)).clone().normalize();
+    const origin = p.clone().add(dir.clone().multiplyScalar(.9));
+    _ray.set(origin, dir.clone().negate());
+    _ray.near = 0; _ray.far = 1.8;
+    const hits = _ray.intersectObject(realBodyMesh, false);
+    const sideOk = h => !sideSign || Math.abs(p.x) < .035 || h.point.x * sideSign >= -.002;
+    const hit = hits.find(sideOk);
+    if (hit) {
+      const n = hit.face.normal.clone().transformDirection(realBodyMesh.matrixWorld).normalize();
+      const out = hit.point.clone().add(n.multiplyScalar(.0035));
+      if (cacheKey) projectionCache.set(cacheKey, out.clone());
+      return out;
+    }
+    // 射线未命中时退回最近的同侧顶点
+    const attr = realBodyMesh.geometry.attributes.position;
+    const nor = realBodyMesh.geometry.attributes.normal;
+    let best = Infinity, bi = 0;
+    for (let i = 0; i < attr.count; i++) {
+      const vx = attr.getX(i) * realBodyMesh.scale.x + realBodyMesh.position.x;
+      const vy = attr.getY(i) * realBodyMesh.scale.y + realBodyMesh.position.y;
+      const vz = attr.getZ(i) * realBodyMesh.scale.z + realBodyMesh.position.z;
+      let d = (vx - p.x) ** 2 + (vy - p.y) ** 2 + (vz - p.z) ** 2;
+      if (sideSign && p.x * vx < 0) d += .6;
+      if (p.z > .025 && vz < 0) d += .6;
+      if (p.z < -.025 && vz > 0) d += .6;
+      if (d < best) { best = d; bi = i; }
+    }
+    const v = V3(attr.getX(bi), attr.getY(bi), attr.getZ(bi));
+    v.applyMatrix4(realBodyMesh.matrixWorld);
+    const n = V3(nor.getX(bi), nor.getY(bi), nor.getZ(bi)).transformDirection(realBodyMesh.matrixWorld).normalize();
+    const out = v.add(n.multiplyScalar(.0035));
+    if (cacheKey) projectionCache.set(cacheKey, out.clone());
+    return out;
+  }
+  function isHandPoint(p) { return p.p[1] < .86 && Math.abs(p.p[0]) > .24; }
+  function modelHint(p, sideHint) {
+    if (isHandPoint(p)) {
+      const sx = Math.abs(p.p[0]) - .34;
+      return V3((sideHint || Math.sign(p.p[0])) * (.21 + sx * .22), .888 + (p.p[1] - .82) * .26, 0);
+    }
+    return V3(p.p[0] * (sideHint || 1), p.p[1], p.p[2]);
+  }
+  function smoothSurfaceCurve(vecs, samples = 60, sideSign = 0) {
+    if (!realBodyMesh || vecs.length < 2) return new T.CatmullRomCurve3(vecs, false, "catmullrom", .38);
+    const dirs = vecs.map(v => outwardDir(v, sideSign));
+    const base = new T.CatmullRomCurve3(vecs, false, "catmullrom", .38);
+    const projected = [];
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples;
+      const p = base.getPoint(t);
+      let k = 0, best = Infinity;
+      vecs.forEach((v, vi) => { const d = v.distanceToSquared(p); if (d < best) { best = d; k = vi; } });
+      projected.push(projectPoint(p, dirs[k], sideSign));
+    }
+    return new T.CatmullRomCurve3(projected, false, "catmullrom", .38);
+  }
+
   function buildMeridian(m) {
     const group = new T.Group();
     const mats = [];
@@ -573,17 +796,19 @@
       const sideGroup = new T.Group();
       const side = m.central ? "正中" : (sideSign > 0 ? "左侧" : "右侧");
       const sideKey = m.central ? "C" : (sideSign > 0 ? "L" : "R");
-      const vecs = m.points.map(p => V3(p.p[0] * sideSign, p.p[1], p.p[2]));
+      const rawVecs = m.points.map(p => V3(p.p[0] * sideSign, p.p[1], p.p[2]));
+      const sideHint = m.central ? 0 : sideSign;
+      const vecs = rawVecs.map((p, i) => projectPoint(modelHint(m.points[i], sideHint), null, sideHint));
       if (vecs.length > 1) {
-        const curve = new T.CatmullRomCurve3(vecs, false, "catmullrom", .38);
+        const curve = new T.CatmullRomCurve3(vecs, false, "catmullrom", .35);
         const core = new T.Mesh(
           new T.TubeGeometry(curve, Math.max(56, vecs.length * 9), .0028, 7, false),
-          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .92, depthWrite: false, toneMapped: false }), .95, .40)
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .92, depthWrite: false, depthTest: false, toneMapped: false }), .95, .18)
         );
         sideGroup.add(core);
         const halo = new T.Mesh(
           new T.TubeGeometry(curve, Math.max(48, vecs.length * 7), .0078, 6, false),
-          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .13, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }), .16, .035)
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .13, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, toneMapped: false }), .16, .018)
         );
         sideGroup.add(halo);
       }
@@ -591,20 +816,21 @@
       const pointRecs = [];
       m.points.forEach((p, idx) => {
         if (p.h) return;
-        const pos = V3(p.p[0] * sideSign, p.p[1], p.p[2]);
+        const rawPos = V3(p.p[0] * sideSign, p.p[1], p.p[2]);
+        const pos = projectPoint(modelHint(p, sideHint), null, sideHint);
         const pointGroup = new T.Group();
         pointGroup.position.copy(pos);
 
         const core = new T.Mesh(
           new T.SphereGeometry(.0038, 10, 8),
-          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .98, depthWrite: false, toneMapped: false }), 1, .62)
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .98, depthWrite: false, depthTest: false, toneMapped: false }), 1, .30)
         );
         pointGroup.add(core);
 
         const haloMat = reg(new T.SpriteMaterial({
           map: glowTex, color, transparent: true, opacity: .52,
-          depthWrite: false, depthTest: true, blending: T.AdditiveBlending, toneMapped: false
-        }), .55, .26);
+          depthWrite: false, depthTest: false, blending: T.AdditiveBlending, toneMapped: false
+        }), .55, .12);
         const halo = new T.Sprite(haloMat);
         halo.scale.set(.034, .034, 1);
         pointGroup.add(halo);
@@ -616,7 +842,7 @@
         selRing.scale.set(.07, .07, 1);
         pointGroup.add(selRing);
 
-        const rec = { m, p, side, sideKey, pos, core, halo, selRing, index: idx, group: sideGroup };
+        const rec = { m, p, side, sideKey, pos, rawPos, modelPos: pos.clone(), handPos: rawPos.clone(), index: idx, group: sideGroup, pointGroup, selRing };
         records.push(rec);
         pointRecs.push(rec);
         sideGroup.add(pointGroup);
@@ -631,6 +857,51 @@
   }
 
   DATA.forEach(buildMeridian);
+  /* ---------- 手部专用经络覆盖层（与高精度手模同坐标） ---------- */
+  const handOverlay = new T.Group();
+  handOverlay.name = "handOverlay";
+  handDetailRoot.add(handOverlay);
+  const handOverlayGroups = { 1: null, "-1": null };
+  for (const sideSign of [1, -1]) {
+    const g = new T.Group();
+    g.name = "handOverlay-" + sideSign;
+    const recs = records.filter(r => r.p.ana && r.side === (sideSign > 0 ? "左侧" : "右侧"));
+    const byMer = new Map();
+    recs.forEach(rec => {
+      const color = new T.Color(rec.m.color);
+      const dot = new T.Mesh(
+        new T.SphereGeometry(.0032, 10, 8),
+        new T.MeshBasicMaterial({ color, transparent: true, opacity: .96, depthWrite: false, depthTest: false, toneMapped: false })
+      );
+      dot.position.copy(rec.rawPos);
+      dot.renderOrder = 8;
+      g.add(dot);
+      const halo = new T.Sprite(new T.SpriteMaterial({
+        map: glowTex, color, transparent: true, opacity: .5,
+        depthWrite: false, depthTest: false, blending: T.AdditiveBlending, toneMapped: false
+      }));
+      halo.position.copy(rec.rawPos); halo.scale.set(.022, .022, 1); halo.renderOrder = 9;
+      g.add(halo);
+      rec.handOverlayPos = rec.rawPos.clone();
+      if (!byMer.has(rec.m.id)) byMer.set(rec.m.id, []);
+      byMer.get(rec.m.id).push(rec.rawPos);
+    });
+    byMer.forEach((vecs, id) => {
+      if (vecs.length < 2) return;
+      const m = DATA.find(x => x.id === id);
+      const curve = new T.CatmullRomCurve3(vecs, false, "catmullrom", .35);
+      const core = new T.Mesh(
+        new T.TubeGeometry(curve, Math.max(20, vecs.length * 8), .0018, 6, false),
+        new T.MeshBasicMaterial({ color: new T.Color(m.color), transparent: true, opacity: .9, depthWrite: false, depthTest: false, toneMapped: false })
+      );
+      core.renderOrder = 7;
+      g.add(core);
+    });
+    handOverlayGroups[sideSign] = g;
+    handOverlay.add(g);
+  }
+  handOverlay.visible = false;
+
   meridianRuntime.forEach(rt => rt.mats.forEach(x => { x.mat.opacity = x.dim; }));
 
   /* ---------- 全息底座与粒子 ---------- */
@@ -659,6 +930,95 @@
   ticksGeo.setAttribute("position", new T.Float32BufferAttribute(tickPos, 3));
   decor.add(new T.LineSegments(ticksGeo, new T.LineBasicMaterial({ color: 0x7fe3d3, transparent: true, opacity: .16, depthWrite: false })));
 
+  /* ---------- 十二地支子午流注罗盘底座 ---------- */
+  (function buildCompassBase() {
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 1024;
+    const g = cv.getContext("2d");
+    const cx = 512, cy = 512, R = 500;
+    const branch = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+    const hours = ["23–1", "1–3", "3–5", "5–7", "7–9", "9–11", "11–13", "13–15", "15–17", "17–19", "19–21", "21–23"];
+    const organ = ["胆", "肝", "肺", "大肠", "胃", "脾", "心", "小肠", "膀胱", "肾", "心包", "三焦"];
+    const grad = g.createRadialGradient(cx, cy, 30, cx, cy, R);
+    grad.addColorStop(0, "rgba(10,25,28,.96)");
+    grad.addColorStop(.72, "rgba(8,21,24,.94)");
+    grad.addColorStop(1, "rgba(4,13,16,.78)");
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = "rgba(201,166,109,.55)"; g.lineWidth = 3;
+    for (const rr of [.22, .31, .40, .485, .50, .995]) {
+      g.beginPath(); g.arc(cx, cy, R * rr, 0, Math.PI * 2); g.stroke();
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 6;
+      g.strokeStyle = i % 3 === 0 ? "rgba(201,166,109,.62)" : "rgba(127,227,211,.26)";
+      g.lineWidth = i % 3 === 0 ? 2.4 : 1.2;
+      g.beginPath(); g.moveTo(cx + Math.cos(a) * R * .22, cy + Math.sin(a) * R * .22);
+      g.lineTo(cx + Math.cos(a) * R * .995, cy + Math.sin(a) * R * .995); g.stroke();
+    }
+    const tex = new T.CanvasTexture(cv);
+    tex.colorSpace = T.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const disc = new T.Mesh(
+      new T.CircleGeometry(.665, 72),
+      new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: .92, depthWrite: false, side: T.DoubleSide, toneMapped: false })
+    );
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = .004;
+    disc.renderOrder = -2;
+    decor.add(disc);
+    const outer = new T.Mesh(
+      new T.TorusGeometry(.672, .0034, 6, 96),
+      new T.MeshBasicMaterial({ color: 0xc9a66d, transparent: true, opacity: .42, depthWrite: false, blending: T.AdditiveBlending })
+    );
+    outer.rotation.x = Math.PI / 2;
+    outer.position.y = .006;
+    decor.add(outer);
+
+    function labelTexture(branch, organ, time, center = false) {
+      const lc = document.createElement("canvas");
+      lc.width = center ? 512 : 256; lc.height = center ? 180 : 170;
+      const lg = lc.getContext("2d");
+      lg.clearRect(0, 0, lc.width, lc.height);
+      lg.textAlign = "center"; lg.textBaseline = "middle";
+      if (center) {
+        lg.fillStyle = "rgba(231,201,141,.95)";
+        lg.font = '600 54px "Noto Serif CJK SC",serif';
+        lg.fillText("子午流注", 256, 70);
+        lg.fillStyle = "rgba(168,239,227,.62)";
+        lg.font = '400 25px "Noto Sans CJK SC",sans-serif';
+        lg.fillText("十二地支 · 十二时辰", 256, 122);
+      } else {
+        lg.fillStyle = "rgba(7,20,23,.82)";
+        lg.beginPath(); lg.roundRect(3, 3, 250, 164, 18); lg.fill();
+        lg.strokeStyle = "rgba(201,166,109,.38)"; lg.lineWidth = 2; lg.stroke();
+        lg.fillStyle = "#f1d39a";
+        lg.font = '600 52px "Noto Serif CJK SC",serif';
+        lg.fillText(branch, 128, 52);
+        lg.fillStyle = "rgba(231,201,141,.88)";
+        lg.font = '500 27px "Noto Serif CJK SC",serif';
+        lg.fillText(organ, 128, 104);
+        lg.fillStyle = "rgba(168,239,227,.62)";
+        lg.font = '400 21px "Noto Sans CJK SC",sans-serif';
+        lg.fillText(time, 128, 138);
+      }
+      const t = new T.CanvasTexture(lc); t.colorSpace = T.SRGBColorSpace; return t;
+    }
+    for (let i = 0; i < 12; i++) {
+      const mid = -Math.PI / 2 + i * Math.PI / 6 + Math.PI / 12;
+      const sp = new T.Sprite(new T.SpriteMaterial({ map: labelTexture(branch[i], organ[i], hours[i]), transparent: true, opacity: .92, depthWrite: false, depthTest: true, toneMapped: false }));
+      sp.position.set(Math.cos(mid) * .405, .018, Math.sin(mid) * .405);
+      sp.scale.set(.105, .070, 1);
+      sp.renderOrder = -1;
+      decor.add(sp);
+    }
+    const centerLabel = new T.Sprite(new T.SpriteMaterial({ map: labelTexture("", "", "", true), transparent: true, opacity: .82, depthWrite: false, depthTest: true, toneMapped: false }));
+    centerLabel.position.set(0, .020, 0);
+    centerLabel.scale.set(.30, .105, 1);
+    centerLabel.renderOrder = -1;
+    decor.add(centerLabel);
+  })();
+
   const scanRing = new T.Mesh(
     new T.TorusGeometry(.36, .0018, 4, 72),
     new T.MeshBasicMaterial({ color: 0x7fe3d3, transparent: true, opacity: .16, depthWrite: false, blending: T.AdditiveBlending })
@@ -683,11 +1043,11 @@
 
   /* ---------- 相机控制 ---------- */
   const MOBILE_UI = window.innerWidth < 820;
-  const HOME = { r: MOBILE_UI ? (window.innerHeight < 760 ? 5.4 : 4.75) : 4.05, ty: MOBILE_UI ? 1.0 : .95 };
+  const HOME = { r: MOBILE_UI ? (window.innerHeight < 760 ? 5.4 : 4.75) : 4.24, ty: MOBILE_UI ? 1.0 : .95 };
   const cam = { theta: .05, phi: 1.36, r: HOME.r, tx: 0, ty: HOME.ty };
   const goal = { theta: .05, phi: 1.36, r: HOME.r, tx: 0, ty: HOME.ty };
   let auto = !reduced;
-  let handFocus = false, handSide = 1;
+  let handFocus = false, handSide = 1, handFinger = "index";
 
   function focusHand(side = handSide) {
     handSide = side;
@@ -697,11 +1057,20 @@
     autoBtn.setAttribute("aria-pressed", "false");
     handViewBtn.classList.add("on");
     handViewBtn.setAttribute("aria-pressed", "true");
+    document.body.classList.add("hand-focus");
+    document.querySelectorAll("#fingerBar button").forEach(b => b.classList.toggle("on", b.dataset.finger === handFinger));
+    handDetailRoot.visible = state.layers.skin;
+    Object.keys(handDetailGroups).forEach(k => { if (handDetailGroups[k]) handDetailGroups[k].visible = Number(k) === side; });
+    handOverlay.visible = state.layers.skin;
+    Object.keys(handOverlayGroups).forEach(k => { if (handOverlayGroups[k]) handOverlayGroups[k].visible = Number(k) === side; });
+    meridianRuntime.forEach(rt => { rt.group.visible = false; });
+    realBody.visible = false;
+    skinGroup.visible = false;
     goal.theta = 0;
     goal.phi = 1.48;
-    goal.r = MOBILE_UI ? 1.18 : .78;
+    goal.r = MOBILE_UI ? 1.75 : 1.15;
     goal.tx = side * .342;
-    goal.ty = MOBILE_UI ? .732 : .750;
+    goal.ty = MOBILE_UI ? .735 : .742;
     document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("on"));
     rebuildLabels();
     toast(`${side > 0 ? "左手" : "右手"}特写：拖拽手部检查五指，食1/2/3 即食指第1/2/3节`);
@@ -709,6 +1078,12 @@
 
   function setView(name) {
     handFocus = false;
+    document.body.classList.remove("hand-focus");
+    handDetailRoot.visible = false;
+    handOverlay.visible = false;
+    realBody.visible = state.layers.skin;
+    skinGroup.visible = false;
+    setActive(state.active, true);
     handViewBtn.classList.remove("on");
     handViewBtn.setAttribute("aria-pressed", "false");
     const dirs = { front: 0, back: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 };
@@ -726,6 +1101,13 @@
   handViewBtn.addEventListener("click", () => {
     focusHand(handFocus ? (handSide === 1 ? -1 : 1) : 1);
   });
+  document.querySelectorAll("#fingerBar button").forEach(b => {
+    b.addEventListener("click", () => {
+      handFinger = b.dataset.finger;
+      document.querySelectorAll("#fingerBar button").forEach(x => x.classList.toggle("on", x === b));
+      rebuildLabels();
+    });
+  });
 
   const pointers = new Map();
   let dragStart = null;
@@ -739,6 +1121,19 @@
     const limit = rect.width < 820 ? 25 : 19;
     let best = null, bestD = limit;
     const v = new T.Vector3();
+    if (handFocus) {
+      const side = handSide > 0 ? "左侧" : "右侧";
+      for (const rec of records) {
+        if (!rec.p.ana || rec.side !== side || !rec.handOverlayPos) continue;
+        v.copy(rec.handOverlayPos).project(camera);
+        if (v.z > 1 || v.z < -1) continue;
+        const x = (v.x * .5 + .5) * rect.width;
+        const y = (-v.y * .5 + .5) * rect.height;
+        const d = Math.hypot(x - px, y - py);
+        if (d < bestD) { bestD = d; best = rec; }
+      }
+      return best;
+    }
     for (const rec of records) {
       const rt = meridianRuntime.get(rec.m.id);
       if (!rt || !rt.group.visible) continue;
@@ -831,6 +1226,12 @@
   }
   canvas.addEventListener("pointerup", endPointer);
   canvas.addEventListener("pointercancel", endPointer);
+  canvas.addEventListener("click", e => {
+    if (moved >= 7) return;
+    const rec = pick(e);
+    if (rec) selectPoint(rec);
+    else clearSelection();
+  });
   canvas.addEventListener("pointerleave", () => {
     if (!dragStart) {
       hovered = null;
@@ -884,8 +1285,8 @@
     state.active = id;
     const allMode = id === "ALL";
     meridianRuntime.forEach(rt => {
-      rt.group.visible = allMode || rt.m.id === id;
-      rt.mats.forEach(x => { x.mat.opacity = allMode ? x.dim : x.full; });
+      rt.group.visible = (allMode || rt.m.id === id) && !handFocus;
+      rt.mats.forEach(x => { x.mat.opacity = allMode ? x.dim : x.full; x.mat.depthTest = false; x.mat.needsUpdate = true; });
     });
     document.querySelectorAll(".mer").forEach(b => b.classList.toggle("active", b.dataset.id === id || (id === "ALL" && b === allBtn)));
     if (id === "BL" || id === "GV") goal.theta = Math.PI;
@@ -940,19 +1341,7 @@
     if (!r) return;
     const onHand = !!r.p.ana;
     if (onHand) {
-      handFocus = true;
-      handSide = r.pos.x > 0 ? 1 : -1;
-      handViewBtn.classList.add("on");
-      handViewBtn.setAttribute("aria-pressed", "true");
-      auto = false;
-      autoBtn.classList.remove("on");
-      autoBtn.setAttribute("aria-pressed", "false");
-      goal.r = .40;
-      goal.theta = r.pos.z > .033 ? 0 : Math.PI;
-      goal.phi = 1.50;
-      goal.tx = r.pos.x;
-      goal.ty = r.pos.y + .006;
-      rebuildLabels();
+      focusHand(r.pos.x > 0 ? 1 : -1);
     } else {
       goal.r = 1.46;
       goal.theta = r.pos.z >= -.02 ? 0 : Math.PI;
@@ -1004,7 +1393,12 @@ document.getElementById("tourBtn").addEventListener("click", () => {
       const layer = btn.dataset.layer;
       state.layers[layer] = !state.layers[layer];
       btn.classList.toggle("on", state.layers[layer]);
-      if (layer === "skin") skinGroup.visible = state.layers.skin;
+      if (layer === "skin") {
+        handDetailRoot.visible = state.layers.skin && handFocus;
+        handOverlay.visible = state.layers.skin && handFocus;
+        skinGroup.visible = false;
+        realBody.visible = state.layers.skin && !handFocus;
+      }
       if (layer === "bone") boneGroup.visible = state.layers.bone;
       if (layer === "organ") organGroup.visible = state.layers.organ;
       toast(`${btn.textContent}已${state.layers[layer] ? "显示" : "隐藏"}`);
@@ -1086,12 +1480,15 @@ document.getElementById("tourBtn").addEventListener("click", () => {
       const count = records.filter(r => r.m.id === state.active).length;
       allowNames = cam.r < 2.9;
     }
-    if (activeRt && allowNames) {
+    if (!handFocus && activeRt && allowNames) {
       records.filter(r => r.m.id === state.active).forEach(r => keep.add(r));
     }
     if (state.selected) keep.add(state.selected);
 
-    if (handFocus) handSegments.forEach(seg => { if (seg.side === handSide) keepHand.add(seg); });
+    if (handFocus) handSegments.forEach(seg => {
+      if (seg.side !== handSide) return;
+      if (!MOBILE_UI || seg.finger === handFinger) keepHand.add(seg);
+    });
 
     labelNodes.forEach((node, rec) => {
       if (!keep.has(rec)) { node.remove(); labelNodes.delete(rec); }
@@ -1124,7 +1521,8 @@ document.getElementById("tourBtn").addEventListener("click", () => {
     const w = window.innerWidth, h = window.innerHeight;
     const items = [];
     labelNodes.forEach((el, rec) => {
-      projected.copy(rec.pos).project(camera);
+      const labelPos = handFocus && rec.handOverlayPos ? rec.handOverlayPos : rec.pos;
+      projected.copy(labelPos).project(camera);
       if (projected.z > 1 || projected.z < -1 || Math.abs(projected.x) > 1.3 || Math.abs(projected.y) > 1.3) {
         el.style.opacity = 0;
         return;
@@ -1146,7 +1544,7 @@ document.getElementById("tourBtn").addEventListener("click", () => {
       el.style.opacity = hot ? 1 : .82;
       items.push({
         el, rec: null, pri: hot ? 3 : 1.3,
-        x: (projected.x * .5 + .5) * w,
+        x: (projected.x * .5 + .5) * w - handSide * (MOBILE_UI ? 20 : 26),
         y: (-projected.y * .5 + .5) * h
       });
     });
