@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#eaf8ff" />
 <title>小偶像五子棋</title>
 <script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
@@ -5924,7 +5924,11 @@ canvas{
   }
   if (roomInputEl) {
     roomInputEl.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && joinConfirmBtn) joinConfirmBtn.click();
+      if (ev.key !== 'Enter') return;
+      // 中文/日文输入法选词回车不算提交；Safari 组合态还会给 keyCode 229
+      if (ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      if (joinConfirmBtn) joinConfirmBtn.click();
     });
   }
 if (roomListBtn) {
