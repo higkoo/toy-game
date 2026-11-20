@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import sys
+import threading
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -30,8 +33,24 @@ ENTRIES = [
 HEAVY = {"skybreaker", "berth4", "yangyu", "xingzhao", "dashcam"}
 
 
+class QuietHandler(SimpleHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        if self.path.split("?", 1)[0] == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
+        super().do_GET()
+
+
 def main() -> int:
     failures: list[str] = []
+    handler = partial(QuietHandler, directory=str(ROOT))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
     with sync_playwright() as p:
         try:
             browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
@@ -52,7 +71,7 @@ def main() -> int:
                 else None,
             )
             try:
-                page.goto((ROOT / rel).as_uri(), wait_until="load", timeout=90_000)
+                page.goto(f"{base}/{rel}", wait_until="load", timeout=90_000)
                 page.wait_for_timeout(1500 if rel.split("/")[0] in HEAVY else 600)
                 title = page.title()
                 if not title.strip():
@@ -69,6 +88,7 @@ def main() -> int:
             else:
                 print(f"OK {rel}  ({title})")
         browser.close()
+    server.shutdown()
     if failures:
         print(f"\n{len(failures)} 个入口失败")
         return 1
