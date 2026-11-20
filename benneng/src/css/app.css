@@ -153,9 +153,10 @@ svg{display:block}
   background:var(--accent);border-color:transparent;color:#1b0d06;
   box-shadow:0 8px 24px rgba(232,100,43,.24);
 }
-.tab-no{font-size:9.5px;letter-spacing:.18em;opacity:.72;font-variant-numeric:tabular-nums}
+.tab.is-active .tab-no,.tab.is-active .tab-count{opacity:1;color:#1b0d06}
+.tab-no{font-size:10.5px;letter-spacing:.18em;opacity:.72;font-variant-numeric:tabular-nums}
 .tab-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tab-count{font-size:9.5px;letter-spacing:.06em;opacity:.72}
+.tab-count{font-size:10.5px;letter-spacing:.06em;opacity:.72}
 
 /* ---------- 合集信息卡 ---------- */
 main{padding:18px 18px calc(118px + var(--bottom-inset))}
@@ -317,7 +318,7 @@ main{padding:18px 18px calc(118px + var(--bottom-inset))}
   .hero-sub{font-size:11px}
   .tab{padding:8px 10px}
   .tab-name{font-size:12px}
-  .tab-count{font-size:9px}
+  .tab-count{font-size:10px}
   .coll-name{font-size:19px}
   .row{grid-template-columns:36px 1fr 34px;gap:8px}
   .row-title{font-size:13px}

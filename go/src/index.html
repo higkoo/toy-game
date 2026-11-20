@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#eaf8ff" />
 <title>小偶像围棋</title>
 <script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
@@ -79,7 +79,7 @@ body{
 }
 .user-me{display:flex;align-items:center;gap:5px}
 .user-me img{width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 2px 4px rgba(120,150,190,.25)}
-.user-me span{font-size:10.5px;font-weight:800;color:#7d8ead;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-me span{font-size:10.5px;font-weight:800;color:#5f6f8c;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .panel{
   flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;
@@ -90,14 +90,14 @@ body{
 .settingbar{display:flex;align-items:center;gap:8px}
 .setting-toggle{
   appearance:none;border:2px solid #e7f3ff;background:#f6fbff;cursor:pointer;
-  font-family:inherit;font-weight:800;font-size:12px;color:#4d7bb0;
+  font-family:inherit;font-weight:800;font-size:12px;color:#3f6a9d;
   display:flex;align-items:center;gap:4px;height:30px;padding:0 12px;border-radius:999px;
   box-shadow:0 3px 0 #e7f1fb;transition:transform .12s, box-shadow .12s;
 }
 .setting-toggle:active{transform:translateY(2px);box-shadow:0 1px 0 #e7f1fb}
 .setting-toggle svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;transition:transform .22s}
 .setting-toggle.open svg{transform:rotate(180deg)}
-.setting-summary{flex:1;font-size:11.5px;font-weight:700;color:#9aabc7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setting-summary{flex:1;font-size:11.5px;font-weight:700;color:#5f6f8c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .config{display:none;flex-direction:column;gap:8px}
 .config.open{display:flex}
 
@@ -126,12 +126,12 @@ body{
 .mini-btn.ghost:active{box-shadow:0 1px 0 #eaf3fb}
 .room-card{display:flex;flex-direction:column;gap:6px}
 .room-line{display:flex;gap:6px;align-items:center}
-.room-code{flex:1;font-size:12px;font-weight:700;color:#7d8ead;white-space:nowrap}
+.room-code{flex:1;font-size:12px;font-weight:700;color:#5f6f8c;white-space:nowrap}
 .room-code b{font-size:14px;color:#e86a86;letter-spacing:1.6px}
-.room-meta{font-size:11px;font-weight:700;color:#93a3c0;line-height:1.4}
+.room-meta{font-size:11px;font-weight:700;color:#5f6f8c;line-height:1.4}
 .room-tools{display:none;align-items:center;gap:6px}
 .room-tools.on{display:flex}
-.room-hint{flex:1;min-width:0;font-size:10.5px;font-weight:700;color:#9aabc7}
+.room-hint{flex:1;min-width:0;font-size:10.5px;font-weight:700;color:#5f6f8c}
 .pending{display:flex;flex-direction:column;gap:5px}
 .pending-item{
   display:flex;align-items:center;gap:6px;
@@ -163,7 +163,7 @@ body{
 .lobby-head{display:flex;align-items:center;gap:8px}
 .lobby-title-wrap{flex:1;min-width:0}
 .lobby-title{font-size:15px;font-weight:800;color:#3d4a68}
-.lobby-sub{font-size:10.5px;font-weight:700;color:#9aabc7;margin-top:2px}
+.lobby-sub{font-size:10.5px;font-weight:700;color:#5f6f8c;margin-top:2px}
 .lobby-list{
   flex:1 1 auto;min-height:90px;overflow-y:auto;
   display:flex;flex-direction:column;gap:7px;-webkit-overflow-scrolling:touch;
@@ -178,10 +178,10 @@ body{
 }
 .lobby-info{flex:1;min-width:0}
 .lobby-name{font-size:12.5px;font-weight:800;color:#3d4a68;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lobby-info small{display:block;font-size:10.5px;font-weight:700;color:#9aabc7;margin-top:2px}
+.lobby-info small{display:block;font-size:10.5px;font-weight:700;color:#5f6f8c;margin-top:2px}
 .lobby-item .mini-btn{height:30px;font-size:11.5px;padding:0 11px;border-radius:10px;flex:0 0 auto}
 .lobby-item .mini-btn:disabled{opacity:.55;cursor:default;box-shadow:none}
-.lobby-empty{text-align:center;font-size:12px;font-weight:700;color:#9aabc7;line-height:1.9;padding:22px 8px;white-space:pre-line}
+.lobby-empty{text-align:center;font-size:12px;font-weight:700;color:#5f6f8c;line-height:1.9;padding:22px 8px;white-space:pre-line}
 .lobby-foot{text-align:center;font-size:10.5px;font-weight:700;color:#b3c1d6}
 
 /* ---------- 扫码直连 P2P ---------- */
@@ -199,7 +199,7 @@ body{
   display:flex;flex-direction:column;align-items:center;gap:12px;
 }
 .qr-title{font-size:15px;font-weight:800;color:#3d4a68;text-align:center}
-.qr-sub{font-size:11px;font-weight:700;color:#9aabc7;text-align:center;line-height:1.5}
+.qr-sub{font-size:11px;font-weight:700;color:#5f6f8c;text-align:center;line-height:1.5}
 .qr-code{
   width:220px;height:220px;flex:0 0 220px;
   background:#fff;border:2px solid #e7f3ff;border-radius:16px;
@@ -225,7 +225,7 @@ body{
   position:absolute;top:12px;right:12px;
   width:28px;height:28px;border-radius:50%;
   display:grid;place-items:center;
-  background:#f0f5fc;color:#7d8ead;font-size:14px;font-weight:800;
+  background:#f0f5fc;color:#5f6f8c;font-size:14px;font-weight:800;
   cursor:pointer;border:0;
 }
 .qr-step{
@@ -245,7 +245,7 @@ body{
   animation:qrspin .8s linear infinite;
 }
 @keyframes qrspin{to{transform:rotate(360deg)}}
-.qr-wait-txt{font-size:12px;font-weight:700;color:#7d8ead;text-align:center}
+.qr-wait-txt{font-size:12px;font-weight:700;color:#5f6f8c;text-align:center}
 .qr-scanner{
   width:100%;aspect-ratio:1/1;flex:0 0 auto;
   background:#000;border-radius:16px;overflow:hidden;
@@ -286,9 +286,9 @@ body{
 .chip{width:17px;height:17px;border-radius:50%;flex:0 0 17px}
 .chip.b{background:radial-gradient(circle at 32% 28%,#8090ad,#3d4967 62%,#252d42);box-shadow:0 2px 4px rgba(70,90,130,.3)}
 .chip.w{background:radial-gradient(circle at 32% 28%,#fff,#f3f8fd 60%,#dceaf6);box-shadow:inset 0 0 0 1px rgba(120,190,235,.8)}
-.turn span{font-size:12.5px;font-weight:800;color:#7d8ead;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.turn.active span{color:#c56a1f}
-.status{text-align:center;font-size:11.5px;font-weight:600;color:#93a3c0;min-height:16px;letter-spacing:.2px}
+.turn span{font-size:12.5px;font-weight:800;color:#5f6f8c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.turn.active span{color:#a8551a}
+.status{text-align:center;font-size:11.5px;font-weight:600;color:#5f6f8c;min-height:16px;letter-spacing:.2px}
 
 .board-wrap{position:relative;flex:1 1 auto;min-height:200px;display:flex;align-items:center;justify-content:center}
 .board-wrap.fs{
@@ -315,7 +315,7 @@ canvas{
 .spectator-badge{
   position:absolute;top:8px;right:8px;z-index:2;display:none;
   background:rgba(255,255,255,.92);border:2px solid #ffe0a3;border-radius:999px;
-  padding:2px 10px;font-size:11px;font-weight:800;color:#c56a1f;
+  padding:2px 10px;font-size:11px;font-weight:800;color:#a8551a;
   box-shadow:0 2px 6px rgba(200,150,90,.2);
 }
 .spectator-badge.on{display:block}
@@ -374,10 +374,10 @@ canvas{
 .hi-log.d{background:linear-gradient(160deg,#ffe6a8,#ffc94d)}
 .hi-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .hi-text b{font-size:12.5px;font-weight:800;color:#3d4a68}
-.hi-text span{font-size:10.5px;font-weight:700;color:#9aabc7}
+.hi-text span{font-size:10.5px;font-weight:700;color:#5f6f8c}
 .hi-go{font-size:11px;font-weight:800;color:#e86a86;white-space:nowrap}
 .hi-go.add{color:#4d9fd8}
-.history-empty{text-align:center;font-size:11.5px;color:#9aabc7;padding:22px 0}
+.history-empty{text-align:center;font-size:11.5px;color:#5f6f8c;padding:22px 0}
 
 /* ---------- 好友 ---------- */
 .friend-count{
@@ -394,7 +394,7 @@ canvas{
 .friends-head{display:flex;align-items:center;gap:6px}
 .friends-head b{flex:1;font-size:13px;font-weight:800;color:#3d4a68}
 .friend-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;-webkit-overflow-scrolling:touch}
-.friend-empty{text-align:center;font-size:11.5px;color:#9aabc7;padding:22px 0;line-height:1.7}
+.friend-empty{text-align:center;font-size:11.5px;color:#5f6f8c;padding:22px 0;line-height:1.7}
 .friend-row{
   display:flex;align-items:center;gap:8px;flex:0 0 auto;
   padding:7px 9px;border-radius:14px;background:#fff;border:2px solid #eef6ff;
@@ -408,7 +408,7 @@ canvas{
 .friend-avatar img{width:100%;height:100%;object-fit:cover}
 .friend-main{flex:1;min-width:0}
 .friend-name{display:block;font-size:11.5px;font-weight:800;color:#3d4a68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.friend-sub{display:block;margin-top:1px;font-size:10px;font-weight:700;color:#9aabc7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.friend-sub{display:block;margin-top:1px;font-size:10px;font-weight:700;color:#5f6f8c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .friend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9d4e4;margin-right:4px;vertical-align:middle}
 .friend-dot.on{background:#54d18a;box-shadow:0 0 0 3px rgba(84,209,138,.16)}
 .friend-join{
@@ -420,12 +420,12 @@ canvas{
 .friend-join:active{transform:translateY(2px);box-shadow:0 0 0 #e86a86}
 
 .scorebar{display:flex;align-items:center;justify-content:center;gap:14px}
-.score-label{font-size:11.5px;font-weight:800;color:#9aabc7}
+.score-label{font-size:11.5px;font-weight:800;color:#5f6f8c}
 .score-label b{font-size:14px;color:#5d7297;margin:0 1px}
 .actions{display:flex;gap:8px}
 .btn{
   flex:1;appearance:none;border:0;cursor:pointer;font-family:inherit;
-  height:42px;border-radius:14px;font-size:13px;font-weight:800;color:#4d7bb0;
+  height:42px;border-radius:14px;font-size:13px;font-weight:800;color:#3f6a9d;
   background:linear-gradient(160deg,#f7fcff,#e9f5ff);
   box-shadow:0 4px 0 #d8ebfa;transition:transform .12s, box-shadow .12s;
 }
@@ -5832,7 +5832,11 @@ if (els.qrCancelBtn) {
 
   if (els.roomInput) {
     els.roomInput.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && els.joinConfirmBtn) els.joinConfirmBtn.click();
+      if (ev.key !== 'Enter') return;
+      // 中文/日文输入法选词回车不算提交；Safari 组合态还会给 keyCode 229
+      if (ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      if (els.joinConfirmBtn) els.joinConfirmBtn.click();
     });
   }
 

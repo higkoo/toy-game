@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#eaf8ff" />
 <title>小偶像方块</title>
 <style>
@@ -49,7 +49,7 @@ body{
 .brand h1{margin:0;font-size:18px;font-weight:800;letter-spacing:.5px;color:#3d4a68}
 .brand p{margin:3px 0 0;font-size:11px;color:var(--ink-soft);letter-spacing:.6px}
 .best{margin-left:auto;text-align:right;flex:0 0 auto}
-.best span{display:block;font-size:10px;font-weight:700;color:#9aabc7;letter-spacing:.5px}
+.best span{display:block;font-size:11px;font-weight:700;color:#5b6b85;letter-spacing:.5px}
 .best b{font-size:15px;color:#e08a2c}
 
 .panel{
@@ -62,13 +62,13 @@ body{
   flex:1;min-width:0;background:#f7fbff;border:2px solid var(--sky-soft);border-radius:14px;
   padding:5px 8px;
 }
-.stat span{display:block;font-size:9.5px;font-weight:800;color:#9aabc7;letter-spacing:.6px}
+.stat span{display:block;font-size:10.5px;font-weight:800;color:#5b6b85;letter-spacing:.6px}
 .stat b{font-size:16px;color:#4d6a92;line-height:1.15}
 .next-box{
   flex:0 0 62px;height:56px;background:#f9fcff;border:2px solid var(--sky-soft);border-radius:14px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
 }
-.next-box span{font-size:9px;font-weight:800;color:#9aabc7;letter-spacing:.5px}
+.next-box span{font-size:10.5px;font-weight:800;color:#5b6b85;letter-spacing:.5px}
 .next-box canvas{display:block;width:56px;height:32px}
 
 .board-wrap{
@@ -111,7 +111,7 @@ canvas#board{
 .mask-card button:active{transform:translateY(2px);box-shadow:0 2px 0 var(--coral-deep)}
 
 .status{
-  text-align:center;font-size:11.5px;font-weight:700;color:#93a3c0;min-height:16px;flex:0 0 auto;
+  text-align:center;font-size:12px;font-weight:700;color:#5f6f8c;min-height:16px;flex:0 0 auto;
 }
 .controls{
   flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
@@ -162,7 +162,7 @@ canvas#board{
   box-shadow:0 2px 0 #e6f1fb;font-size:15px;font-weight:800;line-height:1;
   transition:transform .08s, box-shadow .08s;
 }
-.dkey small{font-size:7.5px;font-weight:800;color:#9db0ca;letter-spacing:.2px}
+.dkey small{font-size:10px;font-weight:800;color:#4a5f7a;letter-spacing:.2px}
 .dkey:active{transform:translateY(2px);box-shadow:0 1px 0 #e6f1fb}
 .dkey.up{background:linear-gradient(160deg,#fff2cf,#ffe1a1);border-color:#ffe6a8;color:#a46a17;box-shadow:0 3px 0 #eec36b}
 .dkey.up small{color:#b78633}
@@ -175,7 +175,7 @@ canvas#board{
   box-shadow:0 4px 0 #e6f1fb;transition:transform .1s, box-shadow .1s;
   font-size:15px;line-height:1;
 }
-.ctrl small{font-size:8px;font-weight:800;color:#9db0ca;letter-spacing:.2px;white-space:nowrap}
+.ctrl small{font-size:10.5px;font-weight:800;color:#4a5f7a;letter-spacing:.2px;white-space:nowrap}
 .ctrl:active{transform:translateY(3px);box-shadow:0 1px 0 #e6f1fb}
 .ctrl[hidden]{display:none}
 .ctrl:disabled{opacity:.45;cursor:default;box-shadow:0 4px 0 #e6f1fb}
