@@ -658,7 +658,7 @@ button.act,#gBuy .primary{border-radius:4px;box-shadow:none}
 <script src="rank.js" defer></script>
 </head>
 <body>
-<canvas id="gl" tabindex="0"></canvas>
+<canvas id="gl" role="region" aria-label="驾驶画面" tabindex="0"></canvas>
 <div id="hud" style="display:none"></div>
 <div id="toast"></div>
 <div id="crashFx"></div>
@@ -666,7 +666,7 @@ button.act,#gBuy .primary{border-radius:4px;box-shadow:none}
 <div id="lot">
   <div id="lotDrag"></div>
   <div class="lotShade"></div>
-  <div id="bgWord"><span id="bgWordTx">LIVE</span></div>
+  <div id="bgWord" aria-hidden="true"><span id="bgWordTx">LIVE</span></div>
   <header class="lotTop">
     <div class="lbLogo"><i></i><b>ECHO</b><span>创作者后台<small>CREATOR STUDIO</small></span></div>
     <nav id="lotTabs">
@@ -700,7 +700,7 @@ button.act,#gBuy .primary{border-radius:4px;box-shadow:none}
     <section class="pg" id="pgGarage">
       <div class="gLeft">
         <div class="kicker"><i></i>选择车辆 <em>SELECT VEHICLE</em></div>
-        <h1 class="carName" id="gName"></h1>
+        <h2 class="carName" id="gName"></h2>
         <div class="carSub"><span id="gEng" class="engTag"></span><span id="gSub"></span></div>
         <div id="gSpec" class="stats"></div>
         <p id="gBlurb"></p>
@@ -758,10 +758,10 @@ button.act,#gBuy .primary{border-radius:4px;box-shadow:none}
 <div id="fade"></div>
 <div id="linkScr"><div class="lkBox"><div class="lkLogo">ECHO</div><div class="lkRing"></div><div class="lkS" id="lkS"></div></div></div>
 <div id="endScr"><div id="upWrap"></div></div>
-<div id="loading"><div class="spin"></div><div>正在生成道路与城市…</div></div>
+<div id="loading" role="region" aria-label="生成进度"><div class="spin"></div><div>正在生成道路与城市…</div></div>
 <div id="pause">
   <div class="ppanel">
-    <div id="pauseMain">
+    <div id="pauseMain" role="region" aria-label="暂停菜单">
       <h2>已暂停</h2>
       <div class="btns col"><button id="bResume" class="primary">继续直播</button><button id="bQuit">结束直播</button><button id="bPauseSet">设置</button></div>
       <div class="keys" id="keys2"></div>

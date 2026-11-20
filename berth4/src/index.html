@@ -379,12 +379,12 @@ kbd { display: inline-block; font: 500 10px/1 var(--f-mono); color: var(--bone);
   cursor: pointer; border-radius: 0; -webkit-appearance: none; appearance: none; }
 .m-ver:hover { color: var(--signal); }
 .m-ver:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
-</style>
+</style><style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}</style>
 <script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js" defer></script>
 <script src="rank.js" defer></script>
 </head>
 <body>
-<div id="app">
+<main id="app" aria-label="四号泊位游戏"><h1 class="sr-only">四号泊位</h1>
   <canvas id="view" tabindex="0"></canvas>
   <div id="ui"></div>
   <div id="boot">
@@ -392,7 +392,7 @@ kbd { display: inline-block; font: 500 10px/1 var(--f-mono); color: var(--bone);
     <div class="boot-sub" id="boot-msg">正在载入 B4 港区</div>
     <div class="boot-bar"><i id="boot-fill"></i></div>
   </div>
-</div>
+</main>
 <script src="game.bundle.js"></script>
 
 </body>
