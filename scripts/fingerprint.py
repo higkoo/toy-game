@@ -25,6 +25,7 @@ PROJECTS = [
     "gomoku/src",
     "go/src",
     "jianzhi/src",
+    "jingluo/src",
     "qihuang/src",
     "sanji/src",
     "seabreeze/src",
