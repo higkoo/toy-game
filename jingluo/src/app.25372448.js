@@ -17,6 +17,9 @@
   const loader = document.getElementById("loader");
   const autoBtn = document.getElementById("autoBtn");
   const pointTotalEl = document.getElementById("pointTotal");
+  const handViewBtn = document.getElementById("handViewBtn");
+  const iAna = document.getElementById("iAna");
+  const anaBlock = document.getElementById("anaBlock");
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -36,16 +39,19 @@
 
   const camera = new T.PerspectiveCamera(31, window.innerWidth / window.innerHeight, 0.01, 80);
 
-  scene.add(new T.HemisphereLight(0xbfe9ef, 0x1b2422, 1.1));
-  const key = new T.DirectionalLight(0xffe3c4, 1.35);
+  scene.add(new T.HemisphereLight(0xdceceb, 0x2d2520, .62));
+  const key = new T.DirectionalLight(0xfff2e4, 2.05);
   key.position.set(1.6, 3.2, 2.5);
   scene.add(key);
-  const rim = new T.DirectionalLight(0x6fe3d4, 1.6);
+  const rim = new T.DirectionalLight(0x9dc4cf, .62);
   rim.position.set(-2.2, 1.4, -2.2);
   scene.add(rim);
-  const fill = new T.PointLight(0x7c9dff, 0.85, 6);
+  const fill = new T.PointLight(0x8b9fd0, 0.36, 6);
   fill.position.set(1.8, 0.7, -1.4);
   scene.add(fill);
+  const bounce = new T.DirectionalLight(0xffcfae, .55);
+  bounce.position.set(0, -1.2, 1.4);
+  scene.add(bounce);
 
   /* ---------- 人体 ---------- */
   const root = new T.Group();
@@ -56,48 +62,54 @@
   const organGroup = new T.Group();
   root.add(skinGroup, boneGroup, organGroup);
 
-  const skinUniforms = {
-    uWarm: { value: new T.Color(0xe8b68d) },
-    uCool: { value: new T.Color(0x7fe3d3) },
-    uTime: { value: 0 }
-  };
-  const skinMat = new T.ShaderMaterial({
-    uniforms: skinUniforms,
-    transparent: true,
-    depthWrite: false,
-    depthTest: true,
-    side: T.DoubleSide,
-    blending: T.AdditiveBlending,
-    vertexShader: `
-      varying vec3 vN; varying vec3 vV; varying float vY;
-      void main(){
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        vN = normalize(normalMatrix * normal);
-        vV = normalize(-mv.xyz);
-        vY = (modelMatrix * vec4(position, 1.0)).y;
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `
-      uniform vec3 uWarm; uniform vec3 uCool; uniform float uTime;
-      varying vec3 vN; varying vec3 vV; varying float vY;
-      void main(){
-        float fres = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.25);
-        float scan = 0.5 + 0.5 * sin(vY * 82.0 - uTime * 1.6);
-        vec3 col = mix(uWarm, uCool, 0.055);
-        float a = 0.032 + fres * 0.30 + scan * 0.005;
-        gl_FragColor = vec4(col, a);
-      }`
-  });
+  const skinUniforms = { uTime: { value: 0 } };
 
-  function ringSurface(profile, seg = 64) {
+  const skinMat = new T.MeshStandardMaterial({
+    color: 0xf7d8c0, roughness: .60, metalness: .015,
+    emissive: 0x24100c, emissiveIntensity: .035, side: T.FrontSide
+  });
+  const skinShadeMat = new T.MeshStandardMaterial({ color: 0xd79f81, roughness: .72, metalness: 0 });
+  const nailMat = new T.MeshBasicMaterial({ color: 0xefc0a8 });
+  const creaseMat = new T.MeshBasicMaterial({ color: 0x9a6a53, transparent: true, opacity: .13, depthWrite: false });
+  const hairMat = new T.MeshStandardMaterial({ color: 0x17242c, roughness: .44, metalness: .04 });
+  const browMat = new T.MeshBasicMaterial({ color: 0x3c2b25 });
+  const scleraMat = new T.MeshStandardMaterial({ color: 0xf2e9dd, roughness: .38 });
+  const irisMat = new T.MeshStandardMaterial({ color: 0x5c3d2b, roughness: .34, metalness: .05 });
+  const pupilMat = new T.MeshBasicMaterial({ color: 0x10181b });
+  const glintMat = new T.MeshBasicMaterial({ color: 0xffffff });
+  const mouthMat = new T.MeshBasicMaterial({ color: 0x9c5f5b });
+  const shortsMat = new T.MeshStandardMaterial({ color: 0x6f8894, roughness: .66, metalness: .02, emissive: 0x24343b, emissiveIntensity: .30 });
+  const trimMat = new T.MeshStandardMaterial({ color: 0xc9a66d, roughness: .55, metalness: .15 });
+
+  const outlineCache = new Map();
+  function outlineMaterial(width) {
+    if (outlineCache.has(width)) return outlineCache.get(width);
+    const m = new T.ShaderMaterial({
+      side: T.BackSide, depthWrite: true, depthTest: true, transparent: false,
+      uniforms: { uWidth: { value: width } },
+      vertexShader: `uniform float uWidth;
+        void main(){ vec3 p = position + normal * uWidth; gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0); }`,
+      fragmentShader: `void main(){ gl_FragColor = vec4(0.055,0.075,0.082,1.0); }`
+    });
+    outlineCache.set(width, m);
+    return m;
+  }
+  function addOutline(mesh, width = .0032) {
+    const o = new T.Mesh(mesh.geometry, outlineMaterial(width));
+    o.renderOrder = -1;
+    mesh.add(o);
+    return o;
+  }
+
+  function ringSurface(profile, seg = 64, sx = 1, capped = false) {
     const pos = [], nor = [], idx = [];
     const ringCount = profile.length;
     for (let i = 0; i < ringCount; i++) {
       const [y, rx, rz, zoff] = profile[i];
       for (let j = 0; j < seg; j++) {
         const a = (j / seg) * Math.PI * 2;
-        pos.push(rx * Math.cos(a), y, rz * Math.sin(a) + (zoff || 0));
-        const nx = Math.cos(a) / Math.max(rx, .01);
+        pos.push(sx * rx * Math.cos(a), y, rz * Math.sin(a) + (zoff || 0));
+        const nx = sx * Math.cos(a) / Math.max(rx, .01);
         const nz = Math.sin(a) / Math.max(rz, .01);
         const n = V3(nx, 0, nz).normalize();
         nor.push(n.x, n.y, n.z);
@@ -107,7 +119,20 @@
       for (let j = 0; j < seg; j++) {
         const a = i * seg + j, b = i * seg + ((j + 1) % seg);
         const c = (i + 1) * seg + j, d = (i + 1) * seg + ((j + 1) % seg);
-        idx.push(a, c, b, b, c, d);
+        if (sx > 0) idx.push(a, c, b, b, c, d);
+        else idx.push(a, b, c, b, d, c);
+      }
+    }
+    if (capped) {
+      const [y0, , , z0] = profile[0], [y1, , , z1] = profile[ringCount - 1];
+      const ci0 = ringCount * seg, ci1 = ci0 + 1;
+      pos.push(0, y0, z0 || 0, 0, y1, z1 || 0);
+      nor.push(0, -1, 0, 0, 1, 0);
+      for (let j = 0; j < seg; j++) {
+        const a = j, b = (j + 1) % seg;
+        const c = (ringCount - 1) * seg + j, d = (ringCount - 1) * seg + ((j + 1) % seg);
+        if (sx > 0) { idx.push(ci0, a, b); idx.push(ci1, d, c); }
+        else { idx.push(ci0, b, a); idx.push(ci1, c, d); }
       }
     }
     const geo = new T.BufferGeometry();
@@ -117,92 +142,314 @@
     return geo;
   }
 
-  const torsoProfile = [
-    [0.815, 0.135, 0.085, 0.000],
-    [0.845, 0.165, 0.100, 0.000],
-    [0.880, 0.180, 0.108, 0.002],
-    [0.920, 0.182, 0.108, 0.003],
-    [0.960, 0.170, 0.105, 0.004],
-    [1.000, 0.158, 0.098, 0.005],
-    [1.040, 0.147, 0.092, 0.006],
-    [1.080, 0.143, 0.090, 0.008],
-    [1.120, 0.151, 0.096, 0.009],
-    [1.160, 0.164, 0.102, 0.010],
-    [1.200, 0.180, 0.108, 0.011],
-    [1.240, 0.195, 0.112, 0.010],
-    [1.280, 0.207, 0.115, 0.008],
-    [1.320, 0.216, 0.113, 0.006],
-    [1.360, 0.223, 0.108, 0.004],
-    [1.390, 0.228, 0.102, 0.002],
-    [1.415, 0.224, 0.097, 0.000],
-    [1.438, 0.168, 0.088, 0.000],
-    [1.455, 0.104, 0.078, 0.002],
-    [1.478, 0.074, 0.070, 0.003],
-    [1.505, 0.068, 0.066, 0.004],
-    [1.540, 0.061, 0.061, 0.005],
-    [1.575, 0.059, 0.059, 0.007]
-  ];
-
-  function addSkinMesh(geo) {
+  function skinMesh(geo, parent = skinGroup, ow = .0032) {
     const mesh = new T.Mesh(geo, skinMat);
-    skinGroup.add(mesh);
-    return mesh;
-  }
-  addSkinMesh(ringSurface(torsoProfile));
-
-  function ellipsoid(sx, sy, sz, x, y, z, material, parent = skinGroup) {
-    const m = new T.Mesh(new T.SphereGeometry(1, 28, 20), material);
-    m.scale.set(sx, sy, sz);
-    m.position.set(x, y, z);
-    parent.add(m);
-    return m;
-  }
-
-  ellipsoid(.104, .132, .116, 0, 1.665, .012, skinMat);
-  ellipsoid(.083, .082, .096, 0, 1.612, .027, skinMat);
-  ellipsoid(.018, .032, .013, .102, 1.652, .010, skinMat);
-  ellipsoid(.018, .032, .013, -.102, 1.652, .010, skinMat);
-
-  function taper(a, b, r1, r2, material, parent) {
-    const va = V3(...a), vb = V3(...b);
-    const dir = vb.clone().sub(va);
-    const len = dir.length();
-    const geo = new T.CylinderGeometry(r2, r1, len, 16, 1);
-    const mesh = new T.Mesh(geo, material);
-    mesh.position.copy(va).add(vb).multiplyScalar(.5);
-    mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.normalize());
+    if (ow) addOutline(mesh, ow);
     parent.add(mesh);
     return mesh;
   }
 
-  function sphereJoint(x, y, z, r, material, parent) {
-    const m = new T.Mesh(new T.SphereGeometry(r, 14, 12), material);
+  // 躯干：肩宽、腰窄、骨盆收紧，保留解剖体表的起伏
+  const torsoProfile = [
+    [0.800, 0.128, 0.082, 0.000],
+    [0.835, 0.148, 0.094, 0.000],
+    [0.875, 0.158, 0.101, 0.001],
+    [0.915, 0.157, 0.102, 0.003],
+    [0.955, 0.148, 0.099, 0.004],
+    [0.995, 0.139, 0.094, 0.005],
+    [1.035, 0.131, 0.089, 0.006],
+    [1.075, 0.130, 0.088, 0.007],
+    [1.115, 0.139, 0.092, 0.008],
+    [1.155, 0.152, 0.098, 0.009],
+    [1.195, 0.166, 0.104, 0.010],
+    [1.235, 0.178, 0.108, 0.010],
+    [1.275, 0.190, 0.112, 0.009],
+    [1.315, 0.200, 0.112, 0.007],
+    [1.355, 0.207, 0.108, 0.005],
+    [1.390, 0.212, 0.101, 0.003],
+    [1.415, 0.207, 0.094, 0.001],
+    [1.438, 0.160, 0.086, 0.000],
+    [1.455, 0.100, 0.076, 0.001],
+    [1.478, 0.069, 0.066, 0.002],
+    [1.510, 0.062, 0.061, 0.003],
+    [1.545, 0.057, 0.057, 0.004],
+    [1.580, 0.055, 0.055, 0.005]
+  ];
+  skinMesh(ringSurface(torsoProfile, 80, 1), skinGroup, .0038);
+
+  // 锁骨与胸大肌轮廓、肚脐
+  for (const s of [-1, 1]) {
+    const collar = new T.CatmullRomCurve3([
+      V3(0, 1.428, .082), V3(s * .070, 1.424, .074), V3(s * .135, 1.418, .058)
+    ]);
+    const collarMesh = new T.Mesh(new T.TubeGeometry(collar, 16, .0032, 5, false), skinShadeMat);
+    skinGroup.add(collarMesh);
+    ellipsoid(.055, .026, .014, s * .058, 1.318, .084, skinMat, skinGroup, true);
+  }
+  ellipsoid(.0075, .0055, .004, 0, .992, .102, skinShadeMat, skinGroup);
+
+  // 运动短裤：单圈高裁短裤，覆盖骨盆接缝并保留腿部开口
+  const shortsProfile = [
+    [0.858, 0.148, 0.099, 0.001],
+    [0.874, 0.159, 0.106, 0.001],
+    [0.892, 0.164, 0.109, 0.002],
+    [0.912, 0.160, 0.106, 0.002],
+    [0.930, 0.151, 0.102, 0.001]
+  ];
+  const shorts = new T.Mesh(ringSurface(shortsProfile, 64, 1), shortsMat);
+  addOutline(shorts, .0038);
+  skinGroup.add(shorts);
+  const waistCurve = new T.CatmullRomCurve3((() => {
+    const a = [];
+    for (let i = 0; i <= 48; i++) {
+      const t = i / 48 * Math.PI * 2;
+      a.push(V3(.159 * Math.cos(t), .930, .109 * Math.sin(t) + .002));
+    }
+    return a;
+  })(), false);
+  const waist = new T.Mesh(new T.TubeGeometry(waistCurve, 64, .0042, 5, false), trimMat);
+  skinGroup.add(waist);
+  const hemCurve = new T.CatmullRomCurve3((() => {
+    const a = [];
+    for (let i = 0; i <= 48; i++) {
+      const t = i / 48 * Math.PI * 2;
+      a.push(V3(.148 * Math.cos(t), .860, .099 * Math.sin(t) + .001));
+    }
+    return a;
+  })(), false);
+  skinGroup.add(new T.Mesh(new T.TubeGeometry(hemCurve, 64, .0036, 5, false), trimMat));
+
+  function ellipsoid(sx, sy, sz, x, y, z, material = skinMat, parent = skinGroup, outline = true) {
+    const m = new T.Mesh(new T.SphereGeometry(1, 30, 22), material);
+    m.scale.set(sx, sy, sz);
     m.position.set(x, y, z);
+    if (outline && material === skinMat) addOutline(m, .0026);
     parent.add(m);
     return m;
   }
 
-  // 手臂
-  for (const s of [-1, 1]) {
-    taper([s * .214, 1.408, 0], [s * .286, 1.045, .006], .058, .043, skinMat, skinGroup);
-    taper([s * .286, 1.045, .006], [s * .336, .825, .020], .043, .027, skinMat, skinGroup);
-    sphereJoint(s * .214, 1.408, 0, .068, skinMat, skinGroup);
-    sphereJoint(s * .286, 1.045, .006, .047, skinMat, skinGroup);
-    sphereJoint(s * .336, .825, .020, .030, skinMat, skinGroup);
-    ellipsoid(.038, .060, .023, s * .346, .776, .026, skinMat, skinGroup);
-    // 手指
-    taper([s * .350, .790, .030], [s * .359, .744, .040], .012, .006, skinMat, skinGroup);
-    taper([s * .337, .792, .025], [s * .341, .750, .032], .010, .005, skinMat, skinGroup);
+  function taper(a, b, r1, r2, material = skinMat, parent = skinGroup, outline = true, radial = 18) {
+    const va = V3(...a), vb = V3(...b);
+    const dir = vb.clone().sub(va);
+    const len = dir.length();
+    const geo = new T.CylinderGeometry(r2, r1, len, radial, 1);
+    const mesh = new T.Mesh(geo, material);
+    mesh.position.copy(va).add(vb).multiplyScalar(.5);
+    mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.normalize());
+    if (outline && material === skinMat) addOutline(mesh, .0028);
+    parent.add(mesh);
+    return mesh;
   }
 
-  // 腿
+  function sphereJoint(x, y, z, r, material = skinMat, parent = skinGroup, outline = true) {
+    const m = new T.Mesh(new T.SphereGeometry(r, 18, 14), material);
+    m.position.set(x, y, z);
+    if (outline && material !== skinMat) addOutline(m, .0022);
+    parent.add(m);
+    return m;
+  }
+
+  // 颈、头、五官与短发
+  taper([0, 1.582, .008], [0, 1.625, .010], .052, .047, skinMat, skinGroup, true, 24);
+  function makeHeadGeometry() {
+    const g = new T.SphereGeometry(1, 48, 36);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const low = Math.max(0, -y);
+      const narrow = 1 - .31 * Math.pow(low, 1.35);
+      x *= .103 * narrow;
+      z *= .114 * (1 - .10 * low);
+      z += .013 * low;
+      y *= .128;
+      pos.setXYZ(i, x, y + 1.674, z + .012);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+  const headGeo = makeHeadGeometry();
+  const head = skinMesh(headGeo, skinGroup, .0036);
+  ellipsoid(.060, .045, .052, 0, 1.588, .049, skinMat, skinGroup, true);
+  // 耳朵
   for (const s of [-1, 1]) {
-    taper([s * .087, .905, 0], [s * .100, .470, .010], .091, .058, skinMat, skinGroup);
-    taper([s * .100, .470, .010], [s * .100, .086, .005], .058, .033, skinMat, skinGroup);
-    sphereJoint(s * .087, .905, 0, .095, skinMat, skinGroup);
-    sphereJoint(s * .100, .470, .010, .060, skinMat, skinGroup);
-    sphereJoint(s * .100, .086, .005, .035, skinMat, skinGroup);
-    ellipsoid(.052, .030, .096, s * .100, .034, .050, skinMat, skinGroup);
+    ellipsoid(.016, .030, .012, s * .104, 1.664, .004, skinMat, skinGroup, true);
+  }
+
+  // 眼白、虹膜、瞳孔、高光
+  for (const s of [-1, 1]) {
+    ellipsoid(.023, .0120, .0042, s * .038, 1.682, .112, scleraMat, skinGroup, false);
+    ellipsoid(.0102, .0104, .0026, s * .038, 1.682, .1152, irisMat, skinGroup, false);
+    ellipsoid(.0044, .0058, .0014, s * .038, 1.682, .1170, pupilMat, skinGroup, false);
+    ellipsoid(.0032, .0032, .0010, s * .0345, 1.686, .1182, glintMat, skinGroup, false);
+    // 上眼睑：皮肤色厚边包住眼球上半，外侧再压一条深色睫毛线
+    const lid = new T.CatmullRomCurve3([
+      V3(s * .015, 1.694, .110), V3(s * .038, 1.701, .114), V3(s * .061, 1.694, .110)
+    ]);
+    skinGroup.add(new T.Mesh(new T.TubeGeometry(lid, 16, .0032, 5, false), skinMat));
+    const lash = new T.CatmullRomCurve3([
+      V3(s * .017, 1.700, .114), V3(s * .038, 1.706, .117), V3(s * .059, 1.700, .113)
+    ]);
+    skinGroup.add(new T.Mesh(new T.TubeGeometry(lash, 16, .0011, 4, false), browMat));
+    // 眉
+    const brow = new T.CatmullRomCurve3([
+      V3(s * .018, 1.710, .109), V3(s * .042, 1.714, .112), V3(s * .067, 1.710, .107)
+    ]);
+    skinGroup.add(new T.Mesh(new T.TubeGeometry(brow, 14, .0023, 5, false), browMat));
+  }
+  // 鼻梁与鼻尖
+  taper([0, 1.695, .108], [0, 1.651, .132], .011, .007, skinMat, skinGroup, false, 10);
+  ellipsoid(.008, .0075, .008, 0, 1.646, .130, skinMat, skinGroup, false);
+  for (const s of [-1, 1]) ellipsoid(.0034, .0028, .0022, s * .0065, 1.640, .126, skinShadeMat, skinGroup, false);
+  // 嘴唇
+  const mouth = new T.CatmullRomCurve3([
+    V3(-.023, 1.607, .118), V3(0, 1.603, .123), V3(.023, 1.607, .118)
+  ]);
+  skinGroup.add(new T.Mesh(new T.TubeGeometry(mouth, 16, .0022, 4, false), mouthMat));
+
+  // 头发：后脑壳 + 顶部发盖 + 额前碎发
+  ellipsoid(.107, .125, .074, 0, 1.682, -.038, hairMat, skinGroup, true);
+  const hairGeo = new T.SphereGeometry(1, 36, 24, 0, Math.PI * 2, 0, Math.PI * .40);
+  const hairCap = new T.Mesh(hairGeo, hairMat);
+  hairCap.scale.set(.110, .136, .120);
+  hairCap.position.set(0, 1.674, .006);
+  addOutline(hairCap, .0034);
+  skinGroup.add(hairCap);
+  for (const s of [-1, 1]) {
+    taper([s * .018, 1.744, .106], [s * .074, 1.706, .108], .014, .004, hairMat, skinGroup, false, 7);
+    taper([s * .092, 1.708, .052], [s * .099, 1.663, .040], .012, .005, hairMat, skinGroup, false, 7);
+  }
+  taper([0, 1.788, -.006], [0, 1.798, -.030], .020, .004, hairMat, skinGroup, false, 7);
+
+  // 上臂、前臂、手腕
+  for (const s of [-1, 1]) {
+    ellipsoid(.060, .050, .058, s * .208, 1.398, .002, skinMat, skinGroup, false);
+    taper([s * .208, 1.405, .002], [s * .275, 1.058, .012], .061, .043, skinMat, skinGroup, false, 22);
+    taper([s * .275, 1.058, .012], [s * .336, .806, .026], .043, .024, skinMat, skinGroup, false, 22);
+    sphereJoint(s * .275, 1.058, .012, .047, skinMat, skinGroup, true);
+    ellipsoid(.028, .030, .026, s * .336, .820, .030, skinMat, skinGroup, false);
+  }
+
+  /* ---------- 手部：手掌 + 五指三节 ---------- */
+  const handRigs = [];
+  const handSegments = [];
+  function buildHand(s) {
+    const wrist = V3(s * .336, .815, .035);
+    // 手掌：倒角挤出，腕部窄、掌指关节处宽、底边平，便于五指排布
+    const palmShape = new T.Shape();
+    palmShape.moveTo(-.021, .824);
+    palmShape.quadraticCurveTo(-.035, .808, -.045, .786);
+    palmShape.quadraticCurveTo(-.052, .762, -.052, .740);
+    palmShape.quadraticCurveTo(-.051, .712, -.036, .708);
+    palmShape.lineTo(.036, .708);
+    palmShape.quadraticCurveTo(.051, .712, .052, .740);
+    palmShape.quadraticCurveTo(.052, .762, .045, .786);
+    palmShape.quadraticCurveTo(.035, .808, .021, .824);
+    palmShape.quadraticCurveTo(0, .828, -.021, .824);
+    const palmGeo = new T.ExtrudeGeometry(palmShape, {
+      depth: .026, bevelEnabled: true, bevelThickness: .008, bevelSize: .006,
+      bevelSegments: 3, curveSegments: 12, steps: 1
+    });
+    const palm = new T.Mesh(palmGeo, skinMat);
+    palm.position.set(s * .335, 0, .026);
+    skinGroup.add(palm);
+    // 掌根曲线本身已表达大鱼际/小鱼际，不再叠加球体
+    // 掌纹改用贴面细线，避免浮在掌外产生阴影
+    const wristCrease = new T.CatmullRomCurve3([
+      V3(s * .304, .818, .0608), V3(s * .335, .816, .0622), V3(s * .368, .818, .0606)
+    ]);
+    skinGroup.add(new T.Mesh(new T.TubeGeometry(wristCrease, 14, .0010, 4, false), creaseMat));
+
+    function phalanx(a, b, r1, r2, outlineWidth = 0) {
+      const va = V3(s * a[0], a[1], a[2]);
+      const vb = V3(s * b[0], b[1], b[2]);
+      const dir = vb.clone().sub(va);
+      const len = dir.length();
+      const geo = new T.CylinderGeometry(r2, r1, len, 12, 1);
+      const mesh = new T.Mesh(geo, skinMat);
+      mesh.position.copy(va).add(vb).multiplyScalar(.5);
+      mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
+      if (outlineWidth > 0) addOutline(mesh, outlineWidth);
+      skinGroup.add(mesh);
+      return { mesh, va, vb, dir, len };
+    }
+    function joint(p, r) {
+      const m = new T.Mesh(new T.SphereGeometry(r, 14, 11), skinMat);
+      m.position.set(s * p[0], p[1], p[2]);
+      skinGroup.add(m);
+      return m;
+    }
+    function crease(p, axis, r) {
+      const torus = new T.Mesh(new T.TorusGeometry(r, .00045, 3, 10), creaseMat);
+      torus.position.set(s * p[0], p[1], p[2]);
+      torus.quaternion.setFromUnitVectors(V3(0, 0, 1), axis.clone().normalize());
+      skinGroup.add(torus);
+    }
+    function nail(a, b, dir, r) {
+      const m = new T.Mesh(new T.SphereGeometry(1, 12, 8), nailMat);
+      m.scale.set(.0054, .0078, .0016);
+      const t = .70;
+      m.position.set(s * (a[0] + (b[0] - a[0]) * t), a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t - r * .95);
+      m.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
+      skinGroup.add(m);
+    }
+
+    const defs = [
+      { key: "thumb", name: "拇指", short: "拇", pts: [[.370, .796, .046], [.398, .779, .050], [.418, .764, .054], [.433, .752, .056]], radii: [.0150, .0130, .0115, .0095], metacarpal: true },
+      { key: "index", name: "食指", short: "食", pts: [[.362, .720, .042], [.364, .684, .044], [.366, .658, .046], [.368, .636, .048]], radii: [.0116, .0100, .0088, .0074] },
+      { key: "middle", name: "中指", short: "中", pts: [[.335, .720, .041], [.334, .682, .043], [.333, .652, .045], [.332, .627, .047]], radii: [.0120, .0105, .0092, .0078] },
+      { key: "ring", name: "环指", short: "环", pts: [[.308, .720, .041], [.306, .685, .043], [.303, .658, .045], [.301, .638, .047]], radii: [.0110, .0095, .0084, .0070] },
+      { key: "little", name: "小指", short: "小", pts: [[.282, .720, .042], [.278, .690, .044], [.274, .668, .046], [.270, .652, .048]], radii: [.0097, .0083, .0072, .0060] }
+    ];
+
+    const rig = { side: s, fingers: {}, segments: [] };
+    defs.forEach(def => {
+      const joints = def.pts.map((p, pi) => joint(p, pi === 0 ? def.radii[0] * .78 : def.radii[Math.min(pi, 3)] * .88));
+      if (def.metacarpal) {
+        phalanx(def.pts[0], def.pts[1], def.radii[0], def.radii[1], 0);
+      }
+      const firstSeg = def.metacarpal ? 1 : 0;
+      const count = def.metacarpal ? 2 : 3;
+      const segRecords = [];
+      for (let i = firstSeg; i < 3; i++) {
+        const k = i - firstSeg + 1;
+        const a = def.pts[i], b = def.pts[i + 1];
+        const r1 = def.radii[i], r2 = def.radii[i + 1];
+        const seg = phalanx(a, b, r1, r2);
+        joint(b, r2 * .88);
+        if (i < 2) crease(b, seg.dir, r2 * 1.005);
+        if (i === 2) nail(a, b, seg.dir, r2);
+        const mid = seg.va.clone().add(seg.vb).multiplyScalar(.5);
+        segRecords.push({ index: k, a: seg.va, b: seg.vb, mid, name: def.name, short: def.short });
+        rig.segments.push({ side: s, name: def.name, short: def.short, index: k, mid, finger: def.key });
+        handSegments.push({ side: s, name: def.name, short: def.short, index: k, mid, finger: def.key });
+      }
+      rig.fingers[def.key] = { name: def.name, segments: segRecords, base: V3(s * def.pts[0][0], def.pts[0][1], def.pts[0][2]), tip: V3(s * def.pts[3][0], def.pts[3][1], def.pts[3][2]) };
+    });
+    // 掌指关节隆起
+
+    handRigs.push(rig);
+  }
+  buildHand(1);
+  buildHand(-1);
+
+  // 腿与足
+  for (const s of [-1, 1]) {
+    taper([s * .088, .930, .001], [s * .104, .475, .010], .091, .054, skinMat, skinGroup, false, 24);
+    taper([s * .104, .475, .010], [s * .100, .092, .008], .054, .032, skinMat, skinGroup, false, 24);
+    sphereJoint(s * .088, .930, .001, .088, skinMat, skinGroup, true);
+    sphereJoint(s * .104, .475, .010, .059, skinMat, skinGroup, true);
+    sphereJoint(s * .100, .092, .008, .034, skinMat, skinGroup, true);
+    ellipsoid(.052, .033, .092, s * .100, .033, .050, skinMat, skinGroup, true);
+    // 足弓内侧、脚跟
+    ellipsoid(.030, .030, .034, s * .077, .042, .020, skinMat, skinGroup, false);
+    ellipsoid(.035, .026, .034, s * .100, .026, -.030, skinMat, skinGroup, true);
+    // 五趾
+    const toeX = [.065, .083, .099, .113, .125];
+    const toeR = [.013, .0105, .0095, .0085, .0075];
+    const toeZ = [.137, .140, .137, .132, .124];
+    for (let i = 0; i < 5; i++) {
+      ellipsoid(toeR[i], toeR[i] * .85, toeR[i] * 1.7, s * toeX[i], toeR[i] * .9 + .002, toeZ[i], skinMat, skinGroup, false);
+    }
   }
 
   /* ---------- 骨骼 ---------- */
@@ -316,6 +563,8 @@
 
   function buildMeridian(m) {
     const group = new T.Group();
+    const mats = [];
+    const reg = (mat, full, dim) => { mats.push({ mat, full, dim }); return mat; };
     const color = new T.Color(m.color);
     const sides = m.central ? [0] : [1, -1];
     const pointsBySide = new Map();
@@ -328,34 +577,36 @@
       if (vecs.length > 1) {
         const curve = new T.CatmullRomCurve3(vecs, false, "catmullrom", .38);
         const core = new T.Mesh(
-          new T.TubeGeometry(curve, Math.max(56, vecs.length * 9), .0034, 7, false),
-          new T.MeshBasicMaterial({ color, transparent: true, opacity: .92, depthWrite: false, toneMapped: false })
+          new T.TubeGeometry(curve, Math.max(56, vecs.length * 9), .0028, 7, false),
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .92, depthWrite: false, toneMapped: false }), .95, .40)
         );
         sideGroup.add(core);
         const halo = new T.Mesh(
-          new T.TubeGeometry(curve, Math.max(48, vecs.length * 7), .0092, 6, false),
-          new T.MeshBasicMaterial({ color, transparent: true, opacity: .13, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false })
+          new T.TubeGeometry(curve, Math.max(48, vecs.length * 7), .0078, 6, false),
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .13, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }), .16, .035)
         );
         sideGroup.add(halo);
       }
 
       const pointRecs = [];
       m.points.forEach((p, idx) => {
+        if (p.h) return;
         const pos = V3(p.p[0] * sideSign, p.p[1], p.p[2]);
         const pointGroup = new T.Group();
         pointGroup.position.copy(pos);
 
         const core = new T.Mesh(
-          new T.SphereGeometry(.0046, 10, 8),
-          new T.MeshBasicMaterial({ color, transparent: true, opacity: .98, depthWrite: false, toneMapped: false })
+          new T.SphereGeometry(.0038, 10, 8),
+          reg(new T.MeshBasicMaterial({ color, transparent: true, opacity: .98, depthWrite: false, toneMapped: false }), 1, .62)
         );
         pointGroup.add(core);
 
-        const halo = new T.Sprite(new T.SpriteMaterial({
+        const haloMat = reg(new T.SpriteMaterial({
           map: glowTex, color, transparent: true, opacity: .52,
           depthWrite: false, depthTest: true, blending: T.AdditiveBlending, toneMapped: false
-        }));
-        halo.scale.set(.058, .058, 1);
+        }), .55, .26);
+        const halo = new T.Sprite(haloMat);
+        halo.scale.set(.034, .034, 1);
         pointGroup.add(halo);
 
         const selRing = new T.Sprite(new T.SpriteMaterial({
@@ -376,10 +627,11 @@
     }
     group.userData.meridian = m;
     meridianGroup.add(group);
-    meridianRuntime.set(m.id, { m, group, pointsBySide });
+    meridianRuntime.set(m.id, { m, group, pointsBySide, mats });
   }
 
   DATA.forEach(buildMeridian);
+  meridianRuntime.forEach(rt => rt.mats.forEach(x => { x.mat.opacity = x.dim; }));
 
   /* ---------- 全息底座与粒子 ---------- */
   const decor = new T.Group();
@@ -435,8 +687,30 @@
   const cam = { theta: .05, phi: 1.36, r: HOME.r, tx: 0, ty: HOME.ty };
   const goal = { theta: .05, phi: 1.36, r: HOME.r, tx: 0, ty: HOME.ty };
   let auto = !reduced;
+  let handFocus = false, handSide = 1;
+
+  function focusHand(side = handSide) {
+    handSide = side;
+    handFocus = true;
+    auto = false;
+    autoBtn.classList.remove("on");
+    autoBtn.setAttribute("aria-pressed", "false");
+    handViewBtn.classList.add("on");
+    handViewBtn.setAttribute("aria-pressed", "true");
+    goal.theta = 0;
+    goal.phi = 1.48;
+    goal.r = MOBILE_UI ? 1.18 : .78;
+    goal.tx = side * .342;
+    goal.ty = MOBILE_UI ? .732 : .750;
+    document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("on"));
+    rebuildLabels();
+    toast(`${side > 0 ? "左手" : "右手"}特写：拖拽手部检查五指，食1/2/3 即食指第1/2/3节`);
+  }
 
   function setView(name) {
+    handFocus = false;
+    handViewBtn.classList.remove("on");
+    handViewBtn.setAttribute("aria-pressed", "false");
     const dirs = { front: 0, back: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 };
     goal.theta = dirs[name] || 0;
     goal.phi = 1.36;
@@ -447,6 +721,10 @@
 
   document.querySelectorAll("[data-view]").forEach(btn => {
     btn.addEventListener("click", () => setView(btn.dataset.view));
+  });
+
+  handViewBtn.addEventListener("click", () => {
+    focusHand(handFocus ? (handSide === 1 ? -1 : 1) : 1);
   });
 
   const pointers = new Map();
@@ -591,12 +869,12 @@
     const b = document.createElement("button");
     b.type = "button"; b.className = "mer"; b.dataset.id = m.id; b.setAttribute("role", "listitem");
     b.style.setProperty("--c", m.color);
-    b.innerHTML = `<span class="dot" aria-hidden="true"></span><span class="mcopy"><b>${m.name}</b><em>${m.id} · ${m.route}</em></span><span class="cnt">${m.points.length}</span>`;
+    b.innerHTML = `<span class="dot" aria-hidden="true"></span><span class="mcopy"><b>${m.name}</b><em>${m.id} · ${m.route}</em></span><span class="cnt">${m.points.filter(p => !p.h).length}</span>`;
     b.addEventListener("click", () => setActive(m.id));
     merList.appendChild(b);
   });
   document.getElementById("merCount").textContent = DATA.length;
-  pointTotalEl.textContent = new Set(DATA.flatMap(m => m.points.map(p => p.c))).size;
+  pointTotalEl.textContent = new Set(DATA.flatMap(m => m.points.filter(p => !p.h).map(p => p.c))).size;
 
   const state = { active: "ALL", selected: null, layers: { skin: true, bone: false, organ: false } };
   boneGroup.visible = false;
@@ -604,7 +882,11 @@
   function setActive(id, quiet = false) {
     if (id === state.active && id !== "ALL") id = "ALL";
     state.active = id;
-    meridianRuntime.forEach(rt => { rt.group.visible = id === "ALL" || rt.m.id === id; });
+    const allMode = id === "ALL";
+    meridianRuntime.forEach(rt => {
+      rt.group.visible = allMode || rt.m.id === id;
+      rt.mats.forEach(x => { x.mat.opacity = allMode ? x.dim : x.full; });
+    });
     document.querySelectorAll(".mer").forEach(b => b.classList.toggle("active", b.dataset.id === id || (id === "ALL" && b === allBtn)));
     if (id === "BL" || id === "GV") goal.theta = Math.PI;
     else if (id === "CV") goal.theta = 0;
@@ -625,8 +907,11 @@
     document.getElementById("iCode").textContent = rec.p.c;
     document.getElementById("iName").textContent = rec.p.n;
     document.getElementById("iMer").textContent = rec.m.name;
-    document.getElementById("iSide").textContent = rec.side;
+    document.getElementById("iSide").textContent = rec.p.ana ? (rec.side === "左侧" ? "左手" : "右手") : rec.side;
     document.getElementById("iLoc").textContent = rec.p.loc;
+    const handSideWord = rec.side === "左侧" ? "左手" : rec.side === "右侧" ? "右手" : "";
+    iAna.textContent = rec.p.ana ? `${handSideWord} · ${rec.p.ana}` : "";
+    anaBlock.style.display = rec.p.ana ? "" : "none";
     document.getElementById("iFx").textContent = rec.p.fx;
     document.getElementById("iRoute").textContent = `${rec.m.route} · ${rec.m.clock}。${rec.m.desc}`;
     document.getElementById("infoHead").style.setProperty("--c", rec.m.color);
@@ -653,13 +938,30 @@
   document.getElementById("focusBtn").addEventListener("click", () => {
     const r = state.selected;
     if (!r) return;
-    goal.r = 1.46;
-    goal.theta = r.pos.z >= -.02 ? 0 : Math.PI;
-    goal.phi = 1.42;
-    goal.tx = r.pos.x;
-    goal.ty = r.pos.y;
+    const onHand = !!r.p.ana;
+    if (onHand) {
+      handFocus = true;
+      handSide = r.pos.x > 0 ? 1 : -1;
+      handViewBtn.classList.add("on");
+      handViewBtn.setAttribute("aria-pressed", "true");
+      auto = false;
+      autoBtn.classList.remove("on");
+      autoBtn.setAttribute("aria-pressed", "false");
+      goal.r = .40;
+      goal.theta = r.pos.z > .033 ? 0 : Math.PI;
+      goal.phi = 1.50;
+      goal.tx = r.pos.x;
+      goal.ty = r.pos.y + .006;
+      rebuildLabels();
+    } else {
+      goal.r = 1.46;
+      goal.theta = r.pos.z >= -.02 ? 0 : Math.PI;
+      goal.phi = 1.42;
+      goal.tx = r.pos.x;
+      goal.ty = r.pos.y;
+    }
     document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("on"));
-    toast(`聚焦 ${r.p.c} ${r.p.n}`);
+    toast(`聚焦 ${r.p.c} ${r.p.n}${onHand ? " · " + (r.pos.x > 0 ? "左手" : "右手") : ""}`);
   });
 
   function stepPoint(delta) {
@@ -677,6 +979,9 @@
   function resetAll() {
     clearSelection();
     setActive("ALL");
+    handFocus = false;
+    handViewBtn.classList.remove("on");
+    handViewBtn.setAttribute("aria-pressed", "false");
     setView("front");
     toast("已回到全身视角");
   }
@@ -769,10 +1074,12 @@ document.getElementById("tourBtn").addEventListener("click", () => {
 
   /* ---------- 浮动穴位标签 ---------- */
   const labelNodes = new Map();
+  const handNodes = new Map();
   const projected = new T.Vector3();
 
   function rebuildLabels() {
     const keep = new Set();
+    const keepHand = new Set();
     const activeRt = state.active === "ALL" ? null : meridianRuntime.get(state.active);
     let allowNames = false;
     if (activeRt) {
@@ -783,6 +1090,8 @@ document.getElementById("tourBtn").addEventListener("click", () => {
       records.filter(r => r.m.id === state.active).forEach(r => keep.add(r));
     }
     if (state.selected) keep.add(state.selected);
+
+    if (handFocus) handSegments.forEach(seg => { if (seg.side === handSide) keepHand.add(seg); });
 
     labelNodes.forEach((node, rec) => {
       if (!keep.has(rec)) { node.remove(); labelNodes.delete(rec); }
@@ -795,10 +1104,23 @@ document.getElementById("tourBtn").addEventListener("click", () => {
       labelsEl.appendChild(el);
       labelNodes.set(rec, el);
     });
+
+    handNodes.forEach((node, seg) => {
+      if (!keepHand.has(seg)) { node.remove(); handNodes.delete(seg); }
+    });
+    keepHand.forEach(seg => {
+      if (handNodes.has(seg)) return;
+      const el = document.createElement("span");
+      el.className = "plabel phand";
+      el.textContent = `${seg.short}${seg.index}`;
+      el.title = `${seg.name}第${seg.index}节` + (seg.index === 3 ? "（远节）" : seg.index === 2 ? "（中节）" : "（近节）");
+      labelsEl.appendChild(el);
+      handNodes.set(seg, el);
+    });
   }
 
   function updateLabels() {
-    if (!labelNodes.size) return;
+    if (!labelNodes.size && !handNodes.size) return;
     const w = window.innerWidth, h = window.innerHeight;
     const items = [];
     labelNodes.forEach((el, rec) => {
@@ -808,18 +1130,33 @@ document.getElementById("tourBtn").addEventListener("click", () => {
         return;
       }
       items.push({
-        el, rec,
+        el, rec, pri: rec === state.selected ? 2 : 1,
         x: (projected.x * .5 + .5) * w,
         y: (-projected.y * .5 + .5) * h
       });
     });
-    items.sort((a, b) => (b.rec === state.selected) - (a.rec === state.selected) || a.y - b.y);
+    handNodes.forEach((el, seg) => {
+      projected.copy(seg.mid).project(camera);
+      if (projected.z > 1 || projected.z < -1 || Math.abs(projected.x) > 1.3 || Math.abs(projected.y) > 1.3) {
+        el.style.opacity = 0;
+        return;
+      }
+      const hot = state.selected && state.selected.p.ana && state.selected.pos.distanceTo(seg.mid) < .034;
+      el.classList.toggle("hot", !!hot);
+      el.style.opacity = hot ? 1 : .82;
+      items.push({
+        el, rec: null, pri: hot ? 3 : 1.3,
+        x: (projected.x * .5 + .5) * w,
+        y: (-projected.y * .5 + .5) * h
+      });
+    });
+    items.sort((a, b) => b.pri - a.pri || a.y - b.y);
     const placed = [];
     items.forEach(it => {
       let guard = 0;
       while (guard++ < 4 && placed.some(p => Math.abs(p.x - it.x) < 18 && Math.abs(p.y - it.y) < 14)) it.y -= 15;
       placed.push(it);
-      it.el.style.opacity = 1;
+      it.el.style.opacity = it.pri >= 3 ? 1 : it.el.style.opacity;
       it.el.style.left = `${it.x}px`;
       it.el.style.top = `${it.y}px`;
     });
