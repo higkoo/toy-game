@@ -21,8 +21,9 @@ B 站 Toy 容器中运行的静态小游戏与学习页面合集。页面本身�
 | [skybreaker](skybreaker/README.md) | [铁翼破云](https://www.bilibili.com/toy/skybreaker/index.html) | F-14B 空战，鼠标驾驶六武器编队，截击波次、击破巨型空中堡垒 |
 | [yangyu](yangyu/README.md) | [阳羽](https://www.bilibili.com/toy/yangyu/index.html) | 3D 飞行收集，穿过天门环累积光羽 |
 | [qihuang](qihuang/README.md) | [岐黄典籍故事](https://www.bilibili.com/toy/qihuang/index.html) | 中医典籍科普，按卷次阅读原文与注解 |
+| [jingluo](jingluo/README.md) | 经络图谱 · 3D（新增，待发布） | 3D 人体十四经脉，旋转缩放、筛选循行、点穴查看定位与主治 |
 
-15 款作品都已上线，点击游戏名即可直接试玩。
+15 款作品已上线，点击游戏名即可直接试玩；《经络图谱 · 3D》为新增项目，尚未发布。
 
 ## 目录结构
 
