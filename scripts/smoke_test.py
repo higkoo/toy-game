@@ -20,6 +20,7 @@ ENTRIES = [
     "jianzhi/src/index.html",
     "qihuang/src/index.html",
     "jingluo/src/index.html",
+    "airliner-flight-sim/src/index.html",
     "qihuang/src/kb/bencao.html",
     "sanji/src/index.html",
     "seabreeze/src/index.html",
@@ -31,7 +32,7 @@ ENTRIES = [
     "skybreaker/src/index.html",
     "yangyu/src/index.html",
 ]
-HEAVY = {"skybreaker", "berth4", "yangyu", "xingzhao", "dashcam", "jingluo"}
+HEAVY = {"skybreaker", "berth4", "yangyu", "xingzhao", "dashcam", "jingluo", "airliner-flight-sim"}
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
