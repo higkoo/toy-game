@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1215">
+  <title>数独 · 九宫</title>
+  <meta name="description" content="一局安静的数独。五种难度、候选与排除、提示和计时。">
+  <link rel="icon" href="assets/icon.png">
+  <link rel="stylesheet" href="style.f58badb6.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient-glow ambient-glow-a"></div>
+    <div class="ambient-glow ambient-glow-b"></div>
+    <div class="ambient-grid"></div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="seal" aria-hidden="true">九</div>
+        <div class="brand-copy">
+          <h1>九宫</h1>
+          <p>数独 · 逻辑的呼吸</p>
+        </div>
+      </div>
+      <button class="menu-trigger" id="menuBtn" type="button" aria-label="打开游戏菜单">
+        <span class="menu-grid" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </span>
+      </button>
+    </header>
+
+    <section class="hud" aria-label="本局状态">
+      <button class="hud-chip" id="difficultyBtn" type="button" aria-haspopup="dialog">
+        <span class="hud-label">难度</span>
+        <strong id="difficultyLabel">一般</strong>
+        <span class="hud-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="hud-stat">
+        <span class="hud-label">时间</span>
+        <strong id="timer">00:00</strong>
+      </div>
+      <div class="hud-stat hud-error" id="errorStat">
+        <span class="hud-label">错误</span>
+        <strong><span id="errorCount">0</span><span class="hud-slash"> / 3</span></strong>
+      </div>
+    </section>
+
+    <main class="playfield">
+      <div class="board-shell">
+        <div class="board-frame">
+          <div class="board" id="board" role="grid" aria-label="数独棋盘" aria-rowcount="9" aria-colcount="9"></div>
+        </div>
+        <div class="loading" id="loading" hidden>
+          <span class="loading-ring" aria-hidden="true"></span>
+          <span>正在排布九宫…</span>
+        </div>
+      </div>
+
+      <div class="mode-line">
+        <div class="mode-switch" role="group" aria-label="显示模式">
+          <button type="button" data-mode="normal" class="active">普通</button>
+          <button type="button" data-mode="candidates">候选</button>
+        </div>
+        <span class="mode-note" id="modeNote">选中空格，填入答案</span>
+      </div>
+
+      <div class="action-row">
+        <button class="tool-btn" id="undoBtn" type="button" aria-label="撤销上一步">
+          <span class="tool-icon" aria-hidden="true">↶</span>
+          <span>撤销</span>
+        </button>
+        <button class="tool-btn" id="excludeBtn" type="button" aria-pressed="false" aria-label="排除候选数字">
+          <span class="tool-icon" aria-hidden="true">−</span>
+          <span>排除</span>
+        </button>
+        <button class="tool-btn" id="hintBtn" type="button" aria-label="提示一个数字">
+          <span class="tool-icon" aria-hidden="true">✦</span>
+          <span>提示</span>
+        </button>
+        <button class="tool-btn tool-danger" id="revealBtn" type="button" aria-label="显示答案">
+          <span class="tool-icon" aria-hidden="true">◇</span>
+          <span>答案</span>
+        </button>
+      </div>
+
+      <div class="number-pad" id="numberPad" role="group" aria-label="数字键盘">
+        <button type="button" data-number="1">1</button>
+        <button type="button" data-number="2">2</button>
+        <button type="button" data-number="3">3</button>
+        <button type="button" data-number="4">4</button>
+        <button type="button" data-number="5">5</button>
+        <button type="button" data-number="6">6</button>
+        <button type="button" data-number="7">7</button>
+        <button type="button" data-number="8">8</button>
+        <button type="button" data-number="9">9</button>
+      </div>
+
+      <footer class="foot" id="foot">
+        <span id="bestLabel">最佳 --:--</span>
+        <span class="foot-dot" aria-hidden="true"></span>
+        <span id="footNote" role="status" aria-live="polite">三次错误，本局结束</span>
+      </footer>
+    </main>
+  </div>
+
+  <div class="sheet" id="menuSheet" hidden>
+    <div class="sheet-scrim" data-close="menu"></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <span class="eyebrow">本局</span>
+          <h2 id="menuTitle">换一种呼吸</h2>
+        </div>
+        <button class="close-btn" type="button" data-close="menu" aria-label="关闭菜单">×</button>
+      </div>
+      <p class="section-label">难度</p>
+      <div class="difficulty-options" id="difficultyOptions"></div>
+      <p class="section-label">操作</p>
+      <div class="sheet-actions">
+        <button type="button" data-action="restart"><span>重开本题</span><small>清空填入，题目不变</small></button>
+        <button type="button" data-action="new"><span>换一道</span><small>同难度，新题目</small></button>
+        <button type="button" data-action="help"><span>玩法说明</span><small>候选、排除与错误规则</small></button>
+        <button type="button" class="danger" data-action="reveal"><span>显示答案</span><small>本局结束，不计最佳</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="resultScreen" hidden>
+    <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <div class="result-emblem" id="resultEmblem" aria-hidden="true">九</div>
+      <span class="eyebrow" id="resultKicker">本局完成</span>
+      <h2 id="resultTitle">九宫归位</h2>
+      <p class="result-body" id="resultBody">每一格都回到了自己的位置。</p>
+      <div class="result-stats">
+        <div><span>用时</span><strong id="resultTime">00:00</strong></div>
+        <div><span>错误</span><strong id="resultErrors">0</strong></div>
+        <div><span>难度</span><strong id="resultDifficulty">一般</strong></div>
+      </div>
+      <p class="result-best" id="resultBest"></p>
+      <div class="result-actions">
+        <button class="primary" id="resultPrimary" type="button">再来一局</button>
+        <button class="secondary" id="resultSecondary" type="button">换个难度</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="confirmScreen" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <span class="eyebrow">请确认</span>
+      <h2 id="confirmTitle">要显示完整答案吗？</h2>
+      <p id="confirmBody">本局会立即结束，并且不计入最佳成绩。</p>
+      <div class="dialog-actions">
+        <button class="secondary" id="confirmCancel" type="button">再想想</button>
+        <button class="primary" id="confirmOk" type="button">显示答案</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="helpScreen" hidden>
+    <div class="dialog help-dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <span class="eyebrow">玩法</span>
+      <h2 id="helpTitle">九宫，从一格开始</h2>
+      <div class="help-list">
+        <p><b>选格</b>点击空格，再用下方数字键盘填入 1–9。</p>
+        <p><b>候选</b>切到候选模式，格子里会出现仍可能成立的数字。</p>
+        <p><b>排除</b>候选模式下点亮「排除」，再点数字，把它从当前格的候选中划掉。</p>
+        <p><b>错误</b>填错会计一次错误；三次后本局结束。可以用「撤销」回看上一手。</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="primary" id="helpClose" type="button">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sudoku.34e53558.js"></script>
+  <script src="game.9050ffe5.js"></script>
+</body>
+</html>

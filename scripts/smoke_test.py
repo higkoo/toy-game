@@ -22,6 +22,7 @@ ENTRIES = [
     "jingluo/src/index.html",
     "airliner-flight-sim/src/index.html",
     "tangdou-cut/src/index.html",
+    "jiugong-sudoku/src/index.html",
     "qihuang/src/kb/bencao.html",
     "sanji/src/index.html",
     "seabreeze/src/index.html",
