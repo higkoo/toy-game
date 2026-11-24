@@ -557,6 +557,43 @@ button:focus-visible {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
+.reveal-bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.reveal-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--gold-soft);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reveal-bar button {
+  flex: 0 0 auto;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(15, 22, 26, 0.72);
+  color: #d8cebd;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.reveal-bar button:hover {
+  border-color: var(--line-strong);
+  color: #f2e6d3;
+}
+
 .mode-note {
   overflow: hidden;
   color: #b2a99a;

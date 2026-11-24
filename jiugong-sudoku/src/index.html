@@ -7,7 +7,7 @@
   <title>数独 · 九宫</title>
   <meta name="description" content="一局安静的数独。五种难度、候选与排除、提示和计时。">
   <link rel="icon" href="assets/icon.png">
-  <link rel="stylesheet" href="style.f58badb6.css">
+  <link rel="stylesheet" href="style.c095cc44.css">
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -60,9 +60,14 @@
       </div>
 
       <div class="mode-line">
-        <div class="mode-switch" role="group" aria-label="显示模式">
+        <div class="mode-switch" id="modeSwitch" role="group" aria-label="显示模式">
           <button type="button" data-mode="normal" class="active">普通</button>
           <button type="button" data-mode="candidates">候选</button>
+        </div>
+        <div class="reveal-bar" id="revealBar" hidden>
+          <span class="reveal-label" role="status" aria-live="polite">答案已展开 · 本局不计最佳</span>
+          <button type="button" id="revealRestart">重开本题</button>
+          <button type="button" id="revealNew">换一道</button>
         </div>
         <span class="mode-note" id="modeNote">选中空格，填入答案</span>
       </div>
@@ -177,6 +182,6 @@
   </div>
 
   <script src="sudoku.34e53558.js"></script>
-  <script src="game.9050ffe5.js"></script>
+  <script src="game.4156703d.js"></script>
 </body>
 </html>
