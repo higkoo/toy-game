@@ -17,6 +17,7 @@ ENTRIES = {
     "qihuang": "qihuang/src/index.html",
     "jingluo": "jingluo/src/index.html",
     "airliner-flight-sim": "airliner-flight-sim/src/index.html",
+    "tangdou-cut": "tangdou-cut/src/index.html",
     "sanji": "sanji/src/index.html",
     "seabreeze": "seabreeze/src/index.html",
     "tetris": "tetris/src/index.html",

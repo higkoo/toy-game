@@ -36,6 +36,7 @@ PROJECTS = [
     "dashcam/src",
     "skybreaker/src",
     "yangyu/src",
+    "tangdou-cut/src",
 ]
 
 HASHED = re.compile(r"^(?P<base>.+)\.[0-9a-f]{8}\.(?P<ext>js|css)$", re.I)
