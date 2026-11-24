@@ -26,7 +26,7 @@ B 站 Toy 容器中运行的静态小游戏与学习页面合集。页面本身�
 | [tangdou-cut](tangdou-cut/README.md) | [糖豆快吃 · 割绳益智](https://www.bilibili.com/toy/tangdou-cut/index.html) | 原创割绳玩法，12 关三星挑战，鼠标 / 触控都能玩 |
 | [jiugong-sudoku](jiugong-sudoku/README.md) | [数独 · 九宫](https://www.bilibili.com/toy/preview/author_KhgAySno/index.html) | 五种难度、候选排除、每局唯一解，鼠标 / 触控都能玩 |
 
-19 款作品已收录，17 款已上线；《糖豆快吃》审核中，《数独 · 九宫》预览中，点击游戏名即可试玩。
+19 款作品已收录，18 款已上线；《数独 · 九宫》预览中，点击游戏名即可试玩。
 
 ## 目录结构
 
