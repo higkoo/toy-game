@@ -50,12 +50,15 @@ jiugong-sudoku/
 
 ## 发布状态
 
-Toy **预览阶段**，尚未提交审核。
+Toy **已上线**（2026-11-24 提交审核，当日通过）。
 
+- Toy id：`58674710061056`
 - 标题：`数独 · 九宫`
 - slug：`jiugong-sudoku`
 - 分类：GAME；可见性：public；主题：dark
-- 预览：<https://www.bilibili.com/toy/preview/author_KhgAySno/index.html>
+- 状态：`published`
+- 预览：<https://www.bilibili.com/toy/preview/author_wnaAxW0k/index.html>
+- 公开地址：<https://www.bilibili.com/toy/jiugong-sudoku/index.html>
 - 页面无自由绘制能力，未开启访问者水印
 - 内容指纹：`toy_doctor.py` 返回 `{"ok": true, "findings": []}`
 
