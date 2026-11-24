@@ -43,8 +43,8 @@ python3 -m http.server 8080
 
 - Toy id：`58651511365632`
 - slug：`tangdou-cut`
-- 状态：`auditing`（2026-11-24 提交审核）
-- 预期地址：<https://www.bilibili.com/toy/tangdou-cut/index.html>
+- 状态：`published`（2026-11-24 提交审核，当日通过）
+- 公开地址：<https://www.bilibili.com/toy/tangdou-cut/index.html>
 - 分类：GAME；可见性：public；主题：dark
 
 ```bash

@@ -24,8 +24,9 @@ B 站 Toy 容器中运行的静态小游戏与学习页面合集。页面本身�
 | [jingluo](jingluo/README.md) | [经络图谱 · 3D](https://www.bilibili.com/toy/jingluo-3d/index.html) | 3D 人体十四经脉，旋转缩放、筛选循行、点穴查看定位与主治 |
 | [airliner-flight-sim](airliner-flight-sim/README.md) | [客机飞行模拟](https://www.bilibili.com/toy/airliner-flight-sim/index.html) | 3 机型、16 机场的写实客机飞行沙盒 |
 | [tangdou-cut](tangdou-cut/README.md) | [糖豆快吃 · 割绳益智](https://www.bilibili.com/toy/tangdou-cut/index.html) | 原创割绳玩法，12 关三星挑战，鼠标 / 触控都能玩 |
+| [jiugong-sudoku](jiugong-sudoku/README.md) | [数独 · 九宫](https://www.bilibili.com/toy/preview/author_KhgAySno/index.html) | 五种难度、候选排除、每局唯一解，鼠标 / 触控都能玩 |
 
-18 款作品已收录，17 款已上线；《糖豆快吃》审核中，点击游戏名即可直接试玩。
+19 款作品已收录，18 款已上线；《数独 · 九宫》预览中，点击游戏名即可试玩。
 
 ## 目录结构
 

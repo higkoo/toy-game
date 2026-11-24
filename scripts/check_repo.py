@@ -18,6 +18,7 @@ ENTRIES = {
     "jingluo": "jingluo/src/index.html",
     "airliner-flight-sim": "airliner-flight-sim/src/index.html",
     "tangdou-cut": "tangdou-cut/src/index.html",
+    "jiugong-sudoku": "jiugong-sudoku/src/index.html",
     "sanji": "sanji/src/index.html",
     "seabreeze": "seabreeze/src/index.html",
     "tetris": "tetris/src/index.html",
