@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e1c22">
+  <meta name="description" content="糖豆快吃：原创割绳益智小游戏。切开绳索，收集星星，把糖果送进糖豆的嘴里。">
+  <title>糖豆快吃 · 割绳益智</title>
+  <link rel="icon" href="./assets/icon.png">
+  <link rel="stylesheet" href="./style.ed18321a.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="frame" id="frame">
+      <canvas id="game" width="720" height="1080" aria-label="糖豆快吃游戏画面"></canvas>
+
+      <div class="hud" id="hud" aria-hidden="true">
+        <div class="hud-level">
+          <span class="level-no" id="levelNo">01</span>
+          <div class="level-copy">
+            <span class="level-name" id="levelName">第一口</span>
+            <span class="level-hint" id="levelHint">按住并划过绳索</span>
+          </div>
+        </div>
+        <div class="hud-stars" id="hudStars" aria-label="本关星星">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <div class="hud-actions">
+          <button class="icon-btn" id="btnSound" title="声音开关" aria-label="声音开关"></button>
+          <button class="icon-btn" id="btnRestart" title="重开" aria-label="重开"></button>
+          <button class="icon-btn" id="btnPause" title="暂停" aria-label="暂停"></button>
+          <button class="icon-btn" id="btnLevels" title="选择关卡" aria-label="选择关卡"></button>
+        </div>
+      </div>
+
+      <div class="screen title-screen" id="screenTitle">
+        <div class="title-copy">
+          <span class="kicker">CUT · CANDY · SMILE</span>
+          <h1>糖豆<br><em>快吃</em></h1>
+          <p>切开绳索，让糖果荡过星星，<br>落进小糖豆的嘴里。</p>
+          <button class="primary-btn" id="btnStart">开始喂糖 <span>→</span></button>
+          <div class="title-meta">
+            <span>12 关</span>
+            <span class="dot"></span>
+            <span id="titleBest">0 / 36 ★</span>
+            <span class="dot"></span>
+            <span>原创美术</span>
+          </div>
+          <button class="title-link" id="btnTitleLevels">选择关卡 <span>→</span></button>
+        </div>
+      </div>
+
+      <div class="screen levels-screen is-hidden" id="screenLevels">
+        <div class="panel levels-panel">
+          <div class="panel-head">
+            <div>
+              <span class="kicker">SWEET MAP</span>
+              <h2>选择关卡</h2>
+            </div>
+            <button class="icon-btn close-btn" id="btnCloseLevels" title="关闭" aria-label="关闭">×</button>
+          </div>
+          <div class="levels-total"><span id="totalStars">0</span> / 36 颗星</div>
+          <div class="level-grid" id="levelGrid"></div>
+          <div class="panel-note">所有关卡默认开放 · 记录保存在本机浏览器</div>
+        </div>
+      </div>
+
+      <div class="screen result-screen is-hidden" id="screenResult">
+        <div class="panel result-panel">
+          <span class="kicker" id="resultKicker">LEVEL CLEAR</span>
+          <h2 id="resultTitle">糖豆吃饱啦</h2>
+          <div class="result-stars" id="resultStars">
+            <span>★</span><span>★</span><span>★</span>
+          </div>
+          <p id="resultText">三星通关，糖豆开心得转了个圈。</p>
+          <div class="result-actions">
+            <button class="secondary-btn" id="btnResultLevels">选关</button>
+            <button class="primary-btn" id="btnResultNext">下一关 <span>→</span></button>
+          </div>
+          <button class="text-btn" id="btnResultReplay">再玩一次</button>
+        </div>
+      </div>
+
+      <div class="screen pause-screen is-hidden" id="screenPause">
+        <div class="panel pause-panel">
+          <span class="kicker">TAKE A BREATH</span>
+          <h2>暂停一下</h2>
+          <p>糖果和星星会等你回来。</p>
+          <div class="pause-actions">
+            <button class="primary-btn" id="btnResume">继续</button>
+            <button class="secondary-btn" id="btnPauseRestart">重开</button>
+            <button class="secondary-btn" id="btnPauseLevels">选关</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast is-hidden" id="toast"></div>
+    </div>
+  </div>
+  <script src="./physics.00f35ac5.js"></script>
+  <script src="./levels.871c7457.js"></script>
+  <script src="./game.e57d17ef.js"></script>
+</body>
+</html>
