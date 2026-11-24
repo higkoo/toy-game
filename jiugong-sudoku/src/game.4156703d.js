@@ -21,7 +21,11 @@
     menuBtn: $('menuBtn'),
     menuSheet: $('menuSheet'),
     difficultyOptions: $('difficultyOptions'),
+    modeSwitch: $('modeSwitch'),
     modeNote: $('modeNote'),
+    revealBar: $('revealBar'),
+    revealRestart: $('revealRestart'),
+    revealNew: $('revealNew'),
     undoBtn: $('undoBtn'),
     excludeBtn: $('excludeBtn'),
     hintBtn: $('hintBtn'),
@@ -198,6 +202,12 @@
     dom.confirmScreen.addEventListener('click', (event) => {
       if (event.target === dom.confirmScreen) dom.confirmScreen.hidden = true;
     });
+    dom.revealRestart.addEventListener('click', () => {
+      if (state.phase === 'revealed') restartCurrent();
+    });
+    dom.revealNew.addEventListener('click', () => {
+      if (state.phase === 'revealed') newGame(state.difficulty);
+    });
 
     dom.helpClose.addEventListener('click', () => {
       dom.helpScreen.hidden = true;
@@ -265,6 +275,7 @@
     dom.resultScreen.hidden = true;
     dom.confirmScreen.hidden = true;
     dom.helpScreen.hidden = true;
+    hideRevealActions();
     dom.board.classList.remove('is-solved');
     dom.loading.hidden = false;
     updateTimerDisplay();
@@ -324,6 +335,7 @@
     state.timerStarted = false;
     dom.resultScreen.hidden = true;
     dom.confirmScreen.hidden = true;
+    hideRevealActions();
     dom.board.classList.remove('is-solved');
     updateTimerDisplay();
     render();
@@ -643,11 +655,13 @@
     state.selected = -1;
     state.excludeActive = false;
     state.phase = 'revealed';
+    state.resultKind = 'revealed';
     hideToast();
     freezeTimer();
     dom.confirmScreen.hidden = true;
     render();
-    showResult('revealed');
+    dom.board.classList.add('is-solved');
+    showRevealActions();
   }
 
   function checkWin() {
@@ -827,6 +841,20 @@
       if (event.key === 'ArrowRight') index = Math.min(80, row * 9 + col + 1);
       selectCell(index);
     }
+  }
+
+  function showRevealActions() {
+    dom.modeSwitch.hidden = true;
+    dom.modeNote.hidden = true;
+    dom.revealBar.hidden = false;
+    dom.foot.style.visibility = 'hidden';
+  }
+
+  function hideRevealActions() {
+    dom.modeSwitch.hidden = false;
+    dom.modeNote.hidden = false;
+    dom.revealBar.hidden = true;
+    dom.foot.style.visibility = '';
   }
 
   function hideToast() {
