@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>数学界赛博葬礼 · 人类文明遗址数字悼念厅</title>
+<script src="https://s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
+<style>
+:root{
+  --ink:#0b0f14;--ink-2:#111821;--bone:#e8e2d5;--muted:#8b929c;--dim:#5c6672;
+  --mourn:#b4463a;--mourn-dk:#7d2f26;--cyan:#5fd4c4;--gold:#8a7755;
+  --rule:rgba(232,226,213,.14);--rule-2:rgba(232,226,213,.07);
+  --serif:"Songti SC","Noto Serif SC","STSong",Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ink);color:var(--bone);
+  font-family:var(--serif);line-height:1.8;letter-spacing:.02em;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+/* 背景：肃穆的网格与微光，非赛博霓虹 */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1100px 620px at 50% -10%,rgba(95,212,196,.055),transparent 62%),
+    radial-gradient(900px 700px at 50% 108%,rgba(180,70,58,.05),transparent 60%),
+    linear-gradient(var(--rule-2) 1px,transparent 1px),
+    linear-gradient(90deg,var(--rule-2) 1px,transparent 1px);
+  background-size:auto,auto,44px 44px,44px 44px;
+  mask-image:linear-gradient(180deg,#000 0%,transparent 78%);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 78%);
+}
+.wrap{position:relative;z-index:2;max-width:760px;margin:0 auto;padding:0 24px}
+
+/* 顶部细导航 */
+.nav{
+  position:sticky;top:0;z-index:40;
+  background:rgba(11,15,20,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--rule);
+}
+.nav-in{max-width:760px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px}
+.nav .mark{font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:var(--mourn)}
+.nav .nav-links{margin-left:auto;display:flex;gap:6px}
+.nav .nav-links a{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);
+  text-decoration:none;padding:5px 10px;border:1px solid transparent;border-radius:2px;
+}
+.nav .nav-links a:hover,.nav .nav-links a:focus-visible{color:var(--bone);border-color:var(--rule)}
+
+/* 序厅 */
+.hero{padding:96px 0 76px;text-align:center;position:relative}
+.kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.44em;color:var(--dim);
+  text-transform:uppercase;
+}
+.kicker b{color:var(--mourn);font-weight:400}
+.hero h1{
+  margin:26px 0 0;font-size:clamp(40px,10vw,74px);font-weight:500;line-height:1.1;
+  letter-spacing:.12em;color:var(--bone);
+}
+.hero h1 span{display:block;font-size:clamp(15px,3.6vw,22px);letter-spacing:.5em;color:var(--muted);margin-top:18px}
+.hero .epitaph{
+  max-width:560px;margin:38px auto 0;font-size:15px;line-height:2.15;color:#b9b2a5;letter-spacing:.05em;
+}
+.hero .sys{
+  margin:26px auto 0;font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--cyan);
+  padding:8px 16px;border:1px solid rgba(95,212,196,.24);border-radius:2px;display:inline-block;
+  background:rgba(95,212,196,.035);
+}
+.hero .sys::before{content:"● ";color:var(--cyan);font-size:8px;vertical-align:2px}
+.scroll-hint{
+  margin-top:52px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--dim);
+}
+.scroll-hint::after{content:"↓";display:block;margin-top:8px;color:var(--mourn);animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(6px);opacity:1}}
+
+/* 分区标题 */
+.section{padding:64px 0 8px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+.sec-head .no{font-family:var(--mono);font-size:11px;color:var(--mourn);letter-spacing:.16em}
+.sec-head h2{margin:0;font-size:clamp(23px,5vw,31px);font-weight:500;letter-spacing:.16em}
+.sec-desc{margin:14px 0 0;font-size:13.5px;line-height:2;color:var(--muted);max-width:600px}
+.rule{height:1px;background:linear-gradient(90deg,var(--mourn),var(--rule) 24%,transparent);margin:26px 0 36px}
+
+/* 展柜：遗物碑铭 */
+.relic{
+  padding:30px 0 30px;border-bottom:1px solid var(--rule-2);
+  display:grid;grid-template-columns:52px 1fr;gap:20px;
+  opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease;
+}
+.relic.in{opacity:1;transform:none}
+.relic .idx{
+  font-family:var(--mono);font-size:12px;color:var(--mourn);letter-spacing:.08em;
+  padding-top:6px;
+}
+.relic .body{min-width:0}
+.relic h3{
+  margin:0;font-size:clamp(19px,4.2vw,24px);font-weight:500;letter-spacing:.1em;color:var(--bone);
+}
+.relic .meta{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--dim);
+  margin-top:6px;text-transform:uppercase;
+}
+.relic .formula{
+  font-family:var(--mono);font-size:clamp(14px,3.4vw,18px);color:var(--cyan);
+  margin:18px 0;padding:14px 16px;background:#0e141b;border-left:2px solid var(--mourn);
+  overflow-x:auto;white-space:pre;letter-spacing:.02em;
+}
+.relic.formula-ai .formula{color:#8fe6d9;border-left-color:var(--cyan)}
+.relic p.desc{margin:0;font-size:14px;line-height:2;color:#a9a49a}
+.relic .epi{
+  margin:16px 0 0;padding-left:14px;border-left:1px solid var(--gold);
+  font-size:13px;line-height:1.9;color:var(--gold);font-style:italic;
+}
+.relic .acts{display:flex;align-items:center;gap:16px;margin-top:20px;flex-wrap:wrap}
+.flower-btn{
+  font-family:var(--serif);font-size:13px;letter-spacing:.14em;cursor:pointer;
+  color:var(--bone);background:transparent;border:1px solid var(--mourn-dk);
+  padding:8px 20px;border-radius:2px;transition:background .25s,border-color .25s,transform .1s;
+}
+.flower-btn:hover,.flower-btn:focus-visible{background:rgba(180,70,58,.14);border-color:var(--mourn)}
+.flower-btn:active{transform:scale(.96)}
+.flower-btn.done{color:var(--dim);border-color:var(--rule);cursor:default;background:transparent}
+.flower-btn:focus-visible{outline:2px solid var(--mourn);outline-offset:2px}
+.flower-count{font-family:var(--mono);font-size:12px;color:var(--mourn);letter-spacing:.1em}
+.flower-count b{font-size:15px;font-weight:400}
+/* 飘落花瓣 */
+.petal{position:fixed;z-index:60;pointer-events:none;font-size:16px;color:var(--mourn);
+  animation:fall 1.5s ease-in forwards}
+@keyframes fall{
+  0%{opacity:1;transform:translate(0,0) rotate(0)}
+  100%{opacity:0;transform:translate(var(--dx,20px),120px) rotate(var(--rot,180deg))}
+}
+
+/* 悼念墙：留言 */
+.wall{padding:8px 0 20px}
+.guest-form{margin:0 0 26px}
+.guest-form textarea{
+  width:100%;min-height:96px;resize:vertical;padding:14px 16px;
+  background:#0e141b;border:1px solid var(--rule);border-radius:2px;color:var(--bone);
+  font-family:var(--serif);font-size:14px;line-height:1.8;outline:none;transition:border-color .2s;
+}
+.guest-form textarea:focus{border-color:var(--gold)}
+.guest-form textarea::placeholder{color:var(--dim)}
+.guest-row{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.guest-row input{
+  flex:1 1 160px;min-width:0;padding:10px 14px;background:#0e141b;border:1px solid var(--rule);
+  border-radius:2px;color:var(--bone);font-family:var(--mono);font-size:12px;outline:none;
+}
+.guest-row input:focus{border-color:var(--gold)}
+.guest-row input::placeholder{color:var(--dim)}
+.submit-btn{
+  font-family:var(--serif);font-size:13px;letter-spacing:.14em;cursor:pointer;
+  color:#0b0f14;background:var(--bone);border:0;padding:11px 24px;border-radius:2px;
+  transition:background .2s,transform .1s;
+}
+.submit-btn:hover{background:#fff}
+.submit-btn:active{transform:scale(.97)}
+.submit-btn:focus-visible{outline:2px solid var(--mourn);outline-offset:2px}
+.msg-list{display:flex;flex-direction:column;gap:12px}
+.msg{
+  padding:16px 18px;background:#0e141b;border:1px solid var(--rule-2);border-left:2px solid var(--gold);
+  border-radius:2px;
+}
+.msg .who{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.1em}
+.msg .txt{margin-top:8px;font-size:14px;line-height:1.9;color:#cfc8bb;overflow-wrap:anywhere}
+.msg .when{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:10px}
+
+/* 悼词生成 */
+.elegy{padding:8px 0 40px}
+.elegy-box{
+  border:1px solid var(--rule);padding:32px 26px;text-align:center;background:linear-gradient(180deg,#0e141b,#0b0f14);
+}
+.elegy-box .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--dim)}
+.elegy-box .verse{
+  margin:22px auto 0;max-width:520px;font-size:clamp(16px,3.8vw,20px);line-height:2.1;
+  color:var(--bone);letter-spacing:.08em;min-height:4.2em;
+}
+.elegy-box .verse .em{color:var(--mourn)}
+.elegy-actions{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.ghost-btn{
+  font-family:var(--serif);font-size:13px;letter-spacing:.14em;cursor:pointer;
+  color:var(--bone);background:transparent;border:1px solid var(--rule);padding:10px 22px;border-radius:2px;
+}
+.ghost-btn:hover,.ghost-btn:focus-visible{border-color:var(--mourn);color:var(--mourn)}
+.ghost-btn:focus-visible{outline:2px solid var(--mourn);outline-offset:2px}
+
+/* 结语 */
+.coda{padding:70px 0 60px;text-align:center;border-top:1px solid var(--rule);margin-top:40px}
+.coda .line{font-size:clamp(15px,3.4vw,19px);letter-spacing:.16em;color:var(--muted);line-height:2}
+.coda .line em{color:var(--mourn);font-style:normal}
+.coda .sig{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);margin-top:20px}
+
+/* 底部 */
+.foot{padding:26px 0 calc(30px + var(--toy-bottom-inset,env(safe-area-inset-bottom,0px)));
+  border-top:1px solid var(--rule-2);text-align:center}
+.foot .copy{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim)}
+/* 版本号（榜单入口） */
+.version{
+  position:fixed;right:calc(12px + env(safe-area-inset-right));
+  bottom:calc(12px + var(--toy-bottom-inset,env(safe-area-inset-bottom,0px)));
+  z-index:80;user-select:none;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  color:#c9b8a0;background:rgba(17,24,33,.86);border:1px solid rgba(180,70,58,.4);
+  border-radius:999px;padding:5px 11px;line-height:1.5;cursor:pointer;-webkit-appearance:none;appearance:none;
+}
+.version:hover{border-color:var(--mourn)}
+.version:focus-visible{outline:2px solid var(--mourn);outline-offset:2px}
+
+/* 提示浮层 */
+.toast{
+  position:fixed;left:50%;bottom:calc(80px + var(--toy-bottom-inset,env(safe-area-inset-bottom,0px)));
+  transform:translateX(-50%);z-index:90;font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+  color:var(--bone);background:#1a222c;border:1px solid var(--rule);padding:10px 18px;border-radius:2px;
+  opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;
+}
+.toast.on{opacity:1}
+
+@media(max-width:600px){
+  .wrap{padding:0 20px}
+  .nav-in{padding:11px 20px}
+  .hero{padding:70px 0 56px}
+  .relic{grid-template-columns:34px 1fr;gap:12px;padding:24px 0}
+  .section{padding:48px 0 6px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .relic{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-in">
+    <span class="mark">MEMORIAL / 2026</span>
+    <nav class="nav-links">
+      <a href="#relics">遗址</a>
+      <a href="#wall">悼念墙</a>
+      <a href="#elegy">悼词</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero wrap">
+  <div class="kicker">A CYBER <b>FUNERAL</b> FOR HUMAN CIVILIZATION</div>
+  <h1>人类文明遗址<span>赛博悼念厅</span></h1>
+  <p class="epitaph">
+    2026 年，AI 证明了黎曼猜想。此后，证明、作图、修图、计算逐一被接管。
+    我们把那些曾经需要「人」的手艺送进这座展厅——公式、草稿、算盘与图层，
+    一一陈列。请慢慢走，献一束花，说句话。
+  </p>
+  <div class="sys">系统状态：全部遗物已归档 · 守厅人：无</div>
+  <div class="scroll-hint">向下参观</div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="relics">
+    <div class="sec-head"><span class="no">01 /</span><h2>遗物陈列</h2></div>
+    <p class="sec-desc">六件人类文明的旧物。点击「献花」与它们道别；同一件，只记一次。</p>
+    <div class="rule"></div>
+    <div id="relicList"></div>
+  </section>
+
+  <section class="section" id="wall">
+    <div class="sec-head"><span class="no">02 /</span><h2>悼念墙</h2></div>
+    <p class="sec-desc">留一句话给它们。留言只保存在你自己的设备上，不会上传到任何地方。</p>
+    <div class="rule"></div>
+    <div class="wall">
+      <form class="guest-form" id="msgForm">
+        <textarea id="msgText" maxlength="140" placeholder="写点什么吧……（140 字以内）" aria-label="悼念留言"></textarea>
+        <div class="guest-row">
+          <input id="msgName" maxlength="12" placeholder="署名（可留空）" aria-label="署名">
+          <button type="submit" class="submit-btn">留下这句话</button>
+        </div>
+      </form>
+      <div class="msg-list" id="msgList"></div>
+    </div>
+  </section>
+
+  <section class="section" id="elegy">
+    <div class="sec-head"><span class="no">03 /</span><h2>悼词生成器</h2></div>
+    <p class="sec-desc">选一件你最想告别的遗物，我们为你写一段悼词。可以复制，带走它。</p>
+    <div class="rule"></div>
+    <div class="elegy">
+      <div class="elegy-box">
+        <div class="lbl">EULOGY / 悼词</div>
+        <div class="verse" id="verse">「它们也曾要人类亲手完成。」<br>点下方按钮，生成一段悼词。</div>
+        <div class="elegy-actions">
+          <button type="button" class="ghost-btn" id="genBtn">生成悼词</button>
+          <button type="button" class="ghost-btn" id="copyBtn">复制悼词</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<section class="coda wrap">
+  <div class="line">「我们并未失去它们。<em>我们只是不再需要亲手去做。</em>」</div>
+  <div class="sig">— 数字悼念厅 · 保管处 —</div>
+</section>
+
+<footer class="foot">
+  <div class="copy">数学界赛博葬礼 · 虚构设定 · 向所有手工技艺致意</div>
+</footer>
+
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.0.0</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* 遗物数据 */
+var RELICS = [
+  {
+    id:'principia', no:'01', title:'《自然哲学的数学原理》',
+    meta:'1687 · 纸本 · 牛顿',
+    formula:'F = G · m₁m₂ / r²',
+    desc:'1687 年，一个人用一支笔把天体装进一条公式。三百年后，证明它的人不再是人。书还在这里，纸页平整，像什么都没发生过。',
+    epi:'墓志铭：它解释了一切，除了自己为何被留下。'
+  },
+  {
+    id:'draft', no:'02', title:'手算草稿',
+    meta:'年代不详 · 铅笔 · 无数人',
+    formula:'0.5772156649…  ←  第 37 位',
+    desc:'横线上划掉重写，页角演算到模糊。曾经，算到小数点后很多位是一件值得骄傲的事。如今它只是一张纸，字迹里还留着犹豫。',
+    epi:'墓志铭：那些涂改，是思考留下的指纹。'
+  },
+  {
+    id:'euclid', no:'03', title:'《几何原本》与直尺圆规',
+    meta:'公元前 300 年 · 羊皮 · 欧几里得',
+    formula:'∠ABC + ∠BCA + ∠CAB = 180°',
+    desc:'五条公设，一座大厦。两千年里，无数人用圆规和直尺，在纸上重建过同一个世界。作图被接管之后，圆规还在，只是没人再需要它画得准。',
+    epi:'墓志铭：真理不需要圆规，但证明它的人需要。'
+  },
+  {
+    id:'logtable', no:'04', title:'对数表',
+    meta:'1614 · 铅印 · 纳皮尔',
+    formula:'log(a·b) = log a + log b',
+    desc:'厚厚一本，把乘法变成加法。航海者、工程师、天文学家靠它把一生算完。翻页的手停下的那天，没有人注意到它已经退休。',
+    epi:'墓志铭：它把复杂变简单，然后简单把它忘了。'
+  },
+  {
+    id:'photoshop', no:'05', title:'古法 PS 修图',
+    meta:'1990s–2020s · 图层 · 蒙版',
+    formula:'Ctrl+J  →  魔棒  →  羽化  →  暂存',
+    desc:'一层一层地抠，一根头发一根头发地修。古法修图师靠耐心把手艺磨成眼睛。现在一句话就能换天空，而那双眼睛，开始闲下来了。',
+    epi:'墓志铭：每个图层后面，都站过一个不肯将就的人。',
+    ai:true
+  },
+  {
+    id:'abacus', no:'06', title:'算盘',
+    meta:'汉代至今 · 木与竹 · 无名',
+    formula:'一上一，一下五去四',
+    desc:'噼里啪啦，珠子响了一千年。它算过粮仓、账本和一个家庭的年月。电子计算器进来那天，它被移到抽屉最里层，安静得像没参与过。',
+    epi:'墓志铭：它从不出错，只是没人再问它了。'
+  }
+];
+
+var FLOWERS_KEY='memorial.flowers';
+var flowers={};
+try{flowers=JSON.parse(localStorage.getItem(FLOWERS_KEY)||'{}')||{}}catch(e){flowers={}}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast on';
+  clearTimeout(toast._t);
+  toast._t=setTimeout(function(){t.className='toast'},1900);
+}
+
+function petal(x,y){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  for(var i=0;i<6;i++){
+    (function(i){
+      var p=document.createElement('span');
+      p.className='petal';p.textContent='✿';
+      p.style.left=(x+(Math.random()*30-15))+'px';
+      p.style.top=(y-20)+'px';
+      p.style.setProperty('--dx',(Math.random()*80-40)+'px');
+      p.style.setProperty('--rot',(120+Math.random()*180)+'deg');
+      p.style.animationDelay=(i*70)+'ms';
+      document.body.appendChild(p);
+      setTimeout(function(){if(p.parentNode)p.parentNode.removeChild(p)},1900);
+    })(i);
+  }
+}
+
+function renderRelics(){
+  var box=document.getElementById('relicList'),out='';
+  for(var i=0;i<RELICS.length;i++){
+    var r=RELICS[i],n=flowers[r.id]||0,done=n>0;
+    out+='<article class="relic'+(r.ai?' formula-ai':'')+'" data-id="'+r.id+'">'+
+      '<div class="idx">'+r.no+'</div><div class="body">'+
+      '<h3>'+esc(r.title)+'</h3>'+
+      '<div class="meta">'+esc(r.meta)+'</div>'+
+      '<div class="formula">'+esc(r.formula)+'</div>'+
+      '<p class="desc">'+esc(r.desc)+'</p>'+
+      '<p class="epi">'+esc(r.epi)+'</p>'+
+      '<div class="acts">'+
+        '<button type="button" class="flower-btn'+(done?' done':'')+'" data-flower="'+r.id+'"'+(done?' disabled':'')+'>'+
+          (done?'已献花':'献一束花')+'</button>'+
+        '<span class="flower-count">✿ <b>'+n.toLocaleString()+'</b></span>'+
+      '</div></div></article>';
+  }
+  box.innerHTML=out;
+  // 绑定献花
+  Array.prototype.forEach.call(box.querySelectorAll('[data-flower]'),function(btn){
+    btn.addEventListener('click',function(e){
+      var id=btn.getAttribute('data-flower');
+      if(flowers[id])return;
+      flowers[id]=1;
+      try{localStorage.setItem(FLOWERS_KEY,JSON.stringify(flowers))}catch(err){}
+      btn.textContent='已献花';btn.className='flower-btn done';btn.disabled=true;
+      var cnt=btn.parentNode.querySelector('.flower-count b');
+      cnt.textContent=(parseInt(cnt.textContent.replace(/,/g,''),10)||0)+1;
+      petal(e.clientX||window.innerWidth/2,e.clientY||window.innerHeight/2);
+      toast('已献花 · 谢谢你还记得它');
+      if(window.ToyRank)window.ToyRank.watch(id);
+    });
+  });
+  // 入场一次编排（内嵌 WebView 可能不支持观察器，加兜底保证内容始终可见）
+  var cards=box.querySelectorAll('.relic');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target)}
+      })
+    },{threshold:.12});
+    Array.prototype.forEach.call(cards,function(el,i){
+      el.style.transitionDelay=(Math.min(i,4)*60)+'ms';io.observe(el);
+    });
+  }else{
+    Array.prototype.forEach.call(cards,function(el){el.classList.add('in')});
+  }
+  setTimeout(function(){
+    Array.prototype.forEach.call(cards,function(el){el.classList.add('in')});
+  },2000);
+}
+
+/* 悼念墙 */
+var MSG_KEY='memorial.msgs';
+function loadMsgs(){
+  try{return JSON.parse(localStorage.getItem(MSG_KEY)||'[]')||[]}catch(e){return[]}
+}
+function renderMsgs(){
+  var list=loadMsgs(),box=document.getElementById('msgList');
+  if(!list.length){box.innerHTML='<div class="msg"><div class="txt" style="color:var(--dim)">还没有人留言。你可以是第一个。</div></div>';return}
+  box.innerHTML=list.slice().reverse().map(function(m){
+    return '<div class="msg"><div class="who">'+esc(m.name||'无名氏')+'</div>'+
+      '<div class="txt">'+esc(m.text)+'</div><div class="when">'+esc(m.time||'')+'</div></div>'
+  }).join('');
+}
+document.getElementById('msgForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  var txt=document.getElementById('msgText'),name=document.getElementById('msgName');
+  var v=txt.value.trim();
+  if(!v){toast('写点什么再留下吧');txt.focus();return}
+  var list=loadMsgs();
+  list.push({text:v,name:name.value.trim(),time:new Date().toLocaleString('zh-CN',{hour12:false})});
+  try{localStorage.setItem(MSG_KEY,JSON.stringify(list.slice(-50)))}catch(err){}
+  txt.value='';name.value='';renderMsgs();toast('留言已留在墙上');
+});
+
+/* 悼词生成 */
+var VERSES=[
+  '「{t}」曾要人亲手完成。<br>如今它安静躺在展柜里，<br><span class="em">不是因为无用，是因为不再需要我们。</span>',
+  '为「{t}」献花。<br>你记得它，它就还没真正离场。<br><span class="em">手艺会退休，记忆不会。</span>',
+  '「{t}」走了，走得很安静。<br>没有告别仪式，只有一次更新。<br><span class="em">愿它在算力里，得到安息。</span>',
+  '我们把「{t}」送进这座厅。<br>它曾被无数双手磨得发亮。<br><span class="em">现在亮着的，是屏幕。</span>'
+];
+var vIdx=0,pick=RELICS[0];
+document.getElementById('genBtn').addEventListener('click',function(){
+  var tpl=VERSES[vIdx%VERSES.length];vIdx++;
+  document.getElementById('verse').innerHTML=tpl.replace('{t}',esc(pick.title));
+  toast('悼词已生成 · 可复制带走');
+});
+document.getElementById('copyBtn').addEventListener('click',function(){
+  var t=document.getElementById('verse'),text=t.innerText.replace(/\s+/g,' ').trim();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){toast('悼词已复制')},function(){fallbackCopy(text)});
+  }else fallbackCopy(text);
+});
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');ta.value=text;
+  ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('悼词已复制')}catch(e){toast('复制失败，请长按选择')}
+  document.body.removeChild(ta);
+}
+
+renderRelics();
+renderMsgs();
+/* 遗物选择：须在 renderRelics 生成 DOM 之后绑定，悼词据此挑选遗物 */
+Array.prototype.forEach.call(document.querySelectorAll('#relicList .relic'),function(el){
+  el.addEventListener('click',function(e){
+    if(e.target.closest('button'))return;
+    var id=el.getAttribute('data-id');
+    for(var i=0;i<RELICS.length;i++)if(RELICS[i].id===id){
+      pick=RELICS[i];
+      toast('已选中「'+RELICS[i].title+'」，可生成悼词');
+      break;
+    }
+  });
+});
+</script>
+<script>
+/* ===== TOY 原生榜单：成绩上报 + 页面内排行榜面板 =====
+ * 平台约束（官方 SDK 类型声明，见 README）：
+ *   - submitScore 传绝对分，服务端只保留该榜位的历史最高分，本次更低不覆盖
+ *     → 分数只增不减，且必须传绝对值。
+ *   - getRankList 游客可读，返回 [{ rank, score, nickname, avatar }]。
+ *   - getMyRank 需登录，是否上榜必须用 ranked 判断（score 允许 0 / 负）。
+ * 计分口径：只加分、不扣分。
+ *   - 棋牌：赢按难度阶梯 +1/2/3/4，输/平 +0；玩过一局保底 1 分。
+ *   - 内容：每处遗址献花 +1，同一处只计一次，一直累计。
+ * 面板只在用户点开时拉一次并缓存，不轮询，避免占用单 Toy 共享 QPS。
+ * init 不传 entry 时不自动创建入口，由页面自行绑定触发点（三纪：点右下角版本号）。
+ */
+(function () {
+  'use strict';
+  var BOARD = 1, LIMIT = 20, WAIT_MAX = 40;
+  var MIN = -16777216, MAX = 16777215;
+  var lastSent = null;  /* 只记住最后一次提交值：连续同分不重复发，本地重置后仍能重发 */
+  var cache = {};       /* period -> { list, my } */
+  var CFG = null;
+  var period = 'all';
+
+  function sdk() {
+    var w = window;
+    var list = [w.toy, w.Toy, w.toy && w.toy.toy, w.Toy && w.Toy.toy];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && typeof list[i].submitScore === 'function') return list[i];
+    }
+    return null;
+  }
+  function num(k, d) {
+    try {
+      var v = window.localStorage.getItem(k);
+      return v === null ? d : (parseInt(v, 10) || 0);
+    } catch (e) { return d; }
+  }
+  function put(k, v) {
+    try { window.localStorage.setItem(k, String(v)); } catch (e) {}
+    return v;
+  }
+  function clamp(v) { return v < MIN ? MIN : (v > MAX ? MAX : v); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  /* 只提交单调不减的绝对值；限流(307044)等失败按指数退避重试 */
+  function send(score, wait, retry) {
+    var t = sdk();
+    if (!t) {
+      if (wait < WAIT_MAX) window.setTimeout(function () { send(score, wait + 1, retry); }, 150);
+      return;
+    }
+    if (lastSent === score) return;
+    lastSent = score;
+    var fail = function () {
+      if (lastSent === score) lastSent = null;   /* 允许退避后重发 */
+      if (retry < 2) {
+        window.setTimeout(function () { send(score, 0, retry + 1); }, 1200 * Math.pow(2, retry));
+      }
+    };
+    try {
+      var r = t.submitScore({ score: score, board: BOARD });
+      if (r && typeof r.catch === 'function') r.catch(fail);
+    } catch (e) { fail(); }
+  }
+
+  /* 棋牌结算：赢加阶梯分，输/平加 0（不扣分）；玩过一局至少 1 分 */
+  function settle(delta) {
+    if (!CFG) return 0;
+    var v = num(CFG.key, 0) + (delta || 0);
+    if (v < 1) v = 1;
+    v = put(CFG.key, clamp(v));
+    send(v, 0, 0);
+    return v;
+  }
+
+  /* 内容类：每处遗址献花 +1；用已献 id 集合去重，同一处不重复计分 */
+  function watch(id) {
+    if (!CFG || !id) return 0;
+    var sk = CFG.key + '.seen', list = [];
+    try { list = JSON.parse(window.localStorage.getItem(sk) || '[]') || []; } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    if (list.indexOf(id) !== -1) return num(CFG.key, 0);
+    list.push(id);
+    try { window.localStorage.setItem(sk, JSON.stringify(list)); } catch (e) {}
+    var v = put(CFG.key, clamp(num(CFG.key, 0) + 1));
+    send(v, 0, 0);
+    return v;
+  }
+
+  /* ---------------- 面板 ---------------- */
+  var CSS = [
+    '.tyrank-entry{cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}',
+    '.tyrank-fab{position:fixed;z-index:60;right:calc(60px + env(safe-area-inset-right));bottom:calc(6px + var(--toy-bottom-inset, env(safe-area-inset-bottom,0px)));display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(120,140,170,.55);background:rgba(255,255,255,.9);color:#33405c;font-size:11px;font-weight:700;line-height:1;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(20,30,50,.16)}',
+    '.tyrank-link{border:0;background:none;padding:0;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:inherit;opacity:.85}',
+    '.tyrank-pill{font-size:10.5px;letter-spacing:.08em;color:rgba(255,255,255,.9);padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(12,11,10,.28);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);white-space:nowrap;text-decoration:none}',
+    '.tyrank-mask{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,12,20,.62)}',
+    '.tyrank-card{width:min(420px,100%);max-height:min(78vh,620px);display:flex;flex-direction:column;background:#fffdf9;color:#25304a;border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.3);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}',
+    '.tyrank-dark .tyrank-card{background:#1b1917;color:#f3ece1}',
+    '.tyrank-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}',
+    '.tyrank-title{font-size:16px;font-weight:800;letter-spacing:.5px}',
+    '.tyrank-x{border:0;background:none;color:inherit;font-size:22px;line-height:1;cursor:pointer;opacity:.6;padding:0 4px}',
+    '.tyrank-tabs{display:flex;gap:6px;padding:0 16px 10px}',
+    '.tyrank-tab{border:1px solid rgba(120,140,170,.4);background:transparent;color:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer;opacity:.65}',
+    '.tyrank-tab.on{background:#33405c;color:#fff;border-color:#33405c;opacity:1}',
+    '.tyrank-dark .tyrank-tab.on{background:#c9a227;color:#1b1917;border-color:#c9a227}',
+    '.tyrank-me{display:flex;gap:8px;padding:0 16px 12px}',
+    '.tyrank-me > div{flex:1;min-width:0;background:rgba(120,140,170,.12);border-radius:10px;padding:9px 8px;text-align:center}',
+    '.tyrank-me b{display:block;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-me span{display:block;font-size:10px;opacity:.65;margin-top:3px}',
+    '.tyrank-list{flex:1;min-height:80px;overflow-y:auto;padding:0 10px 10px;-webkit-overflow-scrolling:touch}',
+    '.tyrank-row{display:flex;align-items:center;gap:9px;padding:7px 6px;border-bottom:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-row:last-child{border-bottom:0}',
+    '.tyrank-no{width:24px;flex:0 0 24px;text-align:center;font-size:12px;font-weight:800;opacity:.6}',
+    '.tyrank-no.top{color:#c8871a;opacity:1}',
+    '.tyrank-av{width:30px;height:30px;flex:0 0 30px;border-radius:50%;object-fit:cover;background:rgba(120,140,170,.2)}',
+    '.tyrank-name{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.tyrank-score{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}',
+    '.tyrank-tip{padding:22px 16px;text-align:center;font-size:13px;line-height:1.7;opacity:.75}',
+    '.tyrank-foot{padding:9px 16px 12px;font-size:10px;line-height:1.6;opacity:.6;border-top:1px solid rgba(120,140,170,.16)}',
+    '.tyrank-retry{border:1px solid rgba(120,140,170,.5);background:transparent;color:inherit;font-size:12px;padding:5px 12px;border-radius:999px;cursor:pointer;margin-top:8px}'
+  ].join('');
+
+  function injectStyle() {
+    if (document.getElementById('tyrank-style')) return;
+    var s = document.createElement('style');
+    s.id = 'tyrank-style';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function normalizeList(raw) {
+    if (!raw) return null;
+    var arr = Array.isArray(raw) ? raw
+      : (raw.items || raw.list || raw.rankList || raw.rank_list || raw.data);
+    if (!Array.isArray(arr)) return null;
+    return arr.map(function (it, i) {
+      if (!it || typeof it !== 'object') return null;
+      return {
+        rank: Number(it.rank) || (i + 1),
+        score: Number(it.score) || 0,
+        nickname: it.nickname || it.name || it.uname || it.nick || '玩家',
+        avatar: it.avatar || it.face || it.avatar_url || ''
+      };
+    }).filter(Boolean);
+  }
+
+  function meMarkup(my) {
+    var rankTxt = (my && my.ranked && my.rank) ? ('第 ' + my.rank + ' 名') : '未上榜';
+    var label = CFG.kind === 'board' ? '榜单积分' : '献花数';
+    return '<div><b>' + esc(rankTxt) + '</b><span>我的名次</span></div>' +
+           '<div><b>' + esc(String(num(CFG.key, 0))) + '</b><span>' + label + '</span></div>';
+  }
+
+  function listMarkup(list) {
+    return list.map(function (it) {
+      var av = it.avatar
+        ? '<img class="tyrank-av" src="' + esc(it.avatar) + '" alt="" loading="lazy" />'
+        : '<span class="tyrank-av"></span>';
+      return '<div class="tyrank-row">' +
+        '<span class="tyrank-no' + (it.rank <= 3 ? ' top' : '') + '">' + it.rank + '</span>' +
+        av +
+        '<span class="tyrank-name">' + esc(it.nickname) + '</span>' +
+        '<span class="tyrank-score">' + it.score + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function paint(data) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask || !CFG) return;
+    var listEl = mask.querySelector('.tyrank-list');
+    var meEl = mask.querySelector('.tyrank-me');
+    var tabs = mask.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-period') === period);
+    }
+    meEl.innerHTML = meMarkup(data && data.my);
+    if (data && data.error) {
+      listEl.innerHTML = '<div class="tyrank-tip">榜单没加载出来。<br>' +
+        '如果是在电脑浏览器里预览，请到 B站 App 内打开本 Toy。<br>' +
+        '<button type="button" class="tyrank-retry">重新加载</button></div>';
+      var btn = listEl.querySelector('.tyrank-retry');
+      if (btn) btn.addEventListener('click', function () { load(period, true); });
+    } else if (!data || !data.list || !data.list.length) {
+      listEl.innerHTML = '<div class="tyrank-tip">' +
+        (CFG.kind === 'board' ? '还没有人上榜。玩一局，就能占个位置。' : '还没有人上榜。给遗址献一束花，就会记 1 分。') +
+        '</div>';
+    } else {
+      listEl.innerHTML = listMarkup(data.list);
+    }
+  }
+
+  function setLoading(on) {
+    var mask = document.getElementById('tyrank-mask');
+    if (!mask) return;
+    if (on) mask.querySelector('.tyrank-list').innerHTML =
+      '<div class="tyrank-tip">榜单加载中…</div>';
+  }
+
+  /* 不在 Toy 宿主时 SDK 握手会一直挂着，加超时让面板给出明确下一步而不是永远「加载中」 */
+  function withTimeout(p, ms) {
+    return new window.Promise(function (resolve) {
+      var done = false;
+      window.setTimeout(function () { if (!done) { done = true; resolve(null); } }, ms);
+      window.Promise.resolve(p).then(function (v) {
+        if (!done) { done = true; resolve(v); }
+      }, function () { if (!done) { done = true; resolve(null); } });
+    });
+  }
+
+  function load(p, force) {
+    period = p;
+    if (cache[p] && !force) { paint(cache[p]); return; }
+    var t = sdk();
+    if (!t) { paint({ error: 'unavailable' }); return; }
+    setLoading(true);
+    var lp = t.getRankList
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getRankList({ board: BOARD, period: p, limit: LIMIT });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    var mp = t.getMyRank
+      ? withTimeout(window.Promise.resolve().then(function () {
+          return t.getMyRank({ board: BOARD, period: p });
+        }).catch(function () { return null; }), 3500)
+      : window.Promise.resolve(null);
+    window.Promise.all([lp, mp]).then(function (res) {
+      var list = normalizeList(res[0]), my = res[1];
+      if (list === null) { paint({ error: 'unavailable' }); return; }
+      /* 平台返回的是历史最高分：换设备 / 清过缓存时用它校准本地显示 */
+      if (my && my.ranked && typeof my.score === 'number' && my.score > num(CFG.key, 0)) {
+        put(CFG.key, clamp(my.score));
+      }
+      cache[p] = { list: list, my: my || null };
+      paint(cache[p]);
+    });
+  }
+
+  function openPanel() {
+    injectStyle();
+    var mask = document.getElementById('tyrank-mask');
+    if (mask) { mask.hidden = false; load(period); return; }
+    mask = el('div', 'tyrank-mask' + (CFG.dark ? ' tyrank-dark' : ''));
+    mask.id = 'tyrank-mask';
+    mask.addEventListener('click', function (e) { if (e.target === mask) mask.hidden = true; });
+    var card = el('div', 'tyrank-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', '排行榜');
+    card.innerHTML =
+      '<div class="tyrank-head"><span class="tyrank-title">排行榜</span>' +
+        '<button type="button" class="tyrank-x" aria-label="关闭">×</button></div>' +
+      '<div class="tyrank-tabs">' +
+        '<button type="button" class="tyrank-tab on" data-period="all">总榜</button>' +
+        '<button type="button" class="tyrank-tab" data-period="week">本周</button>' +
+      '</div>' +
+      '<div class="tyrank-me"></div>' +
+      '<div class="tyrank-list"></div>' +
+      '<div class="tyrank-foot">分数只加不减，取历史最好成绩；' +
+        (CFG.kind === 'board' ? '赢按难度加 1/2/3/4 分，输和平局不加分。' : '每处遗址献花加 1 分，同一处不重复计，一直累计。') +
+        '</div>';
+    mask.appendChild(card);
+    document.body.appendChild(mask);
+    card.querySelector('.tyrank-x').addEventListener('click', function () { mask.hidden = true; });
+    var tabs = card.querySelectorAll('.tyrank-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function () { load(this.getAttribute('data-period')); });
+    }
+    paint(null);   /* 先填好「我的」区，避免加载榜单时这块空白 */
+    load('all');
+  }
+
+  function mountEntry() {
+    var e = CFG.entry;
+    if (!e) return;   /* 入口由页面自管（三纪点版本号）时不创建 */
+    var anchor = e.selector ? document.querySelector(e.selector) : null;
+    var tag = e.tag || 'button';
+    var btn = document.createElement(tag);
+    if (tag === 'button') btn.type = 'button';
+    if (tag === 'a') { btn.setAttribute('href', '#'); btn.setAttribute('role', 'button'); }
+    btn.className = e.className || 'tyrank-entry';
+    btn.textContent = e.label || '排行榜';
+    btn.setAttribute('aria-label', '打开排行榜');
+    btn.addEventListener('click', function (ev) { ev.preventDefault(); openPanel(); });
+    if (e.fab) document.body.appendChild(btn);
+    else if (anchor) anchor.appendChild(btn);
+    else document.body.appendChild(btn);
+  }
+
+  window.ToyRank = {
+    init: function (cfg) {
+      CFG = cfg;
+      injectStyle();
+      mountEntry();
+    },
+    settle: settle,
+    watch: watch,
+    open: openPanel,
+    value: function () { return CFG ? num(CFG.key, 0) : 0; }
+  };
+})();
+window.ToyRank.init({
+  key: 'memorial.rank.v1',
+  kind: 'content',
+  unit: '束'
+});
+/* 榜单入口：直接点右下角版本号，页脚不再单独显示「排行榜」 */
+(function () {
+  var v = document.getElementById('verTag');
+  if (v) v.addEventListener('click', function () { window.ToyRank.open(); });
+})();
+</script>
+
+<script>
+/* ===== TOY 原生底栏（评论 / 收藏 / 点赞）适配 =====
+ * TOY 容器底部有一条原生互动栏，以「覆盖」方式浮在 WebView 之上：页面可用高度
+ * 不变，但底部约 60~70px 会被盖住。env(safe-area-inset-bottom) 只反映系统安全区
+ * （刘海 / Home Indicator），不含 TOY 自己的原生栏，在容器里通常是 0，靠它留白
+ * 完全无效。这里在原生容器中推出需要预留的底部高度并写入 --toy-bottom-inset；
+ * Web 环境下该变量等于系统安全区，行为与改动前完全一致。
+ */
+(function () {
+  var root = document.documentElement;
+  var NATIVE_BAR = 64;   // TOY 原生互动栏实测高度（CSS px），容器未上报时的兜底
+  var env = 0;           // 系统安全区底部高度（px）
+  var timer = null;
+
+  function envBottom() {
+    try {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);';
+      document.body.appendChild(d);
+      var v = parseFloat(getComputedStyle(d).paddingBottom) || 0;
+      if (d.parentNode) d.parentNode.removeChild(d);
+      return v > 0 ? v : 0;
+    } catch (e) { return 0; }
+  }
+
+  function apply(px) {
+    var v = Math.max(0, Math.round(px) || 0);
+    root.style.setProperty('--toy-bottom-inset', v + 'px');
+  }
+
+  /* 找出 SDK 命名空间：不同容器里挂在 window.toy 或 window.Toy.toy。
+     官方 SDK 用 defineProperty 定义 window.Toy（getter），这里统一按「有该方法」判定。 */
+  function sdkNs() {
+    var cands = [];
+    try { if (window.Toy) cands.push(window.Toy); } catch (e) {}
+    try { if (window.toy) cands.push(window.toy); } catch (e) {}
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i];
+      if (!c) continue;
+      if (typeof c.getContainerState === 'function') return c;
+      if (c.toy && typeof c.toy.getContainerState === 'function') return c.toy;
+    }
+    return null;
+  }
+
+  /* 由容器状态推出底部需要预留的总高度（含系统安全区） */
+  function fromState(st) {
+    if (st && st.immersive === true) { apply(env); return; }   // 沉浸模式无原生栏
+    var reported = 0;
+    if (st && st.safeArea && typeof st.safeArea.bottom === 'number') reported = st.safeArea.bottom;
+    apply(Math.max(env, NATIVE_BAR, reported));
+  }
+
+  function probe() {
+    var sdk = sdkNs();
+    if (!sdk) return false;
+    var settled = false;
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') {
+        p.then(
+          function (st) { settled = true; fromState(st); },
+          function () { settled = true; apply(env); }   // Web 端不支持 → 仅系统安全区
+        );
+        setTimeout(function () { if (!settled) fromState(null); }, 900);
+      } else {
+        settled = true;
+        apply(env);
+      }
+    } catch (e) {
+      settled = true;
+      apply(env);
+    }
+    return true;
+  }
+
+  function boot() {
+    env = envBottom();
+    var tries = 0;
+    timer = setInterval(function () {
+      if (probe()) { clearInterval(timer); timer = null; return; }
+      if (++tries > 24) { clearInterval(timer); timer = null; apply(env); }
+    }, 150);
+  }
+
+  function refresh() {
+    env = envBottom();
+    var sdk = sdkNs();
+    if (!sdk) { apply(env); return; }
+    try {
+      var p = sdk.getContainerState();
+      if (p && typeof p.then === 'function') p.then(fromState, function () { apply(env); });
+      else apply(env);
+    } catch (e) { apply(env); }
+  }
+
+  if (document.body) boot();
+  else document.addEventListener('DOMContentLoaded', boot);
+
+  window.addEventListener('resize', refresh);
+  window.addEventListener('orientationchange', function () { setTimeout(refresh, 260); });
+
+  /* 原生栏展开 / 收起时容器会广播状态变化，跟着重新预留 */
+  function watch() {
+    var sdk = sdkNs();
+    if (!sdk || typeof sdk.onContainerChange !== 'function') return;
+    try {
+      sdk.onContainerChange(function (st) { fromState(st && st.state ? st.state : st); });
+    } catch (e) { /* 部分容器不支持订阅，忽略 */ }
+  }
+  if (document.body) setTimeout(watch, 400);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(watch, 400); });
+})();
+</script>
+</body>
+</html>
