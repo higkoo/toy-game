@@ -60,7 +60,7 @@ body::before{
 .kicker b{color:var(--mourn);font-weight:400}
 .hero h1{
   margin:26px 0 0;font-size:clamp(40px,10vw,74px);font-weight:500;line-height:1.1;
-  letter-spacing:.12em;color:var(--bone);
+  letter-spacing:.12em;color:var(--bone);text-wrap:balance;
 }
 .hero h1 span{display:block;font-size:clamp(15px,3.6vw,22px);letter-spacing:.5em;color:var(--muted);margin-top:18px}
 .hero .epitaph{
@@ -82,7 +82,7 @@ body::before{
 .section{padding:64px 0 8px}
 .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
 .sec-head .no{font-family:var(--mono);font-size:11px;color:var(--mourn);letter-spacing:.16em}
-.sec-head h2{margin:0;font-size:clamp(23px,5vw,31px);font-weight:500;letter-spacing:.16em}
+.sec-head h2{margin:0;font-size:clamp(23px,5vw,31px);font-weight:500;letter-spacing:.16em;text-wrap:balance}
 .sec-desc{margin:14px 0 0;font-size:13.5px;line-height:2;color:var(--muted);max-width:600px}
 .rule{height:1px;background:linear-gradient(90deg,var(--mourn),var(--rule) 24%,transparent);margin:26px 0 36px}
 
@@ -111,7 +111,8 @@ body::before{
   overflow-x:auto;white-space:pre;letter-spacing:.02em;
 }
 .relic.formula-ai .formula{color:#8fe6d9;border-left-color:var(--cyan)}
-.relic p.desc{margin:0;font-size:14px;line-height:2;color:#a9a49a}
+.relic p.desc{margin:0;font-size:14px;line-height:2;color:#a9a49a;text-wrap:pretty}
+.relic .epi,.msg .txt{text-wrap:pretty}
 .relic .epi{
   margin:16px 0 0;padding-left:14px;border-left:1px solid var(--gold);
   font-size:13px;line-height:1.9;color:var(--gold);font-style:italic;
@@ -309,7 +310,7 @@ body::before{
   <div class="copy">数学界赛博葬礼 · 虚构设定 · 向所有手工技艺致意</div>
 </footer>
 
-<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.0.0</button>
+<button type="button" class="version" id="verTag" title="页面版本 · 点开排行榜" aria-label="打开排行榜">v1.0.1</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -451,7 +452,9 @@ function loadMsgs(){
 function renderMsgs(){
   var list=loadMsgs(),box=document.getElementById('msgList');
   if(!list.length){box.innerHTML='<div class="msg"><div class="txt" style="color:var(--dim)">还没有人留言。你可以是第一个。</div></div>';return}
-  box.innerHTML=list.slice().reverse().map(function(m){
+  // 现代写法优先；旧内核 WebView 降级到 slice().reverse()，保持不可变语义
+  var ordered=Array.prototype.toReversed?list.toReversed():list.slice().reverse();
+  box.innerHTML=ordered.map(function(m){
     return '<div class="msg"><div class="who">'+esc(m.name||'无名氏')+'</div>'+
       '<div class="txt">'+esc(m.text)+'</div><div class="when">'+esc(m.time||'')+'</div></div>'
   }).join('');
