@@ -62,4 +62,8 @@ toy create ./src \
   --yes
 ```
 
-版本：`v1.0.0`。
+版本：`v1.0.1`（v1.0.1 起采纳 Chrome modern-web-guidance 建议：`toReversed()` 不可变倒序 + 标题 `text-wrap: balance` / 正文 `text-wrap: pretty`）。
+
+## 宣传视频
+
+`promo/memorial-promo.mp4`：Remotion 制作的 2 分 17 秒横屏宣传片，九幕分镜（世界观 / 六件遗物 / 献花 / 悼念墙 / 悼词 / 结语），云健男声中文旁白 + 自制 A 小调氛围钢琴 BGM，逐句字幕与 Ken Burns 运镜。工程源码见 `promo/MemorialPromo.tsx`、旁白生成见 `promo/tts.py`。
